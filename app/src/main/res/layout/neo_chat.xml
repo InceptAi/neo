@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="horizontal" android:layout_width="wrap_content"
+    android:background="@drawable/rounded_shape"
+    android:layout_height="wrap_content">
+
+
+    <TextView
+        android:id="@+id/n_logo"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:textSize="25sp"
+        android:textColor="@color/neoBlue"
+        android:padding="5dp"
+        android:text="@string/n_logo" />
+
+       <TextView
+        android:id="@+id/n_text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/test_msg"
+        />
+</LinearLayout>
