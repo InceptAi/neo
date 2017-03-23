@@ -6,7 +6,6 @@
         android:centerY="0.5"
         android:centerColor="@color/neoMediumBlue"
         android:endColor="@color/neoBlue"
-        android:gradientRadius="integer"
         android:startColor="@color/neoLightBlue"
         android:type="linear" />
 </shape>

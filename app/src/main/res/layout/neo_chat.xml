@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:orientation="horizontal" android:layout_width="wrap_content"
+    android:orientation="horizontal" android:layout_width="match_parent"
     android:background="@drawable/rounded_shape"
     android:layout_height="wrap_content">
 
@@ -9,7 +9,6 @@
         android:id="@+id/n_logo"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_weight="1"
         android:textSize="25sp"
         android:textColor="@color/neoBlue"
         android:padding="5dp"
@@ -19,6 +18,7 @@
         android:id="@+id/n_text"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+           android:paddingLeft="10dp"
         android:text="@string/test_msg"
         />
 </LinearLayout>
