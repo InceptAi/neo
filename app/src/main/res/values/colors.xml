@@ -3,7 +3,7 @@
     <color name="colorPrimary">#3F51B5</color>
     <color name="colorPrimaryDark">#303F9F</color>
     <color name="colorAccent">#FF4081</color>
-    <color name="neoBlue">#3366ff</color>
-    <color name="neoLightBlue">#e6ecff</color>
-    <color name="neoMediumBlue">#99b3ff</color>
+    <color name="neoBlue">#0198E1</color>
+    <color name="neoLightBlue">#42C0FB</color>
+    <color name="neoMediumBlue">#0BB5FF</color>
 </resources>

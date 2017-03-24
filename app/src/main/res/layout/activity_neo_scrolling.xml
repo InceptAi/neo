@@ -52,14 +52,20 @@
         android:layout_gravity="bottom"
         android:layout_height="wrap_content">
 
-    <EditText
+        <ImageView
+            android:id="@+id/imageView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:srcCompat="@drawable/ic_add_icon" />
+
+        <EditText
         android:id="@+id/btmEditText"
         android:layout_width="0dp"
         android:layout_weight="1"
         android:maxLines="1"
         android:imeOptions="actionDone"
         android:layout_height="wrap_content"
-        android:singleLine="true"
+            android:layout_gravity="center_vertical"
         android:hint="@string/test_msg"/>
 
     <android.support.v7.widget.AppCompatImageView
