@@ -1,6 +1,6 @@
 <resources>
     <string name="app_name">Neo</string>
-    <string name="test_msg">Hi how are you doing ?</string>
+    <string name="test_msg">Say something...</string>
     <string name="action_settings">Settings</string>
     <string name="n_logo">n</string>
     <string name="user_logo">Me</string>
