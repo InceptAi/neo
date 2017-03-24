@@ -51,13 +51,17 @@
         android:layout_gravity="bottom"
         android:layout_height="wrap_content">
 
-    <android.support.v7.widget.AppCompatEditText
+    <EditText
+        android:id="@+id/btmEditText"
         android:layout_width="0dp"
         android:layout_weight="1"
+        android:maxLines="1"
+        android:imeOptions="actionDone"
         android:layout_height="wrap_content"
+        android:singleLine="true"
         android:hint="@string/test_msg"/>
 
-    <android.support.v4.widget.CircleImageView
+    <android.support.v7.widget.AppCompatImageView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:src="@drawable/ic_action_mic"/>

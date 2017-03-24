@@ -5,11 +5,19 @@ import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
+import android.view.KeyEvent;
 import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.inputmethod.EditorInfo;
+import android.widget.EditText;
+import android.widget.TextView;
 
 public class NeoScrollingActivity extends AppCompatActivity {
+    private static final String TAG = "Neo";
+
+    private EditText bottomEditText;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -17,13 +25,25 @@ public class NeoScrollingActivity extends AppCompatActivity {
         setContentView(R.layout.activity_neo_scrolling);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
+        bottomEditText = (EditText) findViewById(R.id.btmEditText);
 
-        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
-        fab.setOnClickListener(new View.OnClickListener() {
+        bottomEditText.setOnEditorActionListener(new TextView.OnEditorActionListener() {
             @Override
-            public void onClick(View view) {
-                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
+            public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
+                Log.i(TAG, "actionId = " + actionId);
+                if (actionId == EditorInfo.IME_NULL && event.getAction() == KeyEvent.ACTION_DOWN) {
+                    Log.i(TAG, "ENTER.");
+                }
+                if (actionId == EditorInfo.IME_ACTION_DONE ||
+                        actionId == EditorInfo.IME_ACTION_GO ||
+                        actionId == EditorInfo.IME_ACTION_NEXT) {
+                    Log.e(TAG, "CALL NEO.");
+                    // Call Neo !
+                }
+                String text = bottomEditText.getText().toString();
+                Log.i(TAG, "Text = " + text);
+                bottomEditText.getText().clear();
+                return false;
             }
         });
     }
