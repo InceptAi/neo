@@ -33,7 +33,8 @@
         </android.support.design.widget.CollapsingToolbarLayout>
     </android.support.design.widget.AppBarLayout>
 
-    <include layout="@layout/content_neo_scrolling" />
+    <include layout="@layout/content_neo_scrolling"
+        android:id="@+id/scrollView"/>
 
     <!--
     <android.support.design.widget.FloatingActionButton

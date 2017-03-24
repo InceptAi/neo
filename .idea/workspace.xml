@@ -11,9 +11,9 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="3cf827a6-0da8-4fe9-be55-0dee990a237b" name="Default" comment="">
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/app/src/main/java/com/neoai/neo/NeoScrollingActivity.java" afterPath="$PROJECT_DIR$/app/src/main/java/com/neoai/neo/NeoScrollingActivity.java" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/app/src/main/res/layout/activity_neo_scrolling.xml" afterPath="$PROJECT_DIR$/app/src/main/res/layout/activity_neo_scrolling.xml" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/app/src/main/res/layout/content_neo_scrolling.xml" afterPath="$PROJECT_DIR$/app/src/main/res/layout/content_neo_scrolling.xml" />
     </list>
     <ignored path="Neo.iws" />
     <ignored path=".idea/workspace.xml" />
@@ -51,10 +51,11 @@
             <state />
           </provider>
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="437">
-              <caret line="60" column="33" selection-start-line="60" selection-start-column="33" selection-end-line="60" selection-end-column="33" />
+            <state relative-caret-position="180">
+              <caret line="12" column="30" selection-start-line="12" selection-start-column="30" selection-end-line="12" selection-end-column="30" />
               <folding>
-                <element signature="e#2479#2497#0" expanded="true" />
+                <element signature="e#585#608#0" expanded="true" />
+                <element signature="e#2515#2533#0" expanded="true" />
               </folding>
             </state>
           </provider>
@@ -66,8 +67,8 @@
             <state />
           </provider>
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="210">
-              <caret line="14" column="32" selection-start-line="14" selection-start-column="32" selection-end-line="14" selection-end-column="32" />
+            <state relative-caret-position="225">
+              <caret line="15" column="10" selection-start-line="15" selection-start-column="10" selection-end-line="15" selection-end-column="10" />
               <folding />
             </state>
           </provider>
@@ -100,30 +101,10 @@
         </entry>
       </file>
       <file leaf-file-name="blue_gradient.xml" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/app/build/intermediates/res/merged/debug/drawable/blue_gradient.xml">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="120">
-              <caret line="9" column="32" selection-start-line="9" selection-start-column="32" selection-end-line="9" selection-end-column="32" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="blue_gradient.xml" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/app/src/main/res/drawable/blue_gradient.xml">
           <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="105">
               <caret line="7" column="41" selection-start-line="7" selection-start-column="41" selection-end-line="7" selection-end-column="41" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="neo_chat.xml" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/app/build/intermediates/res/merged/debug/layout/neo_chat.xml">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="330">
-              <caret line="22" column="0" selection-start-line="22" selection-start-column="0" selection-end-line="22" selection-end-column="0" />
               <folding />
             </state>
           </provider>
@@ -152,11 +133,12 @@
       <file leaf-file-name="NeoScrollingActivity.java" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/app/src/main/java/com/neoai/neo/NeoScrollingActivity.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="366">
-              <caret line="43" column="38" selection-start-line="43" selection-start-column="38" selection-end-line="43" selection-end-column="38" />
+            <state relative-caret-position="543">
+              <caret line="77" column="0" selection-start-line="77" selection-start-column="0" selection-end-line="77" selection-end-column="0" />
               <folding>
-                <element signature="e#1031#1898#0" expanded="true" />
-                <element signature="e#1897#1898#0" expanded="true" />
+                <element signature="imports" expanded="true" />
+                <element signature="e#1092#1959#0" expanded="true" />
+                <element signature="e#1958#1959#0" expanded="true" />
               </folding>
             </state>
           </provider>
@@ -1990,7 +1972,6 @@
     <option name="CHANGED_PATHS">
       <list>
         <option value="$PROJECT_DIR$/app/src/main/res/values/dimens.xml" />
-        <option value="$PROJECT_DIR$/app/src/main/res/layout/content_neo_scrolling.xml" />
         <option value="$PROJECT_DIR$/app/src/main/res/values/colors.xml" />
         <option value="$PROJECT_DIR$/app/build.gradle" />
         <option value="$PROJECT_DIR$/app/build/intermediates/res/merged/debug/drawable/blue_gradient.xml" />
@@ -2000,6 +1981,7 @@
         <option value="$PROJECT_DIR$/app/src/main/res/layout/neo_chat.xml" />
         <option value="$PROJECT_DIR$/app/src/main/res/drawable/blue_gradient.xml" />
         <option value="$PROJECT_DIR$/app/build/intermediates/res/merged/debug/layout/neo_chat.xml" />
+        <option value="$PROJECT_DIR$/app/src/main/res/layout/content_neo_scrolling.xml" />
         <option value="$PROJECT_DIR$/app/src/main/res/layout/activity_neo_scrolling.xml" />
         <option value="$PROJECT_DIR$/app/src/main/java/com/neoai/neo/NeoScrollingActivity.java" />
       </list>
@@ -2552,7 +2534,8 @@
         <state relative-caret-position="840">
           <caret line="56" column="28" selection-start-line="56" selection-start-column="28" selection-end-line="56" selection-end-column="28" />
           <folding>
-            <element signature="e#2479#2497#0" expanded="true" />
+            <element signature="e#585#608#0" expanded="true" />
+            <element signature="e#2515#2533#0" expanded="true" />
           </folding>
         </state>
       </provider>
@@ -2635,8 +2618,9 @@
         <state relative-caret-position="495">
           <caret line="40" column="40" selection-start-line="40" selection-start-column="40" selection-end-line="40" selection-end-column="40" />
           <folding>
-            <element signature="e#1031#1898#0" expanded="true" />
-            <element signature="e#1897#1898#0" expanded="true" />
+            <element signature="imports" expanded="true" />
+            <element signature="e#1092#1959#0" expanded="true" />
+            <element signature="e#1958#1959#0" expanded="true" />
           </folding>
         </state>
       </provider>
@@ -2649,7 +2633,8 @@
         <state relative-caret-position="840">
           <caret line="56" column="28" selection-start-line="56" selection-start-column="28" selection-end-line="56" selection-end-column="28" />
           <folding>
-            <element signature="e#2479#2497#0" expanded="true" />
+            <element signature="e#585#608#0" expanded="true" />
+            <element signature="e#2515#2533#0" expanded="true" />
           </folding>
         </state>
       </provider>
@@ -2732,8 +2717,9 @@
         <state relative-caret-position="495">
           <caret line="40" column="40" selection-start-line="40" selection-start-column="40" selection-end-line="40" selection-end-column="40" />
           <folding>
-            <element signature="e#1031#1898#0" expanded="true" />
-            <element signature="e#1897#1898#0" expanded="true" />
+            <element signature="imports" expanded="true" />
+            <element signature="e#1092#1959#0" expanded="true" />
+            <element signature="e#1958#1959#0" expanded="true" />
           </folding>
         </state>
       </provider>
@@ -2837,8 +2823,8 @@
         <state />
       </provider>
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="210">
-          <caret line="14" column="32" selection-start-line="14" selection-start-column="32" selection-end-line="14" selection-end-column="32" />
+        <state relative-caret-position="225">
+          <caret line="15" column="10" selection-start-line="15" selection-start-column="10" selection-end-line="15" selection-end-column="10" />
           <folding />
         </state>
       </provider>
@@ -2848,21 +2834,23 @@
         <state />
       </provider>
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="437">
-          <caret line="60" column="33" selection-start-line="60" selection-start-column="33" selection-end-line="60" selection-end-column="33" />
+        <state relative-caret-position="180">
+          <caret line="12" column="30" selection-start-line="12" selection-start-column="30" selection-end-line="12" selection-end-column="30" />
           <folding>
-            <element signature="e#2479#2497#0" expanded="true" />
+            <element signature="e#585#608#0" expanded="true" />
+            <element signature="e#2515#2533#0" expanded="true" />
           </folding>
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/app/src/main/java/com/neoai/neo/NeoScrollingActivity.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="366">
-          <caret line="43" column="38" selection-start-line="43" selection-start-column="38" selection-end-line="43" selection-end-column="38" />
+        <state relative-caret-position="543">
+          <caret line="77" column="0" selection-start-line="77" selection-start-column="0" selection-end-line="77" selection-end-column="0" />
           <folding>
-            <element signature="e#1031#1898#0" expanded="true" />
-            <element signature="e#1897#1898#0" expanded="true" />
+            <element signature="imports" expanded="true" />
+            <element signature="e#1092#1959#0" expanded="true" />
+            <element signature="e#1958#1959#0" expanded="true" />
           </folding>
         </state>
       </provider>

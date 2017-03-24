@@ -12,12 +12,14 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.inputmethod.EditorInfo;
 import android.widget.EditText;
+import android.widget.ScrollView;
 import android.widget.TextView;
 
 public class NeoScrollingActivity extends AppCompatActivity {
     private static final String TAG = "Neo";
 
     private EditText bottomEditText;
+    ScrollView scrollView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -31,6 +33,8 @@ public class NeoScrollingActivity extends AppCompatActivity {
             @Override
             public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
                 Log.i(TAG, "actionId = " + actionId);
+                String text = bottomEditText.getText().toString();
+                Log.i(TAG, "Text = " + text);
                 if (actionId == EditorInfo.IME_NULL && event.getAction() == KeyEvent.ACTION_DOWN) {
                     Log.i(TAG, "ENTER.");
                 }
@@ -40,12 +44,12 @@ public class NeoScrollingActivity extends AppCompatActivity {
                     Log.e(TAG, "CALL NEO.");
                     // Call Neo !
                 }
-                String text = bottomEditText.getText().toString();
-                Log.i(TAG, "Text = " + text);
                 bottomEditText.getText().clear();
                 return false;
             }
         });
+
+        scrollView = (ScrollView) findViewById(R.id.)
     }
 
     @Override
@@ -67,5 +71,10 @@ public class NeoScrollingActivity extends AppCompatActivity {
             return true;
         }
         return super.onOptionsItemSelected(item);
+    }
+
+
+    public static class NeoAgent {
+
     }
 }
