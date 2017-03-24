@@ -3,6 +3,14 @@
     android:orientation="vertical" android:layout_width="match_parent"
     android:layout_height="match_parent">
 
+<ViewFlipper
+    android:layout_width="match_parent"
+    android:id="@+id/vf"
+    android:layout_height="match_parent">
 
+    <include android:id="@+id/inc_neo_chat" layout="@layout/neo_chat"/>
+    <include android:id="@+id/inc_neo_answer" layout="@layout/neo_answer"/>
+    <include android:id="@+id/inc_user_chat" layout="@layout/user_chat"/>
+</ViewFlipper>
 
 </LinearLayout>
