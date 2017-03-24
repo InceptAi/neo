@@ -19,7 +19,6 @@ public class NeoScrollingActivity extends AppCompatActivity {
     private static final String TAG = "Neo";
 
     private EditText bottomEditText;
-    ScrollView scrollView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -27,6 +26,7 @@ public class NeoScrollingActivity extends AppCompatActivity {
         setContentView(R.layout.activity_neo_scrolling);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
+        getSupportActionBar().setDisplayShowTitleEnabled(false);
         bottomEditText = (EditText) findViewById(R.id.btmEditText);
 
         bottomEditText.setOnEditorActionListener(new TextView.OnEditorActionListener() {
@@ -48,14 +48,12 @@ public class NeoScrollingActivity extends AppCompatActivity {
                 return false;
             }
         });
-
-        scrollView = (ScrollView) findViewById(R.id.)
     }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
-        getMenuInflater().inflate(R.menu.menu_neo_scrolling, menu);
+        // getMenuInflater().inflate(R.menu.menu_neo_scrolling, menu);
         return true;
     }
 
