@@ -1,6 +1,6 @@
 <resources>
-    <string name="app_name">Neo Proto</string>
+    <string name="app_name">Neo Prototype</string>
 
-    <string name="dummy_button">Dummy Button</string>
-    <string name="dummy_content">DUMMY\nCONTENT</string>
+    <string name="start_display">Start Display</string>
+    <string name="neo_title">NEO\nPROTOTYPE</string>
 </resources>

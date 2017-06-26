@@ -8,10 +8,6 @@ import android.os.Handler;
 import android.view.MotionEvent;
 import android.view.View;
 
-/**
- * An example full-screen activity that shows and hides the system UI (i.e.
- * status bar and navigation/system bar) with user interaction.
- */
 public class NeoMainActivity extends AppCompatActivity {
     /**
      * Whether or not the system UI should be auto-hidden after
@@ -83,6 +79,9 @@ public class NeoMainActivity extends AppCompatActivity {
         }
     };
 
+
+    private NeoDisplay neoDisplay;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -106,6 +105,8 @@ public class NeoMainActivity extends AppCompatActivity {
         // operations to prevent the jarring behavior of controls going away
         // while interacting with the UI.
         findViewById(R.id.dummy_button).setOnTouchListener(mDelayHideTouchListener);
+        neoDisplay = new NeoDisplay(this);
+        neoDisplay.create();
     }
 
     @Override
