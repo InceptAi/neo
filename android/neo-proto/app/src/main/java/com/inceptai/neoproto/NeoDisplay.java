@@ -21,7 +21,7 @@ public class NeoDisplay {
     private Context context;
     private DisplayMetrics primaryDisplayMetrics;
     private SurfaceTexture surfaceTexture;
-    private OESTexture cameraTexture = new OESTexture();
+    private OESTexture oesTexture = new OESTexture();
     private Surface surface;
     private VirtualDisplay virtualDisplay;
     private Context virtualDisplayContext;
@@ -36,8 +36,8 @@ public class NeoDisplay {
     }
 
     public void create() {
-        cameraTexture.init();
-        surfaceTexture = new SurfaceTexture(cameraTexture.getTextureId());
+        oesTexture.initOESTexture();
+        surfaceTexture = new SurfaceTexture(oesTexture.getTextureId());
         surface = new Surface(surfaceTexture);
         DisplayManager displayManager = (DisplayManager) context.getSystemService(Context.DISPLAY_SERVICE);
         int virtualDisplayFlags = VIRTUAL_DISPLAY_FLAG_OWN_CONTENT_ONLY  |  VIRTUAL_DISPLAY_FLAG_PUBLIC;
@@ -45,6 +45,11 @@ public class NeoDisplay {
                 primaryDisplayMetrics.heightPixels, primaryDisplayMetrics.densityDpi, surface, virtualDisplayFlags);
         virtualDisplayContext = context.createDisplayContext(virtualDisplay.getDisplay());
         virtualDisplayWindowManager = (WindowManager) virtualDisplayContext.getSystemService(Context.WINDOW_SERVICE);
+    }
+
+
+    public void release() {
+        oesTexture.release();
     }
 }
 
