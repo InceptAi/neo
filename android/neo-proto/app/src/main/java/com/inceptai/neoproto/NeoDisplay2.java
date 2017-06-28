@@ -1,5 +1,6 @@
 package com.inceptai.neoproto;
 
+import android.app.ActivityOptions;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
@@ -23,6 +24,7 @@ import java.nio.ByteBuffer;
 
 import static android.content.Intent.FLAG_ACTIVITY_NEW_TASK;
 import static android.hardware.display.DisplayManager.VIRTUAL_DISPLAY_FLAG_OWN_CONTENT_ONLY;
+import static android.hardware.display.DisplayManager.VIRTUAL_DISPLAY_FLAG_PRESENTATION;
 import static android.hardware.display.DisplayManager.VIRTUAL_DISPLAY_FLAG_PUBLIC;
 import static com.inceptai.neoproto.Common.TAG;
 
@@ -60,8 +62,9 @@ public class NeoDisplay2 {
         surface = imageReader.getSurface();
         DisplayManager displayManager = (DisplayManager) activityMainContext.getSystemService(Context.DISPLAY_SERVICE);
         int virtualDisplayFlags = VIRTUAL_DISPLAY_FLAG_OWN_CONTENT_ONLY | VIRTUAL_DISPLAY_FLAG_PUBLIC;
+        int virtualDisplayFlags2 = VIRTUAL_DISPLAY_FLAG_PRESENTATION;
         virtualDisplay = displayManager.createVirtualDisplay(NEO_DISPLAY, primaryDisplayMetrics.widthPixels,
-                primaryDisplayMetrics.heightPixels, primaryDisplayMetrics.densityDpi, surface, virtualDisplayFlags);
+                primaryDisplayMetrics.heightPixels, primaryDisplayMetrics.densityDpi, surface, virtualDisplayFlags2);
         virtualDisplayContext = activityMainContext.createDisplayContext(virtualDisplay.getDisplay());
         virtualDisplayWindowManager = (WindowManager) virtualDisplayContext.getSystemService(Context.WINDOW_SERVICE);
         presentation = new NeoPresentation(activityMainContext, virtualDisplay.getDisplay());
@@ -71,7 +74,7 @@ public class NeoDisplay2 {
 
     public void showSettings() {
         Intent intent = new Intent(android.provider.Settings.ACTION_SETTINGS);
-        intent.setFlags(FLAG_ACTIVITY_NEW_TASK);
+        // intent.setFlags(FLAG_ACTIVITY_NEW_TASK);
         presentation.getContext().startActivity(intent, null);
     }
 

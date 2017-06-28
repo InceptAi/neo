@@ -116,12 +116,18 @@ public class NeoMainActivity extends AppCompatActivity {
         startButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                //neoDisplay.showSettings();
-                try {
-                    neoDisplay2.saveFrame();
-                } catch (IOException e) {
-                    Log.e(Common.TAG, "IOException: " + e);
-                }
+                neoDisplay2.showSettings();
+                mHideHandler.postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        try {
+                            neoDisplay2.saveFrame();
+                        } catch (IOException e) {
+                            Log.e(Common.TAG, "IOException: " + e);
+                        }
+                    }
+                }, 1000L);
+
             }
         });
     }
