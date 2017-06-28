@@ -111,12 +111,17 @@ public class NeoMainActivity extends AppCompatActivity {
         // while interacting with the UI.
         findViewById(R.id.dummy_button).setOnTouchListener(mDelayHideTouchListener);
         neoDisplay2 = new NeoDisplay2(this);
+        neoDisplay2.create();
         startButton = (Button) findViewById(R.id.dummy_button);
         startButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 //neoDisplay.showSettings();
-                neoDisplay2.saveFrame();
+                try {
+                    neoDisplay2.saveFrame();
+                } catch (IOException e) {
+                    Log.e(Common.TAG, "IOException: " + e);
+                }
             }
         });
     }

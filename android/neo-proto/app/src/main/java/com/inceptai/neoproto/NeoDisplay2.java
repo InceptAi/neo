@@ -53,7 +53,7 @@ public class NeoDisplay2 {
         Log.i(TAG, "Display Metrics: " + primaryDisplayMetrics.toString());
         mHeight = primaryDisplayMetrics.heightPixels;
         mWidth = primaryDisplayMetrics.widthPixels;
-        imageReader = ImageReader.newInstance(primaryDisplayMetrics.widthPixels, primaryDisplayMetrics.heightPixels, PixelFormat.RGBX_8888, 100);
+        imageReader = ImageReader.newInstance(primaryDisplayMetrics.widthPixels, primaryDisplayMetrics.heightPixels, PixelFormat.RGBA_8888, 1);
     }
 
     public void create() {
