@@ -1,5 +1,6 @@
 package com.inceptai.neoproto;
 
+import android.graphics.Bitmap;
 import android.opengl.EGL14;
 import android.opengl.EGLConfig;
 import android.opengl.EGLContext;
@@ -7,7 +8,18 @@ import android.opengl.EGLDisplay;
 import android.opengl.EGLSurface;
 import android.opengl.GLES11Ext;
 import android.opengl.GLES20;
+import android.os.Environment;
 import android.util.Log;
+
+import java.io.BufferedOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+
+import static android.util.Log.VERBOSE;
+import static com.inceptai.neoproto.Common.TAG;
 
 /**
  * This class defines the OES Texture that can be attached to SurfaceTexture
@@ -15,6 +27,7 @@ import android.util.Log;
  *
  */
 public class OESTexture {
+
     private int mTextureHandle;
 
     private EGLDisplay mEGLDisplay = EGL14.EGL_NO_DISPLAY;
@@ -23,10 +36,14 @@ public class OESTexture {
 
     int mWidth;
     int mHeight;
+    private ByteBuffer mPixelBuf;
 
-    public OESTexture() {
+    public OESTexture(int width, int height) {
+        mWidth = width;
+        mHeight = height;
+        mPixelBuf = ByteBuffer.allocateDirect(mWidth * mHeight * 4);
+        mPixelBuf.order(ByteOrder.LITTLE_ENDIAN);
         // TODO Auto-generated constructor stub
-
     }
 
     public int getTextureId(){
@@ -147,9 +164,63 @@ public class OESTexture {
     public void checkGlError(String op) {
         int error;
         while ((error = GLES20.glGetError()) != GLES20.GL_NO_ERROR) {
-            Log.e(Common.TAG, op + ": glError " + error);
+            Log.e(TAG, op + ": glError " + error);
             throw new RuntimeException(op + ": glError " + error);
         }
     }
+
+
+    public void saveFrame(String filename) throws IOException {
+        // glReadPixels gives us a ByteBuffer filled with what is essentially big-endian RGBA
+        // data (i.e. a byte of red, followed by a byte of green...).  To use the Bitmap
+        // constructor that takes an int[] array with pixel data, we need an int[] filled
+        // with little-endian ARGB data.
+        //
+        // If we implement this as a series of buf.get() calls, we can spend 2.5 seconds just
+        // copying data around for a 720p frame.  It's better to do a bulk get() and then
+        // rearrange the data in memory.  (For comparison, the PNG compress takes about 500ms
+        // for a trivial frame.)
+        //
+        // So... we set the ByteBuffer to little-endian, which should turn the bulk IntBuffer
+        // get() into a straight memcpy on most Android devices.  Our ints will hold ABGR data.
+        // Swapping B and R gives us ARGB.  We need about 30ms for the bulk get(), and another
+        // 270ms for the color swap.
+        //
+        // We can avoid the costly B/R swap here if we do it in the fragment shader (see
+        // http://stackoverflow.com/questions/21634450/ ).
+        //
+        // Having said all that... it turns out that the Bitmap#copyPixelsFromBuffer()
+        // method wants RGBA pixels, not ARGB, so if we create an empty bitmap and then
+        // copy pixel data in we can avoid the swap issue entirely, and just copy straight
+        // into the Bitmap from the ByteBuffer.
+        //
+        // Making this even more interesting is the upside-down nature of GL, which means
+        // our output will look upside-down relative to what appears on screen if the
+        // typical GL conventions are used.  (For ExtractMpegFrameTest, we avoid the issue
+        // by inverting the frame when we render it.)
+        //
+        // Allocating large buffers is expensive, so we really want mPixelBuf to be
+        // allocated ahead of time if possible.  We still get some allocations from the
+        // Bitmap / PNG creation.
+
+        mPixelBuf.rewind();
+        GLES20.glReadPixels(0, 0, mWidth, mHeight, GLES20.GL_RGBA, GLES20.GL_UNSIGNED_BYTE,
+                mPixelBuf);
+
+        BufferedOutputStream bos = null;
+        try {
+            bos = new BufferedOutputStream(new FileOutputStream(filename));
+            Bitmap bmp = Bitmap.createBitmap(mWidth, mHeight, Bitmap.Config.ARGB_8888);
+            mPixelBuf.rewind();
+            bmp.copyPixelsFromBuffer(mPixelBuf);
+            bmp.compress(Bitmap.CompressFormat.PNG, 90, bos);
+            bmp.recycle();
+        } finally {
+            if (bos != null) bos.close();
+        }
+
+        Log.i(TAG, "Saved " + mWidth + "x" + mHeight + " frame as '" + filename + "'");
+    }
+
 
 }

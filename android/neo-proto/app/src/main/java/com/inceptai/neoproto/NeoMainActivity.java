@@ -5,8 +5,12 @@ import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.os.Handler;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
+import android.widget.Button;
+
+import java.io.IOException;
 
 public class NeoMainActivity extends AppCompatActivity {
     /**
@@ -80,7 +84,8 @@ public class NeoMainActivity extends AppCompatActivity {
     };
 
 
-    private NeoDisplay neoDisplay;
+    private NeoDisplay2 neoDisplay2;
+    private Button startButton;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -105,8 +110,15 @@ public class NeoMainActivity extends AppCompatActivity {
         // operations to prevent the jarring behavior of controls going away
         // while interacting with the UI.
         findViewById(R.id.dummy_button).setOnTouchListener(mDelayHideTouchListener);
-        neoDisplay = new NeoDisplay(this);
-        neoDisplay.create();
+        neoDisplay2 = new NeoDisplay2(this);
+        startButton = (Button) findViewById(R.id.dummy_button);
+        startButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                //neoDisplay.showSettings();
+                neoDisplay2.saveFrame();
+            }
+        });
     }
 
     @Override
