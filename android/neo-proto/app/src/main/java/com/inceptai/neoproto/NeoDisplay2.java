@@ -11,6 +11,7 @@ import android.hardware.display.DisplayManager;
 import android.hardware.display.VirtualDisplay;
 import android.media.Image;
 import android.media.ImageReader;
+import android.media.projection.MediaProjection;
 import android.os.Environment;
 import android.util.DisplayMetrics;
 import android.util.Log;
@@ -32,7 +33,7 @@ import static com.inceptai.neoproto.Common.TAG;
  * Created by arunesh on 6/27/17.
  */
 
-public class NeoDisplay2 {
+public class NeoDisplay2 extends VirtualDisplay.Callback {
     public static final String NEO_DISPLAY = "NeoDisplayTWO";
     private static final File FILES_DIR = Environment.getExternalStorageDirectory();
     private Context activityMainContext;
@@ -55,26 +56,40 @@ public class NeoDisplay2 {
         Log.i(TAG, "Display Metrics: " + primaryDisplayMetrics.toString());
         mHeight = primaryDisplayMetrics.heightPixels;
         mWidth = primaryDisplayMetrics.widthPixels;
-        imageReader = ImageReader.newInstance(primaryDisplayMetrics.widthPixels, primaryDisplayMetrics.heightPixels, PixelFormat.RGBA_8888, 1);
+
     }
 
-    public void create() {
+    public void createImageReaderSurface() {
+        imageReader = ImageReader.newInstance(primaryDisplayMetrics.widthPixels, primaryDisplayMetrics.heightPixels, PixelFormat.RGBA_8888, 1);
         surface = imageReader.getSurface();
+    }
+
+    public void createVirtualDisplayUsingDisplayManager() {
         DisplayManager displayManager = (DisplayManager) activityMainContext.getSystemService(Context.DISPLAY_SERVICE);
         int virtualDisplayFlags = VIRTUAL_DISPLAY_FLAG_OWN_CONTENT_ONLY | VIRTUAL_DISPLAY_FLAG_PUBLIC;
-        int virtualDisplayFlags2 = VIRTUAL_DISPLAY_FLAG_PRESENTATION;
+        int virtualDisplayFlags2 = VIRTUAL_DISPLAY_FLAG_PRESENTATION | VIRTUAL_DISPLAY_FLAG_PUBLIC;
         virtualDisplay = displayManager.createVirtualDisplay(NEO_DISPLAY, primaryDisplayMetrics.widthPixels,
                 primaryDisplayMetrics.heightPixels, primaryDisplayMetrics.densityDpi, surface, virtualDisplayFlags2);
         virtualDisplayContext = activityMainContext.createDisplayContext(virtualDisplay.getDisplay());
         virtualDisplayWindowManager = (WindowManager) virtualDisplayContext.getSystemService(Context.WINDOW_SERVICE);
+    }
+
+    public void createPresentation() {
         presentation = new NeoPresentation(activityMainContext, virtualDisplay.getDisplay());
         presentation.show();
     }
 
+    public void createVirtualDisplayUsingMediaProjection(MediaProjection mediaProjection) {
+        int virtualDisplayFlags2 = VIRTUAL_DISPLAY_FLAG_PRESENTATION | VIRTUAL_DISPLAY_FLAG_PUBLIC;
+        virtualDisplay = mediaProjection.createVirtualDisplay(NEO_DISPLAY, primaryDisplayMetrics.widthPixels,
+                primaryDisplayMetrics.heightPixels, primaryDisplayMetrics.densityDpi, virtualDisplayFlags2, surface, this, null);
+        virtualDisplayContext = activityMainContext.createDisplayContext(virtualDisplay.getDisplay());
+        virtualDisplayWindowManager = (WindowManager) virtualDisplayContext.getSystemService(Context.WINDOW_SERVICE);
+    }
 
     public void showSettings() {
         Intent intent = new Intent(android.provider.Settings.ACTION_SETTINGS);
-        // intent.setFlags(FLAG_ACTIVITY_NEW_TASK);
+        intent.setFlags(FLAG_ACTIVITY_NEW_TASK);
         presentation.getContext().startActivity(intent, null);
     }
 
