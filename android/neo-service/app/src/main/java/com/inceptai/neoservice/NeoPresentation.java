@@ -1,4 +1,4 @@
-package com.inceptai.neoproto;
+package com.inceptai.neoservice;
 
 import android.app.Presentation;
 import android.content.Context;
