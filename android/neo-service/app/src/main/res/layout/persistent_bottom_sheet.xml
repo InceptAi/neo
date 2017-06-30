@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:orientation="vertical" android:layout_width="match_parent"
-    android:layout_height="150dp">
+    android:background="@color/lighterBlue00"
+    android:alpha="0.5"
+    android:layout_height="wrap_content">
 
     <FrameLayout
         android:layout_width="40dp"
@@ -10,6 +12,8 @@
         android:layout_gravity="center"
         android:layout_marginLeft="2dp"
         android:layout_marginStart="2dp"
+        android:layout_marginBottom="25dp"
+        android:layout_marginTop="25dp"
         style="@style/MyLargeImageButton.Base"
         android:focusable="true"
         android:clickable="true"
@@ -27,4 +31,15 @@
             android:paddingBottom="5dp"
             android:layout_height="wrap_content" />
     </FrameLayout>
+
+    <!--
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:background="@drawable/blue_button_selector"
+        android:layout_weight="0.4"
+        android:layout_gravity="center"
+        style="@style/MyLargeImageButton.Base"
+        android:id="@+id/neo_base_fl"
+        android:layout_height="150dp"/>
+        -->
 </LinearLayout>

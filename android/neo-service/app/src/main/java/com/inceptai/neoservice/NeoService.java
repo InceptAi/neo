@@ -11,6 +11,7 @@ import android.view.View;
 import android.view.WindowManager;
 import android.view.WindowManager.LayoutParams;
 import android.view.accessibility.AccessibilityEvent;
+import android.widget.Toast;
 
 /**
  * Created by arunesh on 6/29/17.
@@ -42,7 +43,7 @@ public class NeoService extends AccessibilityService {
 
     @Override
     public void onAccessibilityEvent(AccessibilityEvent event) {
-
+        Log.i(TAG, "Got event:" + event);
     }
 
     @Override
@@ -54,6 +55,8 @@ public class NeoService extends AccessibilityService {
     public int onStartCommand(Intent intent, int flags, int startId) {
         if (windowManager != null) {
             windowManager.addView(overlayView, neoOverlayLayout);
+        } else {
+            Toast.makeText(this, "NULL WINDOW MANAGER.", Toast.LENGTH_SHORT).show();
         }
         return START_STICKY;
     }
