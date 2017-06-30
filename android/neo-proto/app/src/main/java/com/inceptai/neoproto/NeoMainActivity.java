@@ -1,30 +1,26 @@
 package com.inceptai.neoproto;
 
-import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.media.projection.MediaProjection;
 import android.media.projection.MediaProjectionManager;
-import android.support.v7.app.ActionBar;
-import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.os.Handler;
+import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
-import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Button;
+
+import com.inceptai.neoservice.NeoDisplay2;
 
 import java.io.IOException;
 
 public class NeoMainActivity extends AppCompatActivity {
-
     private static final int REQUEST_CODE_MEDIA_PROJECTION_PERMISSION = 1001;
-
 
     private final Handler handler = new Handler();
     private View mContentView;
     private View mControlsView;
-
-
+    
     private NeoDisplay2 neoDisplay2;
     private Button startButton;
     private MediaProjectionManager mediaProjectionManager;

@@ -11,6 +11,8 @@ import android.util.Log;
 import android.view.Surface;
 import android.view.WindowManager;
 
+import com.inceptai.neoservice.NeoPresentation;
+
 import java.io.File;
 import java.io.IOError;
 import java.io.IOException;
