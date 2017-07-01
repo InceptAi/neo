@@ -10,6 +10,7 @@ import android.view.accessibility.AccessibilityNodeInfo;
 
 public class Utils {
     public static final String TAG = "NeoService";
+    public static final String EMPTY_STRING = "";
 
     private Utils() {}
 
