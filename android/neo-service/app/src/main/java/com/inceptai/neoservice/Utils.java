@@ -4,6 +4,8 @@ import android.graphics.Rect;
 import android.util.Log;
 import android.view.accessibility.AccessibilityNodeInfo;
 
+import com.google.gson.Gson;
+
 /**
  * Created by arunesh on 6/29/17.
  */
@@ -11,6 +13,8 @@ import android.view.accessibility.AccessibilityNodeInfo;
 public class Utils {
     public static final String TAG = "NeoService";
     public static final String EMPTY_STRING = "";
+
+    public static Gson gson = new Gson();
 
     private Utils() {}
 

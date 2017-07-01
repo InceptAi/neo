@@ -2,10 +2,13 @@ package com.inceptai.neoservice;
 
 import android.accessibilityservice.AccessibilityService;
 import android.app.Service;
+import android.content.Context;
 import android.content.Intent;
 import android.graphics.PixelFormat;
 import android.support.annotation.IntDef;
+import android.util.DisplayMetrics;
 import android.util.Log;
+import android.view.Display;
 import android.view.Gravity;
 import android.view.View;
 import android.view.WindowManager;
@@ -23,6 +26,7 @@ public class NeoService extends AccessibilityService {
     private View overlayView;
     private LayoutParams neoOverlayLayout;
     private WindowManager windowManager;
+    private DisplayMetrics primaryDisplayMetrics;
 
     @Override
     public void onCreate() {
@@ -39,6 +43,7 @@ public class NeoService extends AccessibilityService {
         neoOverlayLayout.x = 200;
         neoOverlayLayout.y = 200;
         windowManager = (WindowManager) getSystemService(WINDOW_SERVICE);
+        getDisplayDimensions();
     }
 
     @Override
@@ -67,5 +72,11 @@ public class NeoService extends AccessibilityService {
             windowManager.removeView(overlayView);
         }
         super.onDestroy();
+    }
+
+    private void getDisplayDimensions() {
+        WindowManager window = (WindowManager) getSystemService(Context.WINDOW_SERVICE);
+        Display display = window.getDefaultDisplay();
+        windowManager.getDefaultDisplay().getMetrics(primaryDisplayMetrics);
     }
 }
