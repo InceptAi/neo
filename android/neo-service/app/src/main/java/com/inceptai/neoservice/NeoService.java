@@ -5,6 +5,7 @@ import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.PixelFormat;
+import android.os.Handler;
 import android.support.annotation.IntDef;
 import android.util.DisplayMetrics;
 import android.util.Log;
@@ -15,6 +16,10 @@ import android.view.WindowManager;
 import android.view.WindowManager.LayoutParams;
 import android.view.accessibility.AccessibilityEvent;
 import android.widget.Toast;
+
+import com.inceptai.neoservice.expert.ExpertChannel;
+import com.inceptai.neoservice.flatten.FlatView;
+import com.inceptai.neoservice.flatten.FlatViewHierarchy;
 
 /**
  * Created by arunesh on 6/29/17.
@@ -27,6 +32,10 @@ public class NeoService extends AccessibilityService {
     private LayoutParams neoOverlayLayout;
     private WindowManager windowManager;
     private DisplayMetrics primaryDisplayMetrics;
+    private ExpertChannel expertChannel;
+    private NeoThreadpool neoThreadpool;
+
+    private Handler handler;
 
     @Override
     public void onCreate() {
@@ -44,6 +53,17 @@ public class NeoService extends AccessibilityService {
         neoOverlayLayout.y = 200;
         windowManager = (WindowManager) getSystemService(WINDOW_SERVICE);
         getDisplayDimensions();
+        expertChannel = new ExpertChannel();
+        expertChannel.connect();
+        neoThreadpool = new NeoThreadpool();
+        handler = new Handler();
+        handler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                FlatViewHierarchy viewHierarchy = computeViewHierarchy();
+                sendViewSnapshot(viewHierarchy);
+            }
+        }, 10000);
     }
 
     @Override
@@ -75,8 +95,16 @@ public class NeoService extends AccessibilityService {
     }
 
     private void getDisplayDimensions() {
-        WindowManager window = (WindowManager) getSystemService(Context.WINDOW_SERVICE);
-        Display display = window.getDefaultDisplay();
         windowManager.getDefaultDisplay().getMetrics(primaryDisplayMetrics);
+    }
+
+    private void sendViewSnapshot(FlatViewHierarchy flatViewHierarchy) {
+        expertChannel.sendViewHierarchy(flatViewHierarchy.toJson());
+    }
+
+    private FlatViewHierarchy computeViewHierarchy() {
+        FlatViewHierarchy flatViewHierarchy = new FlatViewHierarchy(getRootInActiveWindow(), primaryDisplayMetrics);
+        flatViewHierarchy.flatten();
+        return flatViewHierarchy;
     }
 }
