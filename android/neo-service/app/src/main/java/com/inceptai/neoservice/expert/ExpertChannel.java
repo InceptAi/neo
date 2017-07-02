@@ -9,7 +9,7 @@ package com.inceptai.neoservice.expert;
  */
 public class ExpertChannel {
 
-
+    private static final String SERVER_ADDRESS = "";
 
     public void connect() {
 
