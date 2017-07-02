@@ -57,13 +57,6 @@ public class NeoService extends AccessibilityService {
         expertChannel.connect();
         neoThreadpool = new NeoThreadpool();
         handler = new Handler();
-        handler.postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                FlatViewHierarchy viewHierarchy = computeViewHierarchy();
-                sendViewSnapshot(viewHierarchy);
-            }
-        }, 10000);
     }
 
     @Override
@@ -94,7 +87,20 @@ public class NeoService extends AccessibilityService {
         super.onDestroy();
     }
 
+    @Override
+    protected void onServiceConnected() {
+        super.onServiceConnected();
+        handler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                FlatViewHierarchy viewHierarchy = computeViewHierarchy();
+                sendViewSnapshot(viewHierarchy);
+            }
+        }, 10000);
+    }
+
     private void getDisplayDimensions() {
+        primaryDisplayMetrics = new DisplayMetrics();
         windowManager.getDefaultDisplay().getMetrics(primaryDisplayMetrics);
     }
 
