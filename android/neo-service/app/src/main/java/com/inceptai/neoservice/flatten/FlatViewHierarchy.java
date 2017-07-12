@@ -36,6 +36,10 @@ public class FlatViewHierarchy {
     }
 
     public void flatten() {
+        if (rootNode == null) {
+            Log.i(TAG, "Flatten failed coz of NULL rootnode.");
+            return;
+        }
         rootNodeFlatView = addNode(rootNode);
         List<FlatView> nodeQueue = new LinkedList<>();
         nodeQueue.add(rootNodeFlatView);
