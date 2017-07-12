@@ -142,4 +142,12 @@ public class FlatView {
     public String toJson() {
         return Utils.gson.toJson(this);
     }
+
+    public String getClassName() {
+        return className;
+    }
+
+    public String getText() {
+        return text;
+    }
 }

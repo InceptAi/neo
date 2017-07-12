@@ -62,6 +62,7 @@ public class NeoService extends AccessibilityService {
     @Override
     public void onAccessibilityEvent(AccessibilityEvent event) {
         Log.i(TAG, "Got event:" + event);
+        sendViewSnapshot(computeViewHierarchy());
     }
 
     @Override
@@ -105,7 +106,8 @@ public class NeoService extends AccessibilityService {
     }
 
     private void sendViewSnapshot(FlatViewHierarchy flatViewHierarchy) {
-        expertChannel.sendViewHierarchy(flatViewHierarchy.toJson());
+        // expertChannel.sendViewHierarchy(flatViewHierarchy.toJson());
+        expertChannel.sendViewHierarchy(flatViewHierarchy.toSimpleJson());
     }
 
     private FlatViewHierarchy computeViewHierarchy() {

@@ -9,8 +9,10 @@ import com.inceptai.neoservice.Utils;
 
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 import static android.content.ContentValues.TAG;
 import static com.inceptai.neoservice.Utils.EMPTY_STRING;
@@ -55,9 +57,13 @@ public class FlatViewHierarchy {
         int numChildren = nodeInfo.getChildCount();
         for (int i = 0; i < numChildren; i ++) {
             AccessibilityNodeInfo childInfo = nodeInfo.getChild(i);
-            FlatView childFlatView = new FlatView(childInfo);
-            queue.add(childFlatView);
-            parentFlatView.addChild(childFlatView.getHashKey());
+            if (childInfo != null) {
+                FlatView childFlatView = new FlatView(childInfo);
+                queue.add(childFlatView);
+                parentFlatView.addChild(childFlatView.getHashKey());
+            } else {
+                Log.i(Utils.TAG, "Null childinfo for node: " + nodeInfo.getClassName() + " at index: " + i);
+            }
         }
     }
 
@@ -65,6 +71,20 @@ public class FlatViewHierarchy {
         FlatViewHierarchySnapshot snapshot = new FlatViewHierarchySnapshot(viewDb,
                 displayMetrics.heightPixels, displayMetrics.widthPixels);
         return Utils.gson.toJson(snapshot);
+    }
+
+    public String toSimpleJson() {
+        int numViews = viewDb.size();
+        SimpleViewHierarchySnapshot simpleViewHierarchySnapshot = new SimpleViewHierarchySnapshot();
+        for (int i = 0; i < numViews; i ++) {
+            FlatView flatView = viewDb.valueAt(i);
+            if (flatView.getClassName() != null && flatView.getText() != null) {
+                if (FlatViewUtils.isTextView(flatView)) {
+                    simpleViewHierarchySnapshot.addView(String.valueOf(flatView.getHashKey()), flatView.getText());
+                }
+            }
+        }
+        return Utils.gson.toJson(simpleViewHierarchySnapshot);
     }
 
     public void update(AccessibilityNodeInfo newRootNode) {
@@ -96,6 +116,20 @@ public class FlatViewHierarchy {
             timestamp = new Date().toString();
             this.height = height;
             this.width = width;
+        }
+    }
+
+    private static class SimpleViewHierarchySnapshot {
+        int numViews;
+        Map<String, String> viewMap = new HashMap<>();
+
+        SimpleViewHierarchySnapshot() {
+            numViews = 0;
+        }
+
+        public void addView(String viewId, String title) {
+            viewMap.put(viewId, title);
+            numViews ++;
         }
     }
 }
