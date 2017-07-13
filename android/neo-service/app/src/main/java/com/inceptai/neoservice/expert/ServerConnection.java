@@ -1,5 +1,9 @@
 package com.inceptai.neoservice.expert;
 
+import android.util.Log;
+
+import com.inceptai.neoservice.Utils;
+
 import java.util.concurrent.TimeUnit;
 
 import okhttp3.OkHttpClient;
@@ -50,6 +54,7 @@ public class ServerConnection extends WebSocketListener {
 
     @Override
     public void onOpen(WebSocket webSocket, Response response) {
+        Log.i(Utils.TAG, "WebSocket opened.");
     }
 
     @Override
@@ -61,6 +66,7 @@ public class ServerConnection extends WebSocketListener {
 
     @Override
     public void onClosed(WebSocket webSocket, int code, String reason) {
+        Log.i(Utils.TAG, "WebSocket closed: code " + code + " reason: " + reason);
     }
 
     @Override

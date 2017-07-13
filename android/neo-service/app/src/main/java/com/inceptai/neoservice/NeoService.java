@@ -1,15 +1,11 @@
 package com.inceptai.neoservice;
 
 import android.accessibilityservice.AccessibilityService;
-import android.app.Service;
-import android.content.Context;
 import android.content.Intent;
 import android.graphics.PixelFormat;
 import android.os.Handler;
-import android.support.annotation.IntDef;
 import android.util.DisplayMetrics;
 import android.util.Log;
-import android.view.Display;
 import android.view.Gravity;
 import android.view.View;
 import android.view.WindowManager;
@@ -18,14 +14,14 @@ import android.view.accessibility.AccessibilityEvent;
 import android.widget.Toast;
 
 import com.inceptai.neoservice.expert.ExpertChannel;
-import com.inceptai.neoservice.flatten.FlatView;
 import com.inceptai.neoservice.flatten.FlatViewHierarchy;
+import com.inceptai.neoservice.flatten.UiManager;
 
 /**
  * Created by arunesh on 6/29/17.
  */
 
-public class NeoService extends AccessibilityService {
+public class NeoService extends AccessibilityService implements ExpertChannel.OnExpertClick {
     private static final String TAG = Utils.TAG;
     private static final String DEFAULT_SERVER_IP = "192.168.1.128";
 
@@ -38,6 +34,7 @@ public class NeoService extends AccessibilityService {
     private String serverUrl;
 
     private Handler handler;
+    private UiManager uiManager;
 
     @Override
     public void onCreate() {
@@ -56,16 +53,17 @@ public class NeoService extends AccessibilityService {
         windowManager = (WindowManager) getSystemService(WINDOW_SERVICE);
         getDisplayDimensions();
         fetchServerUrl();
-        expertChannel = new ExpertChannel(serverUrl);
-        expertChannel.connect();
         neoThreadpool = new NeoThreadpool();
+        uiManager = new UiManager(this, neoThreadpool, primaryDisplayMetrics);
+        expertChannel = new ExpertChannel(serverUrl, this);
+        expertChannel.connect();
         handler = new Handler();
     }
 
     @Override
     public void onAccessibilityEvent(AccessibilityEvent event) {
         Log.i(TAG, "Got event:" + event);
-        sendViewSnapshot(computeViewHierarchy());
+        sendViewSnapshot(uiManager.updateViewHierarchy(getRootInActiveWindow()));
     }
 
     @Override
@@ -97,7 +95,7 @@ public class NeoService extends AccessibilityService {
         handler.postDelayed(new Runnable() {
             @Override
             public void run() {
-                FlatViewHierarchy viewHierarchy = computeViewHierarchy();
+                FlatViewHierarchy viewHierarchy = uiManager.updateViewHierarchy(getRootInActiveWindow());
                 sendViewSnapshot(viewHierarchy);
             }
         }, 10000);
@@ -113,12 +111,6 @@ public class NeoService extends AccessibilityService {
         expertChannel.sendViewHierarchy(flatViewHierarchy.toSimpleJson());
     }
 
-    private FlatViewHierarchy computeViewHierarchy() {
-        FlatViewHierarchy flatViewHierarchy = new FlatViewHierarchy(getRootInActiveWindow(), primaryDisplayMetrics);
-        flatViewHierarchy.flatten();
-        return flatViewHierarchy;
-    }
-
     private void fetchServerUrl() {
         String serverIp = BuildConfig.SERVER_IP;
         if (Utils.nullOrEmpty(serverIp)) {
@@ -126,5 +118,11 @@ public class NeoService extends AccessibilityService {
         }
         serverUrl = "ws://" + serverIp + ":8080/";
         Log.i(TAG, "Using server URL: " + serverUrl);
+    }
+
+    @Override
+    public void onClick(String viewId) {
+        Log.i(Utils.TAG, "Click event for viewId: " + viewId);
+        uiManager.processClick(viewId);
     }
 }
