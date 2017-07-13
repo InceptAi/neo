@@ -4,6 +4,8 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
+import android.view.View;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
 
@@ -33,6 +35,21 @@ public class MainActivity extends AppCompatActivity implements ServerConnection.
         listView = (ListView) findViewById(R.id.ui_listview);
         listViewAdapter = new ListViewArrayAdapter(this, android.R.layout.simple_list_item_1);
         listView.setAdapter(listViewAdapter);
+        listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                ViewEntry viewEntry = listViewAdapter.getItem(position);
+                JSONObject clickMessage = new JSONObject();
+                try {
+                    clickMessage.put("viewId", viewEntry.getViewId());
+                } catch (JSONException e) {
+                    Log.e(Utils.TAG, "JSONException sending click event.");
+                    return;
+                }
+                Log.i(Utils.TAG, "Sending click event to: viewId: " + viewEntry.getViewId() + " value: " + viewEntry.getText());
+                serverConnection.sendMessage(clickMessage.toString());
+            }
+        });
         startServerConnection();
     }
 
@@ -88,5 +105,6 @@ public class MainActivity extends AppCompatActivity implements ServerConnection.
         }
         listViewAdapter.clear();
         listViewAdapter.addAll(viewEntries);
+        listViewAdapter.notifyDataSetChanged();
     }
 }

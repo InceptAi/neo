@@ -28,10 +28,12 @@ public class FlatViewHierarchy {
 
     private SparseArray<FlatView> viewDb;
     private DisplayMetrics displayMetrics;
+    private SparseArray<FlatView> textViewDb;
 
     public FlatViewHierarchy(AccessibilityNodeInfo rootNode, DisplayMetrics displayMetrics) {
         this.rootNode = rootNode;
         this.viewDb = new SparseArray<>();
+        this.textViewDb = new SparseArray<>();
         this.displayMetrics = displayMetrics;
     }
 
@@ -45,10 +47,14 @@ public class FlatViewHierarchy {
         nodeQueue.add(rootNodeFlatView);
 
         while (!nodeQueue.isEmpty()) {
-            FlatView nodeInfo = nodeQueue.remove(0);
-            addNode(nodeInfo);
-            traverseChildrenFor(nodeInfo, nodeQueue);
-            nodeInfo.recycle();
+            FlatView flatView = nodeQueue.remove(0);
+            addNode(flatView);
+            traverseChildrenFor(flatView, nodeQueue);
+            if (FlatViewUtils.isTextView(flatView)) {
+                textViewDb.append(flatView.getHashKey(), flatView);
+            } else {
+                flatView.recycle();
+            }
         }
     }
 
@@ -92,7 +98,11 @@ public class FlatViewHierarchy {
     }
 
     public void update(AccessibilityNodeInfo newRootNode) {
+        rootNode = newRootNode;
+    }
 
+    public FlatView getFlatViewFor(String viewId) {
+        return viewDb.get(Integer.valueOf(viewId));
     }
 
     private FlatView addNode(AccessibilityNodeInfo nodeInfo) {
@@ -106,7 +116,6 @@ public class FlatViewHierarchy {
     }
 
     private static class FlatViewHierarchySnapshot {
-
         List<FlatView> viewList;
         String timestamp;
         int height;

@@ -1,6 +1,9 @@
+const WEB_SOCKET_PORT = 8080;
+const RELAY_PORT = 9090;
+
 const WebSocket = require('ws');
 
-const wss = new WebSocket.Server({ port: 8080 });
+const wss = new WebSocket.Server({ port: WEB_SOCKET_PORT });
 
 // Broadcast to all.
 wss.broadcast = function broadcast(data) {
@@ -25,6 +28,6 @@ wss.on('connection', function connection(ws) {
 
 var connect = require('connect');
 var serveStatic = require('serve-static');
-connect().use(serveStatic(__dirname)).listen(9090, function(){
-	    console.log('Server running on 9090...');
+connect().use(serveStatic(__dirname)).listen(RELAY_PORT, function(){
+	    console.log('Server running on ' + RELAY_PORT + ' ...');
 });

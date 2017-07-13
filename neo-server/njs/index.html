@@ -1,52 +1,14 @@
 <!DOCTYPE HTML>
 <html>
-   <head>
-      <script type="text/javascript">
-         function WebSocketTest()
-         {
-            if ("WebSocket" in window)
-            {
-               alert("WebSocket is supported by your Browser!");
-               
-               // Let us open a web socket
-               var ws = new WebSocket("ws://localhost:8080/");
-				
-               ws.onopen = function()
-               {
-                  // Web Socket is connected, send data using send()
-                  // ws.send("Message to send");
-                  // alert("Message is sent...");
-               };
-				
-               ws.onmessage = function (evt) 
-               { 
-                  var received_msg = evt.data;
-		  console.log("received_msg = " + received_msg);
-               };
-				
-               ws.onclose = function()
-               { 
-                  // websocket is closed.
-                  alert("Connection is closed..."); 
-               };
-            }
-            
-            else
-            {
-               // The browser doesn't support WebSocket
-               alert("WebSocket NOT supported by your Browser!");
-            }
-         }
- </script>
-
- <h1> Expert channel</h1>
-		
-   </head>
-   <body>
-   
-      <div id="sse">
-         <a href="javascript:WebSocketTest()">Run WebSocket</a>
-      </div>
-      
-   </body>
+	<head>
+		<title>Neo Expert View</title>
+		<link rel="stylesheet" href="neostyles.css">
+		<script type="text/javascript" src="neolist.js"></script>
+		<h1  align="center"> <font size="10"> Neo Expert View </font>
+		<button align="center" type="button" style="height:50px;width:200px" onclick="javascript:endExpertSession()"><font size="5">End Session</font></button>
+		</h1>
+	</head>
+	<body onload="javascript:initializeWebSocket()">
+		<ul id="ul"></ul>
+	</body>
 </html>
