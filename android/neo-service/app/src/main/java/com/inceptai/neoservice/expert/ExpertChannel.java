@@ -15,8 +15,14 @@ public class ExpertChannel implements  ServerConnection.Callback {
     private static final String SERVER_ADDRESS = "ws://192.168.1.129:8080/";
     private ServerConnection serverConnection;
 
+    private String serverUrl;
+
+    public ExpertChannel(String serverUrl) {
+        this.serverUrl = serverUrl;
+    }
+
     public void connect() {
-        serverConnection = new ServerConnection(SERVER_ADDRESS, this);
+        serverConnection = new ServerConnection(serverUrl, this);
         serverConnection.connect();
     }
 

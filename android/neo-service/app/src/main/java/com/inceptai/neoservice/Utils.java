@@ -61,4 +61,8 @@ public class Utils {
         }
         return sourceNode;
     }
+
+    public static boolean nullOrEmpty(String target) {
+        return target == null || target.isEmpty();
+    }
 }

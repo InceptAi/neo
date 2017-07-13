@@ -27,6 +27,7 @@ import com.inceptai.neoservice.flatten.FlatViewHierarchy;
 
 public class NeoService extends AccessibilityService {
     private static final String TAG = Utils.TAG;
+    private static final String DEFAULT_SERVER_IP = "192.168.1.128";
 
     private View overlayView;
     private LayoutParams neoOverlayLayout;
@@ -34,6 +35,7 @@ public class NeoService extends AccessibilityService {
     private DisplayMetrics primaryDisplayMetrics;
     private ExpertChannel expertChannel;
     private NeoThreadpool neoThreadpool;
+    private String serverUrl;
 
     private Handler handler;
 
@@ -53,7 +55,8 @@ public class NeoService extends AccessibilityService {
         neoOverlayLayout.y = 200;
         windowManager = (WindowManager) getSystemService(WINDOW_SERVICE);
         getDisplayDimensions();
-        expertChannel = new ExpertChannel();
+        fetchServerUrl();
+        expertChannel = new ExpertChannel(serverUrl);
         expertChannel.connect();
         neoThreadpool = new NeoThreadpool();
         handler = new Handler();
@@ -114,5 +117,14 @@ public class NeoService extends AccessibilityService {
         FlatViewHierarchy flatViewHierarchy = new FlatViewHierarchy(getRootInActiveWindow(), primaryDisplayMetrics);
         flatViewHierarchy.flatten();
         return flatViewHierarchy;
+    }
+
+    private void fetchServerUrl() {
+        String serverIp = BuildConfig.SERVER_IP;
+        if (Utils.nullOrEmpty(serverIp)) {
+            serverIp = DEFAULT_SERVER_IP;
+        }
+        serverUrl = "ws://" + serverIp + ":8080/";
+        Log.i(TAG, "Using server URL: " + serverUrl);
     }
 }
