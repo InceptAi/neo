@@ -43,6 +43,10 @@ function deleteCurrentActionList() {
   	}
 }
 
+function getInnerHtmlItem(name) {
+	return `<a href="#">` + name + `</a>`;
+}
+
 function updateActionList(actionList) {
 	//JSON object here -- display a list
 	//get 'ul' element from the DOM
@@ -55,14 +59,15 @@ function updateActionList(actionList) {
 	deleteCurrentActionList();
 	for (let key in actionList.viewMap) {	
   		let li = document.createElement('li'); //create 'li' element
-  		li.innerHTML = "name: " + actionList.viewMap[key]; //assign your data to each 'li'
+  		//li.innerHTML = `<a href="#">` + actionList.viewMap[key] + `</a>`; //assign your data to each 'li'
+		li.innerHTML = getInnerHtmlItem(actionList.viewMap[key]);
 		elem.appendChild(li); //append 'li' to the 'ul' element
 	}
 
 	let elems = document.getElementsByTagName('li');
 	Array.from(elems).forEach((v, i) => v.addEventListener('click', function() {
-  		Array.from(elems).forEach((c,k) => {c.style.background = 'transparent'; c.innerHTML = 'name: ' + names[k];});
-  		this.innerHTML = 'name: ' + names[i] + ', id: ' + viewIds[i];
+  		Array.from(elems).forEach((c,k) => {c.style.background = 'transparent'; c.innerHTML = getInnerHtmlItem(names[k]);});
+  		this.innerHTML = getInnerHtmlItem(names[i] + ', id: ' + viewIds[i]);
   		this.style.background = '#E3F6CE';
 		sendMessageToClient(viewIds[i], names[i]);
 	}));
