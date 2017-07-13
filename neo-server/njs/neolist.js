@@ -89,3 +89,14 @@ function initializeWebSocket() {
 		alert("WebSocket NOT supported by your Browser!");
 	}
 }
+
+function endExpertSession() {
+	//Send message to Client
+	if (webSocket == undefined) {
+		console.log("Websocket is null, cannot send data");
+		return;
+	}
+	messageToSend = { viewId: "#end", actionName: "#end" };
+	messageToSendString = JSON.stringify(messageToSend);
+	webSocket.send(messageToSendString);
+}
