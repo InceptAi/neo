@@ -27,7 +27,6 @@ import com.inceptai.neoservice.flatten.FlatViewHierarchy;
 
 public class NeoService extends AccessibilityService {
     private static final String TAG = Utils.TAG;
-    private static final String SERVER_IP_PROPERTY_KEY = "com.inceptai.server_ip";
     private static final String DEFAULT_SERVER_IP = "192.168.1.128";
 
     private View overlayView;
@@ -121,7 +120,10 @@ public class NeoService extends AccessibilityService {
     }
 
     private void fetchServerUrl() {
-        String serverIp = System.getProperty(SERVER_IP_PROPERTY_KEY, DEFAULT_SERVER_IP);
+        String serverIp = BuildConfig.SERVER_IP;
+        if (Utils.nullOrEmpty(serverIp)) {
+            serverIp = DEFAULT_SERVER_IP;
+        }
         serverUrl = "ws://" + serverIp + ":8080/";
         Log.i(TAG, "Using server URL: " + serverUrl);
     }

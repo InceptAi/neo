@@ -14,7 +14,6 @@ import java.util.ArrayList;
 import java.util.Iterator;
 
 public class MainActivity extends AppCompatActivity implements ServerConnection.Callback {
-    private static final String SERVER_IP_PROPERTY_KEY = "com.inceptai.server_ip";
     private static final String DEFAULT_SERVER_IP = "192.168.1.128";
     private static final String NUM_VIEWS_KEY = "numViews";
     private static final String VIEW_MAP_KEY = "viewMap";
@@ -46,8 +45,12 @@ public class MainActivity extends AppCompatActivity implements ServerConnection.
     }
 
     private void fetchServerUrl() {
-        String serverIp = System.getProperty(SERVER_IP_PROPERTY_KEY, DEFAULT_SERVER_IP);
+        String serverIp = BuildConfig.SERVER_IP;
+        if (Utils.nullOrEmpty(serverIp)) {
+            serverIp = DEFAULT_SERVER_IP;
+        }
         serverUrl = "ws://" + serverIp + ":8080/";
+        Log.i(Utils.TAG, "Setting serverUrl to: " + serverUrl);
     }
 
     @Override
