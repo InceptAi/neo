@@ -98,6 +98,8 @@ public class FlatViewHierarchy {
     }
 
     public void update(AccessibilityNodeInfo newRootNode) {
+        viewDb.clear();
+        textViewDb.clear();
         rootNode = newRootNode;
     }
 

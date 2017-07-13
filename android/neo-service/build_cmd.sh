@@ -4,5 +4,5 @@ if [ -z $JAVA_HOME ]; then
 fi
 ./gradlew assembleRelease
 
-echo copying FROM  ../neo-service/app/build/outputs/aar/app-release.aar TO ./neo-service/
+echo copying FROM  ./app/build/outputs/aar/app-release.aar TO ../neo-proto/neo-service/
 cp ./app/build/outputs/aar/app-release.aar ../neo-proto/neo-service/
