@@ -12,7 +12,7 @@ import com.inceptai.neoservice.Utils;
  * Represents two-way communication with an expert system (a human or a bot expert).
  */
 public class ExpertChannel implements  ServerConnection.Callback {
-    private static final String SERVER_ADDRESS = "ws://192.168.1.128:8080/";
+    private static final String SERVER_ADDRESS = "ws://192.168.1.129:8080/";
     private ServerConnection serverConnection;
 
     public void connect() {
