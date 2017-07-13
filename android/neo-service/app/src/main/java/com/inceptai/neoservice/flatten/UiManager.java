@@ -38,9 +38,26 @@ public class UiManager {
             return;
         }
         Log.i(Utils.TAG, "Sending CLICK event for view: " + flatView.getText() + " class: " + flatView.getClassName());
-        if (!nodeInfo.performAction(AccessibilityNodeInfo.ACTION_CLICK)) {
+        if (!performHierarchicalClick(nodeInfo)) {
             Log.e(Utils.TAG, "Unable to perform action for some reason.");
         }
+    }
+
+    private boolean performHierarchicalClick(AccessibilityNodeInfo nodeInfo) {
+        boolean done = false;
+        boolean result = false;
+        while (!done) {
+            result = nodeInfo.performAction(AccessibilityNodeInfo.ACTION_CLICK);
+            if (!result) {
+                nodeInfo = nodeInfo.getParent();
+                if (nodeInfo == null) {
+                    done = true;
+                }
+            } else {
+                done = true;
+            }
+        }
+        return result;
     }
 
     public void onAccessibilityEvent(AccessibilityEvent event) {
