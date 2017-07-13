@@ -31,7 +31,7 @@ public class MainActivity extends AppCompatActivity implements ServerConnection.
         setContentView(R.layout.activity_main);
         handler = new Handler();
         listView = (ListView) findViewById(R.id.ui_listview);
-        listViewAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1);
+        listViewAdapter = new ListViewArrayAdapter(this, android.R.layout.simple_list_item_1);
         listView.setAdapter(listViewAdapter);
         startServerConnection();
     }
