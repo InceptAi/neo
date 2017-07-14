@@ -150,4 +150,12 @@ public class FlatView {
     public String getText() {
         return text;
     }
+
+    public String getViewIdResourceName() {
+        return viewIdResourceName;
+    }
+
+    public String getContentDescription() {
+        return contentDescription;
+    }
 }

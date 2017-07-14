@@ -50,7 +50,7 @@ public class FlatViewHierarchy {
             FlatView flatView = nodeQueue.remove(0);
             addNode(flatView);
             traverseChildrenFor(flatView, nodeQueue);
-            if (FlatViewUtils.isTextView(flatView)) {
+            if (FlatViewUtils.hasText(flatView)) {
                 textViewDb.append(flatView.getHashKey(), flatView);
             } else {
                 flatView.recycle();
@@ -89,8 +89,8 @@ public class FlatViewHierarchy {
         for (int i = 0; i < numViews; i ++) {
             FlatView flatView = viewDb.valueAt(i);
             if (flatView.getClassName() != null && flatView.getText() != null && flatView.getClassName() != null) {
-                if (FlatViewUtils.isTextView(flatView)) {
-                    simpleViewHierarchySnapshot.addView(String.valueOf(flatView.getHashKey()), flatView.getText() + " of Type: " + flatView.getClassName());
+                if (FlatViewUtils.hasText(flatView)) {
+                    simpleViewHierarchySnapshot.addView(String.valueOf(flatView.getHashKey()), getSimpleViewStringForDemo(flatView));
                 }
             }
         }
@@ -105,6 +105,18 @@ public class FlatViewHierarchy {
 
     public FlatView getFlatViewFor(String viewId) {
         return viewDb.get(Integer.valueOf(viewId));
+    }
+
+    private String getSimpleViewStringForDemo(FlatView flatView) {
+        String className = flatView.getClassName();
+        if (FlatViewUtils.isImage(flatView)) {
+            Log.i(Utils.TAG, "IMAGEBUTTON: resource: " + flatView.getContentDescription());
+            return "Image:" + flatView.getContentDescription();
+        }
+        if (FlatViewUtils.isTextView(flatView)) {
+            return flatView.getText();
+        }
+        return className;
     }
 
     private FlatView addNode(AccessibilityNodeInfo nodeInfo) {
