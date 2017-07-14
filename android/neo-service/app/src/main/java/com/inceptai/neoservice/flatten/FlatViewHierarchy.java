@@ -90,7 +90,10 @@ public class FlatViewHierarchy {
             FlatView flatView = viewDb.valueAt(i);
             if (flatView.getClassName() != null && flatView.getText() != null && flatView.getClassName() != null) {
                 if (FlatViewUtils.hasText(flatView)) {
-                    simpleViewHierarchySnapshot.addView(String.valueOf(flatView.getHashKey()), getSimpleViewStringForDemo(flatView));
+                    String displayString = getSimpleViewStringForDemo(flatView);
+                    if (!displayString.isEmpty()) {
+                        simpleViewHierarchySnapshot.addView(String.valueOf(flatView.getHashKey()), displayString);
+                    }
                 }
             }
         }
@@ -116,7 +119,7 @@ public class FlatViewHierarchy {
         if (FlatViewUtils.isTextView(flatView)) {
             return flatView.getText();
         }
-        return className;
+        return EMPTY_STRING;
     }
 
     private FlatView addNode(AccessibilityNodeInfo nodeInfo) {
