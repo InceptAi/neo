@@ -91,12 +91,20 @@ function initializeWebSocket() {
 }
 
 function endExpertSession() {
+	sendCommand("end");
+}
+
+function sendBackButtonCommand() {
+	sendCommand("back");
+}
+
+function sendCommand(command) {
 	//Send message to Client
 	if (webSocket == undefined) {
 		console.log("Websocket is null, cannot send data");
 		return;
 	}
-	messageToSend = { viewId: "#end", actionName: "#end" };
+	messageToSend = { viewId: 0, actionName: command };
 	messageToSendString = JSON.stringify(messageToSend);
 	webSocket.send(messageToSendString);
 }
