@@ -88,9 +88,9 @@ public class FlatViewHierarchy {
         SimpleViewHierarchySnapshot simpleViewHierarchySnapshot = new SimpleViewHierarchySnapshot();
         for (int i = 0; i < numViews; i ++) {
             FlatView flatView = viewDb.valueAt(i);
-            if (flatView.getClassName() != null && flatView.getText() != null) {
+            if (flatView.getClassName() != null && flatView.getText() != null && flatView.getClassName() != null) {
                 if (FlatViewUtils.isTextView(flatView)) {
-                    simpleViewHierarchySnapshot.addView(String.valueOf(flatView.getHashKey()), flatView.getText());
+                    simpleViewHierarchySnapshot.addView(String.valueOf(flatView.getHashKey()), flatView.getText() + " of Type: " + flatView.getClassName());
                 }
             }
         }
