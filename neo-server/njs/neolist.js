@@ -52,15 +52,35 @@ function updateActionList(actionList) {
 	//get 'ul' element from the DOM
 	let elem = document.
 	getElementById('ul'); //get 'ul' element from the DOM
-	let viewIds = Object.keys(actionList.viewMap);
-	let names = Object.values(actionList.viewMap);
-	console.log(viewIds);
+	console.log(actionList.viewMap);
+
 	//Delete the existing actionList first
 	deleteCurrentActionList();
+
+	//Create a temp map with names as keys
+	let viewMapTemp = new Map();
 	for (let key in actionList.viewMap) {	
+		viewMapTemp.set(actionList.viewMap[key], key);
+	}
+
+	//Get the keys of the temp map
+	let names = Array.from(viewMapTemp.keys());
+
+	//Sort by names
+	names.sort();
+
+	//populate viewIds
+	let viewIds = [];
+	for (let name of names) {
+		let viewId = viewMapTemp.get(name);
+		viewIds.push(viewId);
+	}
+	console.log(names);
+	console.log(viewIds);
+	//Print the map
+	for (let name of names) {
   		let li = document.createElement('li'); //create 'li' element
-  		//li.innerHTML = `<a href="#">` + actionList.viewMap[key] + `</a>`; //assign your data to each 'li'
-		li.innerHTML = getInnerHtmlItem(actionList.viewMap[key]);
+		li.innerHTML = getInnerHtmlItem(name);
 		elem.appendChild(li); //append 'li' to the 'ul' element
 	}
 
