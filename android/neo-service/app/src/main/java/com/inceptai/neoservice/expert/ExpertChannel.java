@@ -8,6 +8,7 @@ import android.accessibilityservice.AccessibilityService;
 import android.util.Log;
 
 import com.inceptai.neoservice.NeoService;
+import com.inceptai.neoservice.NeoThreadpool;
 import com.inceptai.neoservice.Utils;
 
 import org.json.JSONException;
@@ -27,15 +28,17 @@ public class ExpertChannel implements  ServerConnection.Callback {
     private String serverUrl;
     private OnExpertClick onExpertClick;
     private NeoService neoService;
+    private NeoThreadpool neoThreadpool;
 
-    public ExpertChannel(String serverUrl, OnExpertClick onExpertClick, NeoService neoService) {
+    public ExpertChannel(String serverUrl, OnExpertClick onExpertClick, NeoService neoService, NeoThreadpool neoThreadpool) {
         this.serverUrl = serverUrl;
         this.onExpertClick = onExpertClick;
         this.neoService = neoService;
+        this.neoThreadpool = neoThreadpool;
     }
 
     public void connect() {
-        serverConnection = new ServerConnection(serverUrl, this);
+        serverConnection = new ServerConnection(serverUrl, this, neoThreadpool.getScheduledExecutorService(), 10 /* num attempts */);
         serverConnection.connect();
     }
 
