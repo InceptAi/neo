@@ -80,7 +80,7 @@ function initializeWebSocket() {
 		if (webSocket != undefined) {
 			return;
 		}
-		webSocket = new WebSocket("ws://localhost:" + WEB_SOCKET_PORT +"/");
+		webSocket = new WebSocket("ws://0.0.0.0:" + WEB_SOCKET_PORT +"/");
 		webSocket.onopen = handleSocketOpen;
 		webSocket.onmessage = processMessageReceivedFromClient;
 		webSocket.onclose = handleSocketClose;
@@ -104,7 +104,7 @@ function sendCommand(command) {
 		console.log("Websocket is null, cannot send data");
 		return;
 	}
-	messageToSend = { viewId: 0, actionName: command };
+	messageToSend = { actionName: command };
 	messageToSendString = JSON.stringify(messageToSend);
 	webSocket.send(messageToSendString);
 }
