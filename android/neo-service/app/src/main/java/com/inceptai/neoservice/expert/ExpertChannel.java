@@ -18,7 +18,7 @@ import org.json.JSONObject;
  */
 public class ExpertChannel implements  ServerConnection.Callback {
     private static final String VIEW_CLICKED_KEY = "viewId";
-    private static final String ACTION_KEY = "actionName";
+    private static final String GLOBAL_ACTION_KEY = "actionName";
     private static final String END_ACTION = "end";
     private static final String BACK_ACTION = "back";
 
@@ -55,21 +55,31 @@ public class ExpertChannel implements  ServerConnection.Callback {
         Log.i(Utils.TAG, "Got message: " + message);
         if (onExpertClick != null) {
             try {
-                processAction(message);
+                processExpertMessage(message);
             } catch (JSONException e) {
                 Log.e(Utils.TAG, "Exception processing click json: " + e);
             }
         }
     }
 
-    private void processAction(String message) throws JSONException {
+    private void processExpertMessage(String message) throws JSONException {
         JSONObject jsonObject = new JSONObject(message);
-        String viewId = jsonObject.getString(VIEW_CLICKED_KEY);
+        if (jsonObject.has(VIEW_CLICKED_KEY)) {
+            processClickAction(jsonObject);
+        } else if (jsonObject.has(GLOBAL_ACTION_KEY)) {
+            processGlobalAction(jsonObject);
+        }
+    }
+
+    private void processClickAction(JSONObject message) throws JSONException {
+        String viewId = message.getString(VIEW_CLICKED_KEY);
         if (!Utils.nullOrEmpty(viewId) && onExpertClick != null && Integer.valueOf(viewId) != 0) {
             onExpertClick.onClick(viewId);
         }
+    }
 
-        String action = jsonObject.getString(ACTION_KEY);
+    private void processGlobalAction(JSONObject message) throws JSONException {
+        String action = message.getString(GLOBAL_ACTION_KEY);
         if (!Utils.nullOrEmpty(action)) {
             if (BACK_ACTION.equals(action)) {
                 // back global action.

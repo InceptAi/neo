@@ -7,6 +7,7 @@ import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
 import android.widget.ListView;
 
 import org.json.JSONException;
@@ -25,6 +26,7 @@ public class MainActivity extends AppCompatActivity implements ServerConnection.
     private ServerConnection serverConnection;
     private Handler handler;
     private ArrayAdapter<ViewEntry> listViewAdapter;
+    private Button backButton;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -47,6 +49,22 @@ public class MainActivity extends AppCompatActivity implements ServerConnection.
                     return;
                 }
                 Log.i(Utils.TAG, "Sending click event to: viewId: " + viewEntry.getViewId() + " value: " + viewEntry.getText());
+                serverConnection.sendMessage(clickMessage.toString());
+            }
+        });
+        backButton = (Button) findViewById(R.id.back_button);
+        backButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                // send back event.
+                JSONObject clickMessage = new JSONObject();
+                try {
+                    clickMessage.put("actionName", "back");
+                } catch (JSONException e) {
+                    Log.e(Utils.TAG, "JSONException sending click event.");
+                    return;
+                }
+                Log.i(Utils.TAG, "Sending BACK action");
                 serverConnection.sendMessage(clickMessage.toString());
             }
         });
