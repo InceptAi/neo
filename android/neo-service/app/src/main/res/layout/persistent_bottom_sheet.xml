@@ -1,36 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:orientation="vertical" android:layout_width="match_parent"
-    android:background="@color/lighterBlue00"
-    android:alpha="0.5"
-    android:layout_height="wrap_content">
+    android:background="@color/lightBlue"
+    android:fitsSystemWindows="true"
+    android:alpha="1.0"
+    android:layout_gravity="bottom"
+    android:gravity="bottom"
+    android:layout_height="600dp">
 
-    <FrameLayout
-        android:layout_width="40dp"
-        android:background="@drawable/blue_button_selector"
-        android:layout_weight="0.4"
-        android:layout_gravity="center"
-        android:layout_marginLeft="2dp"
-        android:layout_marginStart="2dp"
-        android:layout_marginBottom="25dp"
-        android:layout_marginTop="25dp"
-        style="@style/MyLargeImageButton.Base"
-        android:focusable="true"
-        android:clickable="true"
-        android:id="@+id/neo_fl"
-        android:layout_height="match_parent">
-
-        <TextView
-            android:layout_width="match_parent"
-            android:text="Neo"
-            android:textColor="@android:color/white"
-            android:textStyle="bold"
-            android:textSize="16sp"
-            android:layout_gravity="center_vertical|center_horizontal"
-            android:gravity="center_horizontal"
-            android:paddingBottom="5dp"
-            android:layout_height="wrap_content" />
-    </FrameLayout>
+    <TextView
+        android:layout_width="wrap_content"
+        android:text="NEO WORKING ..."
+        android:textColor="@android:color/white"
+        android:textStyle="bold"
+        android:textSize="26sp"
+        android:layout_gravity="center_vertical|center_horizontal"
+        android:gravity="center_horizontal"
+        android:layout_margin="50dp"
+        android:layout_height="wrap_content" />
 
     <!--
     <FrameLayout

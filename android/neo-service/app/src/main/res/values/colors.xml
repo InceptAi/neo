@@ -10,4 +10,5 @@
     <color name="lighterBlue00">#e6f2ff</color>
     <color name="soberDarkBlue">#0066cc</color>
     <color name="soberMildBlue">#008ae6</color>
+    <color name="transparent">#00000000</color>
 </resources>

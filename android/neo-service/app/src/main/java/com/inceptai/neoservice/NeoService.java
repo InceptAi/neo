@@ -1,7 +1,10 @@
 package com.inceptai.neoservice;
 
 import android.accessibilityservice.AccessibilityService;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.graphics.PixelFormat;
 import android.os.Handler;
 import android.util.DisplayMetrics;
@@ -24,6 +27,7 @@ import com.inceptai.neoservice.flatten.UiManager;
 public class NeoService extends AccessibilityService implements ExpertChannel.OnExpertClick {
     private static final String TAG = Utils.TAG;
     private static final String DEFAULT_SERVER_IP = "192.168.1.128";
+    private static final String NEO_INTENT = "com.inceptai.neo.ACTION";
 
     private View overlayView;
     private LayoutParams neoOverlayLayout;
@@ -36,20 +40,24 @@ public class NeoService extends AccessibilityService implements ExpertChannel.On
     private Handler handler;
     private UiManager uiManager;
 
+    private NeoCustomIntentReceiver intentReceiver;
+    private boolean isOverlayVisible;
+
     @Override
     public void onCreate() {
         super.onCreate();
 
+        isOverlayVisible = false;
         overlayView = View.inflate(getBaseContext(), R.layout.persistent_bottom_sheet, null);
         neoOverlayLayout = new LayoutParams(
                 LayoutParams.MATCH_PARENT /* width */,
                 LayoutParams.WRAP_CONTENT /* height */,
                 LayoutParams.TYPE_SYSTEM_ERROR,
                 LayoutParams.FLAG_DISMISS_KEYGUARD | LayoutParams.FLAG_NOT_FOCUSABLE | LayoutParams.FLAG_NOT_TOUCHABLE,
-                PixelFormat.TRANSLUCENT);
-        neoOverlayLayout.gravity = Gravity.BOTTOM | Gravity.CENTER;
-        neoOverlayLayout.x = 200;
-        neoOverlayLayout.y = 200;
+                PixelFormat.OPAQUE);
+        neoOverlayLayout.gravity = Gravity.BOTTOM | Gravity.LEFT;
+        neoOverlayLayout.x = 0;
+        neoOverlayLayout.y = 0;
         windowManager = (WindowManager) getSystemService(WINDOW_SERVICE);
         getDisplayDimensions();
         fetchServerUrl();
@@ -58,6 +66,9 @@ public class NeoService extends AccessibilityService implements ExpertChannel.On
         expertChannel = new ExpertChannel(serverUrl, this, this, neoThreadpool);
         expertChannel.connect();
         handler = new Handler();
+        intentReceiver = new NeoCustomIntentReceiver();
+        IntentFilter intentFilter = new IntentFilter(NEO_INTENT);
+        registerReceiver(intentReceiver, intentFilter);
     }
 
     @Override
@@ -73,19 +84,15 @@ public class NeoService extends AccessibilityService implements ExpertChannel.On
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        if (windowManager != null) {
-            windowManager.addView(overlayView, neoOverlayLayout);
-        } else {
-            Toast.makeText(this, "NULL WINDOW MANAGER.", Toast.LENGTH_SHORT).show();
-        }
         return START_STICKY;
     }
 
     @Override
     public void onDestroy() {
-        if (windowManager != null && overlayView != null) {
-            windowManager.removeView(overlayView);
+        if (isOverlayVisible) {
+            hideOverlay();
         }
+        unregisterReceiver(intentReceiver);
         super.onDestroy();
     }
 
@@ -124,5 +131,37 @@ public class NeoService extends AccessibilityService implements ExpertChannel.On
     public void onClick(String viewId) {
         Log.i(Utils.TAG, "Click event for viewId: " + viewId);
         uiManager.processClick(viewId);
+    }
+
+    private class NeoCustomIntentReceiver extends BroadcastReceiver {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            NeoService.this.toggleOverlay();
+        }
+    }
+
+    private void showOverlay() {
+        if (windowManager != null) {
+            windowManager.addView(overlayView, neoOverlayLayout);
+            overlayView.requestLayout();
+            isOverlayVisible = true;
+        } else {
+            Toast.makeText(this, "NULL WINDOW MANAGER.", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void hideOverlay() {
+        if (windowManager != null && overlayView != null) {
+            windowManager.removeView(overlayView);
+        }
+        isOverlayVisible = false;
+    }
+
+    private void toggleOverlay() {
+        if (isOverlayVisible) {
+            hideOverlay();
+        } else {
+            showOverlay();
+        }
     }
 }
