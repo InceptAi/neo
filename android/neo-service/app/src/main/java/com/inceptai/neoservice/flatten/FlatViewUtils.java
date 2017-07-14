@@ -11,6 +11,7 @@ import org.json.JSONObject;
 public class FlatViewUtils {
     private static final String TEXTVIEW_CLASSNAME = "android.widget.TextView";
     private static final String IMAGE_CLASSNAME = "android.widget.ImageButton";
+
     private FlatViewUtils() {}
 
     public static boolean isTextView(FlatView flatView) {
