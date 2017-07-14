@@ -55,7 +55,7 @@ public class NeoService extends AccessibilityService implements ExpertChannel.On
         fetchServerUrl();
         neoThreadpool = new NeoThreadpool();
         uiManager = new UiManager(this, neoThreadpool, primaryDisplayMetrics);
-        expertChannel = new ExpertChannel(serverUrl, this);
+        expertChannel = new ExpertChannel(serverUrl, this, this);
         expertChannel.connect();
         handler = new Handler();
     }
