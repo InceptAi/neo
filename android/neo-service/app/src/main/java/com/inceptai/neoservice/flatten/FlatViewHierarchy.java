@@ -120,11 +120,11 @@ public class FlatViewHierarchy {
             return flatView.getText();
         }
         String text = flatView.getText();
-        if (text != null && text.length() > 0) {
+        if (text != null && text.length() > 0  && FlatViewUtils.isNotNullValuedString(text)) {
             return text;
         }
         String contentDesc = flatView.getContentDescription();
-        if (contentDesc != null && contentDesc.length() > 0) {
+        if (contentDesc != null && contentDesc.length() > 0 && FlatViewUtils.isNotNullValuedString(contentDesc)) {
             return contentDesc;
         }
         return EMPTY_STRING;
