@@ -1,5 +1,7 @@
 package com.inceptai.neoservice.flatten;
 
+import com.inceptai.neoservice.Utils;
+
 import org.json.JSONObject;
 
 /**
@@ -11,6 +13,6 @@ public class FlatViewUtils {
     private FlatViewUtils() {}
 
     public static boolean isTextView(FlatView flatView) {
-        return TEXTVIEW_CLASSNAME.equals(flatView.getClassName());
+        return TEXTVIEW_CLASSNAME.equals(flatView.getClassName()) || !Utils.nullOrEmpty(flatView.getText());
     }
 }
