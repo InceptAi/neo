@@ -119,6 +119,14 @@ public class FlatViewHierarchy {
         if (FlatViewUtils.isTextView(flatView)) {
             return flatView.getText();
         }
+        String text = flatView.getText();
+        if (text != null && text.length() > 0) {
+            return text;
+        }
+        String contentDesc = flatView.getContentDescription();
+        if (contentDesc != null && contentDesc.length() > 0) {
+            return contentDesc;
+        }
         return EMPTY_STRING;
     }
 
