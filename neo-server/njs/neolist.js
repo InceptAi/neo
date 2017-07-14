@@ -96,7 +96,7 @@ function endExpertSession() {
 		console.log("Websocket is null, cannot send data");
 		return;
 	}
-	messageToSend = { viewId: "#end", actionName: "#end" };
+	messageToSend = { viewId: 0, actionName: "end" };
 	messageToSendString = JSON.stringify(messageToSend);
 	webSocket.send(messageToSendString);
 }
