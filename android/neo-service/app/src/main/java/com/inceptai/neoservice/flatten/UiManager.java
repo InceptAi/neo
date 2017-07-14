@@ -6,6 +6,7 @@ import android.util.Log;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
 
+import com.inceptai.neoservice.NeoService;
 import com.inceptai.neoservice.NeoThreadpool;
 import com.inceptai.neoservice.Utils;
 
@@ -15,13 +16,13 @@ import com.inceptai.neoservice.Utils;
 
 public class UiManager {
 
-    private Context context;
+    private NeoService neoService;
     private NeoThreadpool neoThreadpool;
     private DisplayMetrics primaryDisplayMetrics;
     private FlatViewHierarchy flatViewHierarchy;
 
-    public UiManager(Context context, NeoThreadpool neoThreadpool, DisplayMetrics displayMetrics) {
-        this.context = context;
+    public UiManager(NeoService neoService, NeoThreadpool neoThreadpool, DisplayMetrics displayMetrics) {
+        this.neoService = neoService;
         this.neoThreadpool = neoThreadpool;
         this.primaryDisplayMetrics = displayMetrics;
     }
