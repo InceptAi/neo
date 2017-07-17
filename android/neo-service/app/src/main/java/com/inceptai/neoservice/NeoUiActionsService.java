@@ -24,7 +24,7 @@ import com.inceptai.neoservice.flatten.UiManager;
  * Created by arunesh on 6/29/17.
  */
 
-public class NeoService extends AccessibilityService implements ExpertChannel.OnExpertClick {
+public class NeoUiActionsService extends AccessibilityService implements ExpertChannel.OnExpertClick {
     private static final String TAG = Utils.TAG;
     private static final String DEFAULT_SERVER_IP = "192.168.1.128";
     private static final String NEO_INTENT = "com.inceptai.neo.ACTION";
@@ -57,7 +57,7 @@ public class NeoService extends AccessibilityService implements ExpertChannel.On
                 PixelFormat.OPAQUE);
         neoOverlayLayout.gravity = Gravity.BOTTOM | Gravity.LEFT;
         neoOverlayLayout.x = 0;
-        neoOverlayLayout.y = 0;
+        neoOverlayLayout.y = -100;
         windowManager = (WindowManager) getSystemService(WINDOW_SERVICE);
         getDisplayDimensions();
         fetchServerUrl();
@@ -136,7 +136,7 @@ public class NeoService extends AccessibilityService implements ExpertChannel.On
     private class NeoCustomIntentReceiver extends BroadcastReceiver {
         @Override
         public void onReceive(Context context, Intent intent) {
-            NeoService.this.toggleOverlay();
+            NeoUiActionsService.this.toggleOverlay();
         }
     }
 

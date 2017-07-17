@@ -11,7 +11,7 @@ import com.google.gson.Gson;
  */
 
 public class Utils {
-    public static final String TAG = "NeoService";
+    public static final String TAG = "NeoUiActionsService";
     public static final String EMPTY_STRING = "";
 
     public static Gson gson = new Gson();

@@ -7,7 +7,7 @@ package com.inceptai.neoservice.expert;
 import android.accessibilityservice.AccessibilityService;
 import android.util.Log;
 
-import com.inceptai.neoservice.NeoService;
+import com.inceptai.neoservice.NeoUiActionsService;
 import com.inceptai.neoservice.NeoThreadpool;
 import com.inceptai.neoservice.Utils;
 
@@ -27,10 +27,10 @@ public class ExpertChannel implements  ServerConnection.Callback {
 
     private String serverUrl;
     private OnExpertClick onExpertClick;
-    private NeoService neoService;
+    private NeoUiActionsService neoService;
     private NeoThreadpool neoThreadpool;
 
-    public ExpertChannel(String serverUrl, OnExpertClick onExpertClick, NeoService neoService, NeoThreadpool neoThreadpool) {
+    public ExpertChannel(String serverUrl, OnExpertClick onExpertClick, NeoUiActionsService neoService, NeoThreadpool neoThreadpool) {
         this.serverUrl = serverUrl;
         this.onExpertClick = onExpertClick;
         this.neoService = neoService;

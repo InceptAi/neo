@@ -1,12 +1,11 @@
 package com.inceptai.neoservice.flatten;
 
-import android.content.Context;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
 
-import com.inceptai.neoservice.NeoService;
+import com.inceptai.neoservice.NeoUiActionsService;
 import com.inceptai.neoservice.NeoThreadpool;
 import com.inceptai.neoservice.Utils;
 
@@ -16,12 +15,12 @@ import com.inceptai.neoservice.Utils;
 
 public class UiManager {
 
-    private NeoService neoService;
+    private NeoUiActionsService neoService;
     private NeoThreadpool neoThreadpool;
     private DisplayMetrics primaryDisplayMetrics;
     private FlatViewHierarchy flatViewHierarchy;
 
-    public UiManager(NeoService neoService, NeoThreadpool neoThreadpool, DisplayMetrics displayMetrics) {
+    public UiManager(NeoUiActionsService neoService, NeoThreadpool neoThreadpool, DisplayMetrics displayMetrics) {
         this.neoService = neoService;
         this.neoThreadpool = neoThreadpool;
         this.primaryDisplayMetrics = displayMetrics;

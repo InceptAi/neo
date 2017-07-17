@@ -16,7 +16,7 @@ import android.widget.Button;
 import android.widget.Toast;
 
 import com.inceptai.neoservice.NeoDisplay2;
-import com.inceptai.neoservice.NeoService;
+import com.inceptai.neoservice.NeoUiActionsService;
 
 import java.io.IOException;
 
@@ -122,7 +122,7 @@ public class NeoMainActivity extends AppCompatActivity {
     }
 
     private void continueStartNeoService() {
-        startService(new Intent(this, NeoService.class));
+        startService(new Intent(this, NeoUiActionsService.class));
     }
 }
 
