@@ -29,12 +29,14 @@ public class ExpertChannel implements  ServerConnection.Callback {
     private OnExpertClick onExpertClick;
     private NeoUiActionsService neoService;
     private NeoThreadpool neoThreadpool;
+    private String userUuid;
 
-    public ExpertChannel(String serverUrl, OnExpertClick onExpertClick, NeoUiActionsService neoService, NeoThreadpool neoThreadpool) {
+    public ExpertChannel(String serverUrl, OnExpertClick onExpertClick, NeoUiActionsService neoService, NeoThreadpool neoThreadpool, String userUuid) {
         this.serverUrl = serverUrl;
         this.onExpertClick = onExpertClick;
         this.neoService = neoService;
         this.neoThreadpool = neoThreadpool;
+        this.userUuid = userUuid;
     }
 
     public void connect() {

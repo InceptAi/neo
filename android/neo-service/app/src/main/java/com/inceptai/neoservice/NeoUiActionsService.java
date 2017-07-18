@@ -25,6 +25,9 @@ import com.inceptai.neoservice.flatten.UiManager;
  */
 
 public class NeoUiActionsService extends AccessibilityService implements ExpertChannel.OnExpertClick {
+    public static final String UUID_INTENT_PARAM = "UUID";
+    public static final String SERVER_ADDRESS = "SERVER_ADDRESS";
+
     private static final String TAG = Utils.TAG;
     private static final String DEFAULT_SERVER_IP = "192.168.1.128";
     private static final String NEO_INTENT = "com.inceptai.neo.ACTION";
@@ -42,6 +45,8 @@ public class NeoUiActionsService extends AccessibilityService implements ExpertC
 
     private NeoCustomIntentReceiver intentReceiver;
     private boolean isOverlayVisible;
+    private String userUuid;
+    private String serverAddress;
 
     @Override
     public void onCreate() {
@@ -63,8 +68,7 @@ public class NeoUiActionsService extends AccessibilityService implements ExpertC
         fetchServerUrl();
         neoThreadpool = new NeoThreadpool();
         uiManager = new UiManager(this, neoThreadpool, primaryDisplayMetrics);
-        expertChannel = new ExpertChannel(serverUrl, this, this, neoThreadpool);
-        expertChannel.connect();
+
         handler = new Handler();
         intentReceiver = new NeoCustomIntentReceiver();
         IntentFilter intentFilter = new IntentFilter(NEO_INTENT);
@@ -84,6 +88,10 @@ public class NeoUiActionsService extends AccessibilityService implements ExpertC
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+        userUuid = intent.getExtras().getString(UUID_INTENT_PARAM);
+        serverAddress = intent.getExtras().getString(SERVER_ADDRESS);
+        expertChannel = new ExpertChannel(serverAddress, this, this, neoThreadpool, userUuid);
+        expertChannel.connect();
         return START_STICKY;
     }
 
