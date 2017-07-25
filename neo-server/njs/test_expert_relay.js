@@ -16,7 +16,6 @@ ws.on('open', function open() {
 
 ws.on('message', function message(data) {
     console.log('Incoming message:' + data);
-
 });
 
 const wsClient = new WebSocket('ws://192.168.1.129:8080');
