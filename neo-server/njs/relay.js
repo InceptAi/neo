@@ -3,8 +3,8 @@
 const LIST_ALL_UUIDS_EXPERT_ACTION = "LIST";
 const CONNECT_TO_UUID_EXPERT_ACTION = "CONNECT";
 
-const CLIENT_SOCKET_PORT = 8080;
-const EXPERT_SOCKET_PORT = 7070;
+const CLIENT_WEBSOCKET_PORT = 8080;
+const EXPERT_WEBSOCKET_PORT = 7070;
 const SUCCESS_CODE = 0;
 const ERROR_CODE = 1;
 
@@ -17,36 +17,36 @@ const wssClient = new WebSocket.Server({ port: CLIENT_WEBSOCKET_PORT });
 const wssExpert = new WebSocket.Server({ port: EXPERT_WEBSOCKET_PORT });
 
 
-wssClient.onconnection = function (websocket) {
-	websocket.onmessage = onClientIncomingMessage;
-}
-
-wssClient.onerror = function (ev) {
-    neoLog('Client Websocket error:' + ev.data);
-};
-
-/////////////// OLD
-wssClient.on('connection', function connection(websocket) {
- 
-  websocket.on('message', function incoming(data) {
-    // Broadcast to everyone else.
-    wssClient.clients.forEach(function each(client) {
-      if (client !== ws && client.readyState === WebSocket.OPEN) {
-        client.send(data);
-      }
-    });
-    neoLog('received: %s', data);
-  });
+wssClient.on('connection',  function (websocket) {
+	websocket.on('message', onClientIncomingMessage);
 });
-/////////////// OLD
 
-wssExpert.onconnection = function (websocket) {
-  websocket.onmessage = onExpertIncomingMessage;  
-};
+/*
+wssClient.on('connection', function connection(websocket) {
+	websocket.on('message', function incoming(data) {
+	// Broadcast to everyone else.
+-    wssClient.clients.forEach(function each(client) {
+-      if (client !== ws && client.readyState === WebSocket.OPEN) {
+-        client.send(data);
+-      }
+-    });
+-    neoLog('received: %s', data);
+-  });
+-});
+*/
 
-wssExpert.onerror = function (ev) {
+wssClient.on('error', function (ev) {
+    neoLog('Client Websocket error:' + ev.data);
+});
+
+wssExpert.on('connection', function (websocket) {
+  neoLog("In on connection of expert");
+  websocket.on('message', onExpertIncomingMessage);  
+});
+
+wssExpert.on('error', function (ev) {
     neoLog('Expert Websocket error:' + ev.data);
-};
+});
 
 function getActiveSession(uuid) {
     neoLog('getActiveSession called for user uuid:' + uuid);
@@ -85,8 +85,8 @@ function onClientIncomingMessage(message) {
 
     // 2. get or create ActiveSession.
     if (parsedMessage.uuid !== undefined) {
-        neoLog('uuid available = ' + uuid);
-        var session = getActiveSession(uuid);
+        neoLog('uuid available = ' + parsedMessage.uuid);
+        var session = getActiveSession(parsedMessage.uuid);
         // Set activeSession field on websocket.activeSession.
         this.activeSession = session;
     }
@@ -99,7 +99,7 @@ function onClientIncomingMessage(message) {
     // 3. Relay messages to an expert if one exists.
     this.activeSession.expertWebSocketList.forEach(function each(client) {
         if (client !== this && client.readyState === WebSocket.OPEN) {
-            client.send(data);
+            client.send(message);
         }
     });
 
@@ -118,24 +118,24 @@ function addExpertToBroadcastList(expertWebsocket, uuid) {
 	if (activeSession === undefined || uuid === undefined) {
 		return { response : "ERROR: uuid does not exist: uuid " + uuid, code : ERROR_CODE };
 	}
-	activeSession.expertWebSocketList.add(expertWebsocket);
+	activeSession.expertWebSocketList.push(expertWebsocket);
 	expertWebsocket.activeSession = activeSession;
 	return { response: "SUCCESS: connected to uuid: " + uuid, code : SUCCESS_CODE };
 }
 
 function processExpertAction(websocket, parsedMessage) {
 	var messageResponse = undefined;
-	if (serverAction == LIST_ALL_UUIDS_EXPERT_ACTION) {
+	if (parsedMessage.serverAction == LIST_ALL_UUIDS_EXPERT_ACTION) {
 		//send list of all UUIDs to expert
 		messageResponse = { uuidList :  getUUIDList(), code : SUCCESS_CODE };	
-	} else if (serverAction == CONNECT_TO_UUID_EXPERT_ACTION) {
+	} else if (parsedMessage.serverAction == CONNECT_TO_UUID_EXPERT_ACTION) {
 		//Connect to a client and set it for this expert
-		messageResponse = addExpertToBroadcastList(this, parsedMessage.uuid);
+		messageResponse = addExpertToBroadcastList(websocket, parsedMessage.uuid);
 	} else {
 		messageResponse = { response : "ERROR: Invalid action", code : ERROR_CODE }; 
         neoLog('invalid action, expert message:' + message);
 	}
-	websocket.send(messageResponse);
+	websocket.send(JSON.stringify(messageResponse));
 }
 
 function onExpertIncomingMessage(message) {
@@ -143,6 +143,7 @@ function onExpertIncomingMessage(message) {
 	//2. Two: List -- return list of all UUIDs
 	//3. Connect -- to given UUID
 
+	neoLog("Got message: " + message);
     var parsedMessage = undefined;
     try {
         parsedMessage = JSON.parse(message);
@@ -159,7 +160,7 @@ function onExpertIncomingMessage(message) {
 
 	//Server action undefined so relay message
     if (this.activeSession === undefined) {
-		var errorMessage = 'undefined server action / active session, Dropping message: ' + message)
+		var errorMessage = 'undefined server action / active session, Dropping message: ' + message;
 		this.send({ response : errorMessage, code : ERROR_CODE })
         neoLog('undefined server action and undefined active Session for relay message, Dropping message: ' + message);
         return;
