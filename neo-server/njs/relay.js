@@ -89,6 +89,7 @@ function onClientIncomingMessage(message) {
         var session = getActiveSession(parsedMessage.uuid);
         // Set activeSession field on websocket.activeSession.
         this.activeSession = session;
+		this.activeSession.userWebSocket = this;
     }
 
     if (this.activeSession === undefined) {
@@ -113,13 +114,27 @@ function getUUIDList() {
 	return Array.from(activeSessionsMap.keys());
 }
 
-function addExpertToBroadcastList(expertWebsocket, uuid) {
+function removeExpertFromActiveSession(expertWebSocket) {
+	if (expertWebSocket.activeSession !== undefined) {
+		var indexOfExpertInSocketList = expertWebSocket.activeSession.expertWebSocketList.indexOf(expertWebSocket);
+		if (indexOfExpertInSocketList >= 0) {
+			expertWebSocket.activeSession.expertWebSocketList.splice(indexOfExpertInSocketList, 1);
+		}
+   }
+   expertWebSocket.activeSession = undefined;
+}
+
+function addExpertToBroadcastList(expertWebSocket, uuid) {
+	
 	var activeSession = activeSessionsMap.get(uuid);
+	
 	if (activeSession === undefined || uuid === undefined) {
 		return { response : "ERROR: uuid does not exist: uuid " + uuid, code : ERROR_CODE };
 	}
-	activeSession.expertWebSocketList.push(expertWebsocket);
-	expertWebsocket.activeSession = activeSession;
+	
+	removeExpertFromActiveSession(expertWebSocket);
+	activeSession.expertWebSocketList.push(expertWebSocket);
+	expertWebSocket.activeSession = activeSession;
 	return { response: "SUCCESS: connected to uuid: " + uuid, code : SUCCESS_CODE };
 }
 
@@ -161,7 +176,7 @@ function onExpertIncomingMessage(message) {
 	//Server action undefined so relay message
     if (this.activeSession === undefined) {
 		var errorMessage = 'undefined server action / active session, Dropping message: ' + message;
-		this.send({ response : errorMessage, code : ERROR_CODE })
+		this.send(JSON.stringify({ response : errorMessage, code : ERROR_CODE }));
         neoLog('undefined server action and undefined active Session for relay message, Dropping message: ' + message);
         return;
     }
@@ -169,7 +184,7 @@ function onExpertIncomingMessage(message) {
     // 3. Relay messages to an expert if one exists.
 	var clientToSend = this.activeSession.userWebSocket;
 	if (clientToSend !== this && clientToSend.readyState === WebSocket.OPEN) {
-		clientToSend.send(data);
+		clientToSend.send(message);
  	} else {
 		neoLog("client is not ready to receive expert message");
 	}
