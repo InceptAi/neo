@@ -7,11 +7,12 @@ const CLIENT_WEBSOCKET_PORT = 8080;
 const EXPERT_WEBSOCKET_PORT = 7070;
 const SUCCESS_CODE = 0;
 const ERROR_CODE = 1;
+const CLIENT_WEBSOCKET_TIMEOUT_MS = 20000;
 
 var activeSessionsMap = new Map();
 
-
 const WebSocket = require('ws');
+const Delayed = require('delayed');
 
 const wssClient = new WebSocket.Server({ port: CLIENT_WEBSOCKET_PORT });
 const wssExpert = new WebSocket.Server({ port: EXPERT_WEBSOCKET_PORT });
@@ -21,19 +22,10 @@ wssClient.on('connection',  function (websocket) {
 	websocket.on('message', onClientIncomingMessage);
 });
 
-/*
-wssClient.on('connection', function connection(websocket) {
-	websocket.on('message', function incoming(data) {
-	// Broadcast to everyone else.
--    wssClient.clients.forEach(function each(client) {
--      if (client !== ws && client.readyState === WebSocket.OPEN) {
--        client.send(data);
--      }
--    });
--    neoLog('received: %s', data);
--  });
--});
-*/
+wssClient.on('close', function () {
+   var delayedCleanupTimer = Delayed.delay(clearUser, CLIENT_WEBSOCKET_PORT, this, this);
+   this.activeSession.pendingTimer = delayedCleanupTimer;
+});
 
 wssClient.on('error', function (ev) {
     neoLog('Client Websocket error:' + ev.data);
@@ -48,6 +40,10 @@ wssExpert.on('error', function (ev) {
     neoLog('Expert Websocket error:' + ev.data);
 });
 
+wssExpert.on('close', function () {
+  removeExpertFromActiveSession(this);
+});
+
 function getActiveSession(uuid) {
     neoLog('getActiveSession called for user uuid:' + uuid);
 	var session = activeSessionsMap.get(uuid);
@@ -57,6 +53,17 @@ function getActiveSession(uuid) {
 		activeSessionsMap.set(uuid, session);
 	}
 	return session;
+}
+
+function clearUser(webSocket) {
+  var activeSession = webSocket.activeSession;
+  if (activeSession !=== undefined) {
+      var uuid = activeSession.uuid;
+      activeSessionsMap.delete(uuid);
+      /// remove user's websocket.
+      activeSession.userWebSocket = undefined;
+      webSocket.activeSession == undefined;
+  }  
 }
 
 function createActiveSession(uuid) {
@@ -97,6 +104,10 @@ function onClientIncomingMessage(message) {
         return;
     }
 
+    if (activeSession.pendingTimer !=== undefined) {
+        clearTimeout(activeSession.pendingTimer);
+        activeSession.pendingTimer = undefined;
+    }
     // 3. Relay messages to an expert if one exists.
     this.activeSession.expertWebSocketList.forEach(function each(client) {
         if (client !== this && client.readyState === WebSocket.OPEN) {
