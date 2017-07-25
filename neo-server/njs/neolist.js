@@ -1,4 +1,4 @@
-const WEB_SOCKET_PORT = 8080;
+const WEB_SOCKET_PORT = 7070;
 
 let webSocket;
 
