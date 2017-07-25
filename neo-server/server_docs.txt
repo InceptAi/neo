@@ -1,0 +1,28 @@
+
+Relay server PROTOCOL Documentation:
+
+
+Documentation that covers the protocol between the expert, the client and the
+relay server.
+
+From Expert:
+
+  Fields: 
+      serverAction: String one of "LIST" or "CONNECT".
+
+  Response from relay server:
+
+     Response for LIST:
+     {
+      "uuidList": ["uuid1", "uuid2"],
+       }
+
+  Response for "CONNECT":
+      {
+          "response": response string,
+          code: 0 or 1,  // 0 for success, 1 for failure.
+      }
+
+From client:
+  UUID field: Used to specify the session to which this user belongs. Creates a
+  new activeSession object if needed.
