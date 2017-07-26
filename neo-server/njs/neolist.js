@@ -3,6 +3,10 @@ const SOURCE_RELAY = "RELAY";
 const LIST_ACTION = "LIST";
 const CONNECT_ACTION = "CONNECT";
 const SOURCE_EXPERT = "EXPERT";
+const EXPERT_SPECIAL_ACTION_HOME = "home";
+const EXPERT_SPECIAL_ACTION_END_SESSION = "end";
+const EXPERT_SPECIAL_ACTION_GO_BACK = "back";
+const EXPERT_SPECIAL_ACTION_SHOW_SETTINGS = "settings";
 
 let webSocket;
 var lastSelectedUUID;
@@ -177,11 +181,19 @@ function populateUuidList(uuidList) {
 }
 
 function endExpertSession() {
-	sendCommand("end");
+	sendCommand(EXPERT_SPECIAL_ACTION_END_SESSION);
 }
 
 function sendBackButtonCommand() {
-	sendCommand("back");
+	sendCommand(EXPERT_SPECIAL_ACTION_GO_BACK);
+}
+
+function sendHomeButtonCommand() {
+	sendCommand(EXPERT_SPECIAL_ACTION_HOME);
+}
+
+function sendShowSettingsButtonCommand() {
+	sendCommand(EXPERT_SPECIAL_ACTION_SHOW_SETTINGS);
 }
 
 function sendCommand(command) {
