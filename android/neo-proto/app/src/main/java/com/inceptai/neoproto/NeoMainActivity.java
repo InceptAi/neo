@@ -19,6 +19,7 @@ import com.inceptai.neoservice.NeoDisplay2;
 import com.inceptai.neoservice.NeoUiActionsService;
 
 import java.io.IOException;
+import java.util.UUID;
 
 public class NeoMainActivity extends AppCompatActivity {
     private static final int REQUEST_CODE_MEDIA_PROJECTION_PERMISSION = 1001;
@@ -33,10 +34,12 @@ public class NeoMainActivity extends AppCompatActivity {
     private MediaProjectionManager mediaProjectionManager;
     private MediaProjection mediaProjection;
     private boolean askedForOverlayPermission = false;
+    private String userUuid;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        userUuid = UUID.randomUUID().toString();
         setContentView(R.layout.activity_neo_main);
         mControlsView = findViewById(R.id.fullscreen_content_controls);
         mContentView = findViewById(R.id.fullscreen_content);
@@ -122,7 +125,9 @@ public class NeoMainActivity extends AppCompatActivity {
     }
 
     private void continueStartNeoService() {
-        startService(new Intent(this, NeoUiActionsService.class));
+        Intent intent = new Intent(this, NeoUiActionsService.class);
+        intent.putExtra(NeoUiActionsService.UUID_INTENT_PARAM, userUuid);
+        startService(intent);
     }
 }
 

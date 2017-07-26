@@ -90,6 +90,9 @@ public class NeoUiActionsService extends AccessibilityService implements ExpertC
     public int onStartCommand(Intent intent, int flags, int startId) {
         userUuid = intent.getExtras().getString(UUID_INTENT_PARAM);
         serverAddress = intent.getExtras().getString(SERVER_ADDRESS);
+        if (serverAddress == null) {
+            serverAddress = "ws://" + BuildConfig.SERVER_IP + ":8080/";
+        }
         expertChannel = new ExpertChannel(serverAddress, this, this, neoThreadpool, userUuid);
         expertChannel.connect();
         return START_STICKY;
@@ -123,7 +126,9 @@ public class NeoUiActionsService extends AccessibilityService implements ExpertC
 
     private void sendViewSnapshot(FlatViewHierarchy flatViewHierarchy) {
         // expertChannel.sendViewHierarchy(flatViewHierarchy.toJson());
-        expertChannel.sendViewHierarchy(flatViewHierarchy.toSimpleJson());
+        if (expertChannel != null) {
+            expertChannel.sendViewHierarchy(flatViewHierarchy.toSimpleJson());
+        }
     }
 
     private void fetchServerUrl() {
