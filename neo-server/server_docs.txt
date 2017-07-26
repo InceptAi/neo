@@ -14,13 +14,14 @@ From Expert:
 
      Response for LIST:
      {
-      "uuidList": ["uuid1", "uuid2"],
+      "uuidList": ["uuid1", "uuid2"], "source" : "RELAY"
        }
 
   Response for "CONNECT":
       {
           "response": response string,
           code: 0 or 1,  // 0 for success, 1 for failure.
+		  "source": "RELAY"
       }
 
 From client:
