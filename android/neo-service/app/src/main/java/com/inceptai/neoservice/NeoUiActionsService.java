@@ -6,7 +6,9 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.graphics.PixelFormat;
+import android.os.Binder;
 import android.os.Handler;
+import android.os.IBinder;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.Gravity;
@@ -73,6 +75,7 @@ public class NeoUiActionsService extends AccessibilityService implements ExpertC
         intentReceiver = new NeoCustomIntentReceiver();
         IntentFilter intentFilter = new IntentFilter(NEO_INTENT);
         registerReceiver(intentReceiver, intentFilter);
+        NeoService.registerService(this);
     }
 
     @Override

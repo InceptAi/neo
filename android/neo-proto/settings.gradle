@@ -1,1 +1,4 @@
-include ':app', ':neo-service'
+include ':app', ':neo-service-direct'
+
+
+project(":neo-service-direct").projectDir = file("../neo-service/app")
