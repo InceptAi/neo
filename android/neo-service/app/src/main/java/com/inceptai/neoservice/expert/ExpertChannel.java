@@ -4,12 +4,12 @@ package com.inceptai.neoservice.expert;
  * Created by arunesh on 7/1/17.
  */
 
-import android.accessibilityservice.AccessibilityService;
 import android.util.Log;
 
 import com.inceptai.neoservice.NeoUiActionsService;
 import com.inceptai.neoservice.NeoThreadpool;
 import com.inceptai.neoservice.Utils;
+import com.inceptai.neoservice.flatten.UiManager;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -19,21 +19,17 @@ import org.json.JSONObject;
  */
 public class ExpertChannel implements  ServerConnection.Callback {
     private static final String VIEW_CLICKED_KEY = "viewId";
-    private static final String GLOBAL_ACTION_KEY = "actionName";
-    private static final String END_ACTION = "end";
-    private static final String BACK_ACTION = "back";
-
     private ServerConnection serverConnection;
 
     private String serverUrl;
-    private OnExpertClick onExpertClick;
+    private ExpertChannelCallback expertChannelCallback;
     private NeoUiActionsService neoService;
     private NeoThreadpool neoThreadpool;
     private String userUuid;
 
-    public ExpertChannel(String serverUrl, OnExpertClick onExpertClick, NeoUiActionsService neoService, NeoThreadpool neoThreadpool, String userUuid) {
+    public ExpertChannel(String serverUrl, ExpertChannelCallback expertChannelCallback, NeoUiActionsService neoService, NeoThreadpool neoThreadpool, String userUuid) {
         this.serverUrl = serverUrl;
-        this.onExpertClick = onExpertClick;
+        this.expertChannelCallback = expertChannelCallback;
         this.neoService = neoService;
         this.neoThreadpool = neoThreadpool;
         this.userUuid = userUuid;
@@ -58,7 +54,7 @@ public class ExpertChannel implements  ServerConnection.Callback {
     @Override
     public void onMessage(String message) {
         Log.i(Utils.TAG, "Got message: " + message);
-        if (onExpertClick != null) {
+        if (expertChannelCallback != null) {
             try {
                 processExpertMessage(message);
             } catch (JSONException e) {
@@ -71,31 +67,24 @@ public class ExpertChannel implements  ServerConnection.Callback {
         JSONObject jsonObject = new JSONObject(message);
         if (jsonObject.has(VIEW_CLICKED_KEY)) {
             processClickAction(jsonObject);
-        } else if (jsonObject.has(GLOBAL_ACTION_KEY)) {
+        } else if (jsonObject.has(UiManager.GLOBAL_ACTION_KEY)) {
             processGlobalAction(jsonObject);
         }
     }
 
     private void processClickAction(JSONObject message) throws JSONException {
         String viewId = message.getString(VIEW_CLICKED_KEY);
-        if (!Utils.nullOrEmpty(viewId) && onExpertClick != null && Integer.valueOf(viewId) != 0) {
-            onExpertClick.onClick(viewId);
+        if (!Utils.nullOrEmpty(viewId) && expertChannelCallback != null && Integer.valueOf(viewId) != 0) {
+            expertChannelCallback.onClick(viewId);
         }
     }
 
     private void processGlobalAction(JSONObject message) throws JSONException {
-        String action = message.getString(GLOBAL_ACTION_KEY);
-        if (!Utils.nullOrEmpty(action)) {
-            if (BACK_ACTION.equals(action)) {
-                // back global action.
-                neoService.performGlobalAction(AccessibilityService.GLOBAL_ACTION_BACK);
-            } else if (END_ACTION.equals(action)) {
-                // end global action.
-            }
-        }
+
     }
 
-    public interface OnExpertClick {
+    public interface ExpertChannelCallback {
         void onClick(String viewId);
+        void onAction(JSONObject actionJson);
     }
 }

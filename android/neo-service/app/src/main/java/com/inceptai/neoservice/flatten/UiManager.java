@@ -1,5 +1,8 @@
 package com.inceptai.neoservice.flatten;
 
+import android.accessibilityservice.AccessibilityService;
+import android.content.Intent;
+import android.provider.Settings;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.accessibility.AccessibilityEvent;
@@ -9,11 +12,19 @@ import com.inceptai.neoservice.NeoUiActionsService;
 import com.inceptai.neoservice.NeoThreadpool;
 import com.inceptai.neoservice.Utils;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 /**
  * Created by arunesh on 7/13/17.
  */
 
 public class UiManager {
+    public static final String GLOBAL_ACTION_KEY = "actionName";
+    private static final String END_ACTION = "end";
+    private static final String BACK_ACTION = "back";
+    private static final String HOME_ACTION = "home";
+    private static final String SETTINGS_ACTION = "settings";
 
     private NeoUiActionsService neoService;
     private NeoThreadpool neoThreadpool;
@@ -72,5 +83,34 @@ public class UiManager {
         }
         flatViewHierarchy.flatten();
         return flatViewHierarchy;
+    }
+
+    public void takeAction(JSONObject actionJson) {
+        String action = Utils.EMPTY_STRING;
+        try {
+            action = actionJson.getString(GLOBAL_ACTION_KEY);
+        } catch (JSONException e) {
+            Log.e(Utils.TAG, "Json error: " + e);
+            return;
+        }
+        if (!Utils.nullOrEmpty(action)) {
+            if (BACK_ACTION.equals(action)) {
+                // back global action.
+                neoService.performGlobalAction(AccessibilityService.GLOBAL_ACTION_BACK);
+            } else if (END_ACTION.equals(action)) {
+                // end global action.
+            } else if (SETTINGS_ACTION.equals(action)) {
+                // settings action
+                showSettings();
+            } else if (HOME_ACTION.equals(action)) {
+                neoService.performGlobalAction(AccessibilityService.GLOBAL_ACTION_HOME);
+            }
+        }
+    }
+
+    private void showSettings() {
+        Intent intent = new Intent(Settings.ACTION_SETTINGS);
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        neoService.startActivity(intent);
     }
 }

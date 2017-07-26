@@ -22,13 +22,13 @@ import com.inceptai.neoservice.expert.ExpertChannel;
 import com.inceptai.neoservice.flatten.FlatViewHierarchy;
 import com.inceptai.neoservice.flatten.UiManager;
 
-import static android.R.attr.start;
+import org.json.JSONObject;
 
 /**
  * Created by arunesh on 6/29/17.
  */
 
-public class NeoUiActionsService extends AccessibilityService implements ExpertChannel.OnExpertClick {
+public class NeoUiActionsService extends AccessibilityService implements ExpertChannel.ExpertChannelCallback {
     public static final String UUID_INTENT_PARAM = "UUID";
     public static final String SERVER_ADDRESS = "SERVER_ADDRESS";
     public static NeoService PARENT_INSTANCE;  // HACK.
@@ -180,6 +180,11 @@ public class NeoUiActionsService extends AccessibilityService implements ExpertC
     public void onClick(String viewId) {
         Log.i(Utils.TAG, "Click event for viewId: " + viewId);
         uiManager.processClick(viewId);
+    }
+
+    @Override
+    public void onAction(JSONObject actionJson) {
+        uiManager.takeAction(actionJson);
     }
 
     private class NeoCustomIntentReceiver extends BroadcastReceiver {
