@@ -138,7 +138,8 @@ public class NeoUiActionsService extends AccessibilityService implements ExpertC
                 FlatViewHierarchy viewHierarchy = uiManager.updateViewHierarchy(getRootInActiveWindow());
                 sendViewSnapshot(viewHierarchy);
             }
-        }, 10000);
+        }, 5000);
+        showOverlay();
     }
 
     private boolean showAccessibilitySettings() {

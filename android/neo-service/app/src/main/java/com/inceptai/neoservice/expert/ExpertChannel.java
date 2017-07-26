@@ -80,7 +80,9 @@ public class ExpertChannel implements  ServerConnection.Callback {
     }
 
     private void processGlobalAction(JSONObject message) throws JSONException {
-
+        if (expertChannelCallback != null) {
+            expertChannelCallback.onAction(message);
+        }
     }
 
     public interface ExpertChannelCallback {
