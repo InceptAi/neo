@@ -10,9 +10,13 @@ import java.lang.ref.WeakReference;
  * Created by arunesh on 7/26/17.
  */
 
-public class NeoService {
+public class NeoService implements NeoUiActionsService.UiActionsServiceCallback {
 
-    private static WeakReference<NeoUiActionsService> INSTANCE;
+    public static final int REASON_STOPPED_BY_USER = 0;
+    public static final int REASON_STOPPED_BY_EXPERT = 1;
+    public static final int REASON_STOPPED_UNABLE_TO_SHOW_SETTINGS = 2;
+
+    private WeakReference<NeoUiActionsService> neoUiActionsServiceWeakReference;
     private String neoServerAddress;
     private String userUuid;
     private Context context;
@@ -20,7 +24,8 @@ public class NeoService {
 
 
     public interface Callback {
-        void onStop();
+        void onStop(int reason);
+        void onServiceReady();
     }
 
     public NeoService(String neoServerAddress, String userUuid, Context context, Callback serviceCallback) {
@@ -34,12 +39,13 @@ public class NeoService {
         Intent intent = new Intent(context, NeoUiActionsService.class);
         intent.putExtra(NeoUiActionsService.UUID_INTENT_PARAM, userUuid);
         intent.putExtra(NeoUiActionsService.SERVER_ADDRESS, neoServerAddress);
+        NeoUiActionsService.PARENT_INSTANCE = this;
         context.startService(intent);
     }
 
     public void stopService() {
-        if ( INSTANCE != null && INSTANCE.get() != null) {
-            NeoUiActionsService service = INSTANCE.get();
+        if ( neoUiActionsServiceWeakReference != null && neoUiActionsServiceWeakReference.get() != null) {
+            NeoUiActionsService service = neoUiActionsServiceWeakReference.get();
             service.stopSelf();
         } else {
             Log.e(Utils.TAG, "Unable to stop NeoUiActionsService");
@@ -54,12 +60,26 @@ public class NeoService {
 
     }
 
-    public synchronized static void registerService(NeoUiActionsService service) {
-        INSTANCE = new WeakReference<NeoUiActionsService>(service);
+    public synchronized void registerService(NeoUiActionsService service) {
+        neoUiActionsServiceWeakReference = new WeakReference<NeoUiActionsService>(service);
+        service.registerUiActionsCallback(this);
     }
 
-    public synchronized static NeoUiActionsService getNeoUiActionsService() {
-        return INSTANCE.get();
+    public synchronized NeoUiActionsService getNeoUiActionsService() {
+        return neoUiActionsServiceWeakReference.get();
     }
 
+    @Override
+    public void onSettingsError() {
+        if (serviceCallback != null) {
+            serviceCallback.onStop(REASON_STOPPED_UNABLE_TO_SHOW_SETTINGS);
+        }
+    }
+
+    @Override
+    public void onServiceReady() {
+        if (serviceCallback != null) {
+            serviceCallback.onServiceReady();
+        }
+    }
 }

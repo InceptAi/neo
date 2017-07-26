@@ -1,14 +1,14 @@
 package com.inceptai.neoservice;
 
 import android.accessibilityservice.AccessibilityService;
+import android.content.ActivityNotFoundException;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.graphics.PixelFormat;
-import android.os.Binder;
 import android.os.Handler;
-import android.os.IBinder;
+import android.provider.Settings;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.Gravity;
@@ -22,6 +22,8 @@ import com.inceptai.neoservice.expert.ExpertChannel;
 import com.inceptai.neoservice.flatten.FlatViewHierarchy;
 import com.inceptai.neoservice.flatten.UiManager;
 
+import static android.R.attr.start;
+
 /**
  * Created by arunesh on 6/29/17.
  */
@@ -29,6 +31,7 @@ import com.inceptai.neoservice.flatten.UiManager;
 public class NeoUiActionsService extends AccessibilityService implements ExpertChannel.OnExpertClick {
     public static final String UUID_INTENT_PARAM = "UUID";
     public static final String SERVER_ADDRESS = "SERVER_ADDRESS";
+    public static NeoService PARENT_INSTANCE;  // HACK.
 
     private static final String TAG = Utils.TAG;
     private static final String DEFAULT_SERVER_IP = "192.168.1.128";
@@ -49,6 +52,12 @@ public class NeoUiActionsService extends AccessibilityService implements ExpertC
     private boolean isOverlayVisible;
     private String userUuid;
     private String serverAddress;
+    private UiActionsServiceCallback uiActionsServiceCallback;
+
+    public interface UiActionsServiceCallback {
+        void onSettingsError();
+        void onServiceReady();
+    }
 
     @Override
     public void onCreate() {
@@ -75,7 +84,7 @@ public class NeoUiActionsService extends AccessibilityService implements ExpertC
         intentReceiver = new NeoCustomIntentReceiver();
         IntentFilter intentFilter = new IntentFilter(NEO_INTENT);
         registerReceiver(intentReceiver, intentFilter);
-        NeoService.registerService(this);
+        PARENT_INSTANCE.registerService(this);
     }
 
     @Override
@@ -98,7 +107,14 @@ public class NeoUiActionsService extends AccessibilityService implements ExpertC
         }
         expertChannel = new ExpertChannel(serverAddress, this, this, neoThreadpool, userUuid);
         expertChannel.connect();
+        if (!showAccessibilitySettings()) {
+            Log.i(Utils.TAG, "Unable to show accessibility settings.");
+        }
         return START_STICKY;
+    }
+
+    public void registerUiActionsCallback(UiActionsServiceCallback uiActionsServiceCallback) {
+        this.uiActionsServiceCallback = uiActionsServiceCallback;
     }
 
     @Override
@@ -113,6 +129,9 @@ public class NeoUiActionsService extends AccessibilityService implements ExpertC
     @Override
     protected void onServiceConnected() {
         super.onServiceConnected();
+        if (uiActionsServiceCallback != null) {
+            uiActionsServiceCallback.onServiceReady();
+        }
         handler.postDelayed(new Runnable() {
             @Override
             public void run() {
@@ -120,6 +139,20 @@ public class NeoUiActionsService extends AccessibilityService implements ExpertC
                 sendViewSnapshot(viewHierarchy);
             }
         }, 10000);
+    }
+
+    private boolean showAccessibilitySettings() {
+        Intent settingsIntent = new Intent(
+                Settings.ACTION_ACCESSIBILITY_SETTINGS);
+        settingsIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+
+        boolean isOk = true;
+        try {
+            this.startActivity(settingsIntent);
+        } catch (ActivityNotFoundException e) {
+            isOk = false;
+        }
+        return isOk;
     }
 
     private void getDisplayDimensions() {
