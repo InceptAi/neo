@@ -4,6 +4,9 @@ import android.util.Log;
 
 import com.inceptai.neoservice.Utils;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
@@ -26,6 +29,7 @@ public class ServerConnection extends WebSocketListener {
     private WebSocket webSocket;
     private OkHttpClient client;
     private Callback callback;
+    private String userUuid;
     private int numAttempts = 1;
     private ScheduledExecutorService executorService;
 
@@ -34,10 +38,11 @@ public class ServerConnection extends WebSocketListener {
         void onMessage(String message);
     }
 
-    public ServerConnection(String url, Callback callback, ScheduledExecutorService executorService, int numAttempts) {
+    public ServerConnection(String url, Callback callback, ScheduledExecutorService executorService, String userUuid, int numAttempts) {
         this.serverUrl = url;
         this.callback = callback;
         this.executorService = executorService;
+        this.userUuid = userUuid;
         this.numAttempts = numAttempts;
         client = new OkHttpClient.Builder()
                 .readTimeout(3, TimeUnit.SECONDS)
@@ -66,6 +71,11 @@ public class ServerConnection extends WebSocketListener {
     @Override
     public void onOpen(WebSocket webSocket, Response response) {
         Log.i(Utils.TAG, "WebSocket opened.");
+        try {
+            sendUserUuidMessage();
+        } catch (JSONException e) {
+            Log.e(Utils.TAG, "Exception sending user UUID message to relay server." + e);
+        }
     }
 
     @Override
@@ -101,5 +111,12 @@ public class ServerConnection extends WebSocketListener {
                 }
             }, RECONNECT_DELAY_MS, TimeUnit.MILLISECONDS);
         }
+    }
+
+    private void sendUserUuidMessage() throws JSONException{
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put("uuid", userUuid);
+        String userUuidMessage = jsonObject.toString();
+        webSocket.send(userUuidMessage);
     }
 }

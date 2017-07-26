@@ -40,7 +40,7 @@ public class ExpertChannel implements  ServerConnection.Callback {
     }
 
     public void connect() {
-        serverConnection = new ServerConnection(serverUrl, this, neoThreadpool.getScheduledExecutorService(), 10 /* num attempts */);
+        serverConnection = new ServerConnection(serverUrl, this, neoThreadpool.getScheduledExecutorService(), userUuid, 10 /* num attempts */);
         serverConnection.connect();
     }
 
