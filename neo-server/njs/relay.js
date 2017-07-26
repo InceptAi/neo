@@ -8,6 +8,7 @@ const EXPERT_WEBSOCKET_PORT = 7070;
 const SUCCESS_CODE = 0;
 const ERROR_CODE = 1;
 const CLIENT_WEBSOCKET_TIMEOUT_MS = 40000;
+const SOURCE_RELAY = "RELAY";
 
 var activeSessionsMap = new Map();
 
@@ -150,19 +151,19 @@ function addExpertToBroadcastList(expertWebSocket, uuid) {
 	return { response: "SUCCESS: connected to uuid: " + uuid, code : SUCCESS_CODE };
 }
 
-function processExpertAction(websocket, parsedMessage) {
+function processExpertAction(webSocket, parsedMessage) {
 	var messageResponse = undefined;
 	if (parsedMessage.serverAction == LIST_ALL_UUIDS_EXPERT_ACTION) {
 		//send list of all UUIDs to expert
 		messageResponse = { uuidList :  getUUIDList(), code : SUCCESS_CODE };	
 	} else if (parsedMessage.serverAction == CONNECT_TO_UUID_EXPERT_ACTION) {
 		//Connect to a client and set it for this expert
-		messageResponse = addExpertToBroadcastList(websocket, parsedMessage.uuid);
+		messageResponse = addExpertToBroadcastList(webSocket, parsedMessage.uuid);
 	} else {
 		messageResponse = { response : "ERROR: Invalid action", code : ERROR_CODE }; 
         neoLog('invalid action, expert message:' + message);
 	}
-	websocket.send(JSON.stringify(messageResponse));
+	sendMessageToExpert(webSocket, messageResponse);
 }
 
 function onExpertIncomingMessage(message) {
@@ -188,7 +189,8 @@ function onExpertIncomingMessage(message) {
 	//Server action undefined so relay message
     if (this.activeSession === undefined) {
 		var errorMessage = 'undefined server action / active session, Dropping message: ' + message;
-		this.send(JSON.stringify({ response : errorMessage, code : ERROR_CODE }));
+		sendMessageToExpert(this, { response : errorMessage, code : ERROR_CODE });
+		//this.send(JSON.stringify({ response : errorMessage, code : ERROR_CODE }));
         neoLog('undefined server action and undefined active Session for relay message, Dropping message: ' + message);
         return;
     }
@@ -204,6 +206,15 @@ function onExpertIncomingMessage(message) {
 
 function neoLog(logMessage) {
     console.log(logMessage);
+}
+
+function sendMessageToExpert(webSocket, message) {
+	if (webSocket === undefined || webSocket.readyState !== WebSocket.OPEN) {
+		neoLog("Error in sendMessageToExpert, webSocket is not ready");
+		return;
+	}
+	message.source = SOURCE_RELAY;
+	webSocket.send(JSON.stringify(message));
 }
 
 /// Static HTML index.html serving logic below:
