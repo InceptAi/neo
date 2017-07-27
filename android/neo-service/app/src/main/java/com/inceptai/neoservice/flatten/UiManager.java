@@ -108,6 +108,13 @@ public class UiManager {
         }
     }
 
+    public void cleanup () {
+        neoService = null;
+        neoThreadpool = null;
+        primaryDisplayMetrics = null;
+        flatViewHierarchy = null;
+    }
+
     private void showSettings() {
         Intent intent = new Intent(Settings.ACTION_SETTINGS);
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);

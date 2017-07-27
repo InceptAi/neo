@@ -63,6 +63,6 @@ public class Utils {
     }
 
     public static boolean nullOrEmpty(String target) {
-        return target == null || target.isEmpty();
+        return target == null || target.isEmpty() || target.equals("null");
     }
 }

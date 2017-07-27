@@ -31,10 +31,9 @@ import org.json.JSONObject;
 public class NeoUiActionsService extends AccessibilityService implements ExpertChannel.ExpertChannelCallback {
     public static final String UUID_INTENT_PARAM = "UUID";
     public static final String SERVER_ADDRESS = "SERVER_ADDRESS";
-    public static NeoService PARENT_INSTANCE;  // HACK.
 
     private static final String TAG = Utils.TAG;
-    private static final String DEFAULT_SERVER_IP = "192.168.1.128";
+    private static final String DEFAULT_SERVER_IP = "192.168.1.129";
     private static final String NEO_INTENT = "com.inceptai.neo.ACTION";
 
     private View overlayView;
@@ -43,7 +42,6 @@ public class NeoUiActionsService extends AccessibilityService implements ExpertC
     private DisplayMetrics primaryDisplayMetrics;
     private ExpertChannel expertChannel;
     private NeoThreadpool neoThreadpool;
-    private String serverUrl;
 
     private Handler handler;
     private UiManager uiManager;
@@ -57,6 +55,7 @@ public class NeoUiActionsService extends AccessibilityService implements ExpertC
     public interface UiActionsServiceCallback {
         void onSettingsError();
         void onServiceReady();
+        void onStopByUser();
     }
 
     @Override
@@ -69,14 +68,13 @@ public class NeoUiActionsService extends AccessibilityService implements ExpertC
                 LayoutParams.MATCH_PARENT /* width */,
                 LayoutParams.WRAP_CONTENT /* height */,
                 LayoutParams.TYPE_SYSTEM_ALERT,
-                LayoutParams.FLAG_DISMISS_KEYGUARD | LayoutParams.FLAG_NOT_FOCUSABLE | LayoutParams.FLAG_NOT_TOUCHABLE,
+                LayoutParams.FLAG_DISMISS_KEYGUARD | LayoutParams.FLAG_NOT_FOCUSABLE | LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH,
                 PixelFormat.OPAQUE);
         neoOverlayLayout.gravity = Gravity.BOTTOM | Gravity.LEFT;
         neoOverlayLayout.x = 0;
-        neoOverlayLayout.y = -100;
+        neoOverlayLayout.y = 0;
         windowManager = (WindowManager) getSystemService(WINDOW_SERVICE);
         getDisplayDimensions();
-        fetchServerUrl();
         neoThreadpool = new NeoThreadpool();
         uiManager = new UiManager(this, neoThreadpool, primaryDisplayMetrics);
 
@@ -84,7 +82,7 @@ public class NeoUiActionsService extends AccessibilityService implements ExpertC
         intentReceiver = new NeoCustomIntentReceiver();
         IntentFilter intentFilter = new IntentFilter(NEO_INTENT);
         registerReceiver(intentReceiver, intentFilter);
-        PARENT_INSTANCE.registerService(this);
+        NeoService.registerService(this);
     }
 
     @Override
@@ -100,21 +98,47 @@ public class NeoUiActionsService extends AccessibilityService implements ExpertC
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        userUuid = intent.getExtras().getString(UUID_INTENT_PARAM);
-        serverAddress = intent.getExtras().getString(SERVER_ADDRESS);
-        if (serverAddress == null) {
-            serverAddress = "ws://" + BuildConfig.SERVER_IP + ":8080/";
+        if (isStarted()) {
+            // Makes onStartCommand idempotent.
+            Log.i(Utils.TAG, "Service already started.");
+            return START_STICKY;
         }
+
+        if (intent != null && intent.getExtras() != null) {
+            userUuid = intent.getExtras().getString(UUID_INTENT_PARAM);
+            serverAddress = intent.getExtras().getString(SERVER_ADDRESS);
+        }
+
+        if (serverAddress == null) {
+            String serverIp = BuildConfig.SERVER_IP;
+            if (Utils.nullOrEmpty(serverIp)) {
+                serverIp = DEFAULT_SERVER_IP;
+            }
+            serverAddress = "ws://" + serverIp + ":8080/";
+            Log.i(Utils.TAG, "serverAddress: " + serverAddress);
+        }
+        Log.i(Utils.TAG, "userUuid: " + userUuid);
         expertChannel = new ExpertChannel(serverAddress, this, this, neoThreadpool, userUuid);
         expertChannel.connect();
         if (!showAccessibilitySettings()) {
             Log.i(Utils.TAG, "Unable to show accessibility settings.");
+            if (uiActionsServiceCallback != null) {
+                uiActionsServiceCallback.onSettingsError();
+            }
         }
         return START_STICKY;
     }
 
+    public boolean isStarted () {
+        return expertChannel != null;
+    }
+
     public void registerUiActionsCallback(UiActionsServiceCallback uiActionsServiceCallback) {
         this.uiActionsServiceCallback = uiActionsServiceCallback;
+    }
+
+    public void clearUiActionsCallback() {
+        this.uiActionsServiceCallback = null;
     }
 
     @Override
@@ -123,6 +147,16 @@ public class NeoUiActionsService extends AccessibilityService implements ExpertC
             hideOverlay();
         }
         unregisterReceiver(intentReceiver);
+        if (expertChannel != null) {
+            expertChannel.cleanup();
+            expertChannel = null;
+        }
+        if (uiManager != null) {
+            uiManager.cleanup();
+            uiManager = null;
+        }
+        uiActionsServiceCallback = null;
+        NeoService.unregisterNeoUiActionsService();
         super.onDestroy();
     }
 
@@ -168,15 +202,6 @@ public class NeoUiActionsService extends AccessibilityService implements ExpertC
         }
     }
 
-    private void fetchServerUrl() {
-        String serverIp = BuildConfig.SERVER_IP;
-        if (Utils.nullOrEmpty(serverIp)) {
-            serverIp = DEFAULT_SERVER_IP;
-        }
-        serverUrl = "ws://" + serverIp + ":8080/";
-        Log.i(TAG, "Using server URL: " + serverUrl);
-    }
-
     @Override
     public void onClick(String viewId) {
         Log.i(Utils.TAG, "Click event for viewId: " + viewId);
@@ -212,7 +237,7 @@ public class NeoUiActionsService extends AccessibilityService implements ExpertC
         isOverlayVisible = false;
     }
 
-    private void toggleOverlay() {
+    public void toggleOverlay() {
         if (isOverlayVisible) {
             hideOverlay();
         } else {

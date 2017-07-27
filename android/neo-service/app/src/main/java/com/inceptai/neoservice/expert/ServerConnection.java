@@ -68,6 +68,17 @@ public class ServerConnection extends WebSocketListener {
         }
     }
 
+    public void disconnect() {
+        numAttempts = 0;
+        if (webSocket != null) {
+            webSocket.cancel();
+            webSocket = null;
+        }
+        client = null;
+        executorService = null;
+        callback = null;
+    }
+
     @Override
     public void onOpen(WebSocket webSocket, Response response) {
         Log.i(Utils.TAG, "WebSocket opened.");

@@ -17,6 +17,7 @@ import android.widget.Toast;
 
 import com.inceptai.neoservice.NeoDisplay2;
 import com.inceptai.neoservice.NeoUiActionsService;
+import com.inceptai.neoservice.Utils;
 
 import java.io.IOException;
 import java.util.UUID;
@@ -74,7 +75,13 @@ public class NeoMainActivity extends AppCompatActivity {
         });
         mediaProjectionManager = (MediaProjectionManager) getSystemService(MEDIA_PROJECTION_SERVICE);
         Intent intent = mediaProjectionManager.createScreenCaptureIntent();
-        startActivityForResult(intent, REQUEST_CODE_MEDIA_PROJECTION_PERMISSION);
+       // startActivityForResult(intent, REQUEST_CODE_MEDIA_PROJECTION_PERMISSION);
+        handler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+               startNeoService();
+            }
+        }, 2000);
     }
 
     private void setFullScreen() {
@@ -88,6 +95,9 @@ public class NeoMainActivity extends AppCompatActivity {
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+
+        Log.i(Utils.TAG, "onActivityResult:" + String.valueOf(requestCode));
+
         if (requestCode == REQUEST_CODE_MEDIA_PROJECTION_PERMISSION) {
             mediaProjection = mediaProjectionManager.getMediaProjection(resultCode, data);
             startNeoService();

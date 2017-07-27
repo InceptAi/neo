@@ -6,8 +6,8 @@ package com.inceptai.neoservice.expert;
 
 import android.util.Log;
 
-import com.inceptai.neoservice.NeoUiActionsService;
 import com.inceptai.neoservice.NeoThreadpool;
+import com.inceptai.neoservice.NeoUiActionsService;
 import com.inceptai.neoservice.Utils;
 import com.inceptai.neoservice.flatten.UiManager;
 
@@ -26,6 +26,11 @@ public class ExpertChannel implements  ServerConnection.Callback {
     private NeoUiActionsService neoService;
     private NeoThreadpool neoThreadpool;
     private String userUuid;
+
+    public interface ExpertChannelCallback {
+        void onClick(String viewId);
+        void onAction(JSONObject actionJson);
+    }
 
     public ExpertChannel(String serverUrl, ExpertChannelCallback expertChannelCallback, NeoUiActionsService neoService, NeoThreadpool neoThreadpool, String userUuid) {
         this.serverUrl = serverUrl;
@@ -63,6 +68,16 @@ public class ExpertChannel implements  ServerConnection.Callback {
         }
     }
 
+    public void cleanup() {
+        if (serverConnection != null) {
+            serverConnection.disconnect();
+            serverConnection = null;
+        }
+        expertChannelCallback = null;
+        neoService = null;
+        neoThreadpool = null;
+    }
+
     private void processExpertMessage(String message) throws JSONException {
         JSONObject jsonObject = new JSONObject(message);
         if (jsonObject.has(VIEW_CLICKED_KEY)) {
@@ -83,10 +98,5 @@ public class ExpertChannel implements  ServerConnection.Callback {
         if (expertChannelCallback != null) {
             expertChannelCallback.onAction(message);
         }
-    }
-
-    public interface ExpertChannelCallback {
-        void onClick(String viewId);
-        void onAction(JSONObject actionJson);
     }
 }

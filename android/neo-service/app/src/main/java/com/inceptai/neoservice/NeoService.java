@@ -4,6 +4,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.util.Log;
 
+import com.google.common.base.Preconditions;
+
 import java.lang.ref.WeakReference;
 
 /**
@@ -16,11 +18,14 @@ public class NeoService implements NeoUiActionsService.UiActionsServiceCallback 
     public static final int REASON_STOPPED_BY_EXPERT = 1;
     public static final int REASON_STOPPED_UNABLE_TO_SHOW_SETTINGS = 2;
 
-    private WeakReference<NeoUiActionsService> neoUiActionsServiceWeakReference;
+    private static WeakReference<NeoUiActionsService> neoUiActionsServiceWeakReference;
+    private static NeoService MY_INSTANCE = null;
+
     private String neoServerAddress;
     private String userUuid;
     private Context context;
     private Callback serviceCallback;
+    private boolean isServiceRunning = false;
 
 
     public interface Callback {
@@ -33,23 +38,25 @@ public class NeoService implements NeoUiActionsService.UiActionsServiceCallback 
         this.userUuid = userUuid;
         this.context = context;
         this.serviceCallback = serviceCallback;
+        MY_INSTANCE = this;
+        checkInWithNeoUiActionsService();
     }
 
     public void startService() {
         Intent intent = new Intent(context, NeoUiActionsService.class);
         intent.putExtra(NeoUiActionsService.UUID_INTENT_PARAM, userUuid);
         intent.putExtra(NeoUiActionsService.SERVER_ADDRESS, neoServerAddress);
-        NeoUiActionsService.PARENT_INSTANCE = this;
         context.startService(intent);
     }
 
     public void stopService() {
-        if ( neoUiActionsServiceWeakReference != null && neoUiActionsServiceWeakReference.get() != null) {
+        if (isNeoUiActionsServiceAvailable()) {
             NeoUiActionsService service = neoUiActionsServiceWeakReference.get();
             service.stopSelf();
         } else {
             Log.e(Utils.TAG, "Unable to stop NeoUiActionsService");
         }
+        isServiceRunning = false;
     }
 
     public void updateStatus(String status) {
@@ -60,19 +67,35 @@ public class NeoService implements NeoUiActionsService.UiActionsServiceCallback 
 
     }
 
-    public synchronized void registerService(NeoUiActionsService service) {
+    public static synchronized void registerService(NeoUiActionsService service) {
         neoUiActionsServiceWeakReference = new WeakReference<NeoUiActionsService>(service);
-        service.registerUiActionsCallback(this);
+        if (MY_INSTANCE != null) {
+            MY_INSTANCE.checkInWithNeoUiActionsService();
+        }
     }
 
-    public synchronized NeoUiActionsService getNeoUiActionsService() {
-        return neoUiActionsServiceWeakReference.get();
+    public static synchronized void unregisterNeoUiActionsService() {
+        if (neoUiActionsServiceWeakReference != null) {
+            neoUiActionsServiceWeakReference.clear();
+            neoUiActionsServiceWeakReference = null;
+        }
+    }
+
+    public void toggleOverlay() {
+        if (isNeoUiActionsServiceAvailable()) {
+            neoUiActionsServiceWeakReference.get().toggleOverlay();
+        }
+    }
+
+    public boolean isServiceRunning() {
+        return isServiceRunning;
     }
 
     @Override
     public void onSettingsError() {
         if (serviceCallback != null) {
             serviceCallback.onStop(REASON_STOPPED_UNABLE_TO_SHOW_SETTINGS);
+            Preconditions.checkArgument(!isServiceRunning, "Service should not be running");
         }
     }
 
@@ -81,5 +104,31 @@ public class NeoService implements NeoUiActionsService.UiActionsServiceCallback 
         if (serviceCallback != null) {
             serviceCallback.onServiceReady();
         }
+        isServiceRunning = true;
+    }
+
+    @Override
+    public void onStopByUser() {
+       if (serviceCallback != null) {
+           serviceCallback.onStop(NeoService.REASON_STOPPED_BY_USER);
+       }
+    }
+
+    public void cleanup() {
+        MY_INSTANCE = null;
+        if (isNeoUiActionsServiceAvailable()) {
+            neoUiActionsServiceWeakReference.get().clearUiActionsCallback();
+        }
+    }
+
+    private void checkInWithNeoUiActionsService() {
+        if (isNeoUiActionsServiceAvailable()) {
+            // service is available.
+            neoUiActionsServiceWeakReference.get().registerUiActionsCallback(this);
+        }
+    }
+
+    private static boolean isNeoUiActionsServiceAvailable() {
+        return neoUiActionsServiceWeakReference != null && neoUiActionsServiceWeakReference.get() != null;
     }
 }
