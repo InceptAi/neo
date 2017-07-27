@@ -135,4 +135,6 @@ public class NeoService implements NeoUiActionsService.UiActionsServiceCallback 
     private static boolean isNeoUiActionsServiceAvailable() {
         return neoUiActionsServiceWeakReference != null && neoUiActionsServiceWeakReference.get() != null;
     }
+
+
 }
