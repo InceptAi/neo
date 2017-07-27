@@ -9,7 +9,6 @@ import android.content.IntentFilter;
 import android.graphics.PixelFormat;
 import android.os.Build;
 import android.os.Handler;
-import android.os.Looper;
 import android.provider.Settings;
 import android.util.DisplayMetrics;
 import android.util.Log;

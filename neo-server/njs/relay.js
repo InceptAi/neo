@@ -19,15 +19,13 @@ const wssClient = new WebSocket.Server({ port: CLIENT_WEBSOCKET_PORT });
 const wssExpert = new WebSocket.Server({ port: EXPERT_WEBSOCKET_PORT });
 
 
+
 wssClient.on('connection',  function (webSocket) {
 	webSocket.on('message', onClientIncomingMessage);
-	webSocket.on('close', function () {
-		var delayedCleanupTimer = Delayed.delay(clearUser, CLIENT_WEBSOCKET_PORT, this, this);
-		neoLog("Setting timeout for uuid:" + this.activeSession.userUuid);
-		this.activeSession.pendingTimer = delayedCleanupTimer;
-  	});
+	webSocket.on('close', scheduleClientCleanupTimer);
 	webSocket.on('error', function (ev) {
     	neoLog('Client Websocket error:' + ev.data);
+		scheduleClientCleanupTimer();
 	});
 });
 
@@ -42,6 +40,17 @@ wssExpert.on('connection', function (webSocket) {
   		removeExpertFromActiveSession(this);
 	});
 });
+
+
+function scheduleClientCleanupTimer() {
+	var delayedCleanupTimer = Delayed.delay(clearUser, CLIENT_WEBSOCKET_PORT, this, this);
+	if (this.activeSession !== undefined) {
+		neoLog("Setting timeout for uuid:" + this.activeSession.userUuid);
+		this.activeSession.pendingTimer = delayedCleanupTimer;
+	} else {
+		neoLog("Active session is undefined");
+	}
+}
 
 function getActiveSession(uuid) {
     neoLog('getActiveSession called for user uuid:' + uuid);
