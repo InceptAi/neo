@@ -8,6 +8,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.graphics.PixelFormat;
 import android.os.Handler;
+import android.os.Looper;
 import android.provider.Settings;
 import android.util.DisplayMetrics;
 import android.util.Log;
@@ -16,6 +17,8 @@ import android.view.View;
 import android.view.WindowManager;
 import android.view.WindowManager.LayoutParams;
 import android.view.accessibility.AccessibilityEvent;
+import android.widget.Button;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.inceptai.neoservice.expert.ExpertChannel;
@@ -23,6 +26,8 @@ import com.inceptai.neoservice.flatten.FlatViewHierarchy;
 import com.inceptai.neoservice.flatten.UiManager;
 
 import org.json.JSONObject;
+
+import static android.view.View.GONE;
 
 /**
  * Created by arunesh on 6/29/17.
@@ -35,6 +40,7 @@ public class NeoUiActionsService extends AccessibilityService implements ExpertC
     private static final String TAG = Utils.TAG;
     private static final String DEFAULT_SERVER_IP = "192.168.1.129";
     private static final String NEO_INTENT = "com.inceptai.neo.ACTION";
+    private static final int USER_STOP_DELAY_MS = 2500;
 
     private View overlayView;
     private LayoutParams neoOverlayLayout;
@@ -43,7 +49,6 @@ public class NeoUiActionsService extends AccessibilityService implements ExpertC
     private ExpertChannel expertChannel;
     private NeoThreadpool neoThreadpool;
 
-    private Handler handler;
     private UiManager uiManager;
 
     private NeoCustomIntentReceiver intentReceiver;
@@ -51,6 +56,11 @@ public class NeoUiActionsService extends AccessibilityService implements ExpertC
     private String userUuid;
     private String serverAddress;
     private UiActionsServiceCallback uiActionsServiceCallback;
+
+    private Button stopButton;
+    private TextView overlayTitleTv;
+    private TextView overlayStatusTv;
+    private Handler handler;
 
     public interface UiActionsServiceCallback {
         void onSettingsError();
@@ -62,6 +72,7 @@ public class NeoUiActionsService extends AccessibilityService implements ExpertC
     public void onCreate() {
         super.onCreate();
 
+        handler = new Handler();
         isOverlayVisible = false;
         overlayView = View.inflate(getBaseContext(), R.layout.persistent_bottom_sheet, null);
         neoOverlayLayout = new LayoutParams(
@@ -73,6 +84,7 @@ public class NeoUiActionsService extends AccessibilityService implements ExpertC
         neoOverlayLayout.gravity = Gravity.BOTTOM | Gravity.LEFT;
         neoOverlayLayout.x = 0;
         neoOverlayLayout.y = 0;
+        setupOverlay(overlayView);
         windowManager = (WindowManager) getSystemService(WINDOW_SERVICE);
         getDisplayDimensions();
         neoThreadpool = new NeoThreadpool();
@@ -222,6 +234,10 @@ public class NeoUiActionsService extends AccessibilityService implements ExpertC
 
     private void showOverlay() {
         if (windowManager != null) {
+            overlayView.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                    | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                    | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                    | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION);
             windowManager.addView(overlayView, neoOverlayLayout);
             overlayView.requestLayout();
             isOverlayVisible = true;
@@ -243,5 +259,60 @@ public class NeoUiActionsService extends AccessibilityService implements ExpertC
         } else {
             showOverlay();
         }
+    }
+
+    private void setupOverlay(View overlayView) {
+        stopButton = (Button) overlayView.findViewById(R.id.overlay_button_stop);
+        stopButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                stopClickedByUser();
+            }
+        });
+
+        overlayStatusTv = (TextView) overlayView.findViewById(R.id.overlay_status);
+        overlayTitleTv = (TextView) overlayView.findViewById(R.id.overlay_title);
+    }
+
+    public void setTitle(String title) {
+        if (overlayTitleTv != null) {
+            overlayTitleTv.setText(title);
+        }
+    }
+
+    public void setStatus(String status) {
+        if (overlayStatusTv != null) {
+            overlayStatusTv.setText(status);
+        }
+    }
+
+    public void stopServiceByUser() {
+        hideOverlay();
+        if (uiActionsServiceCallback != null) {
+            uiActionsServiceCallback.onStopByUser();
+        }
+        stopSelf();
+    }
+
+    public void stopServiceByExpert() {
+        hideOverlay();
+        stopSelf();
+    }
+
+    private void stopClickedByUser() {
+        if (overlayStatusTv != null) {
+            overlayStatusTv.setText(R.string.overlay_status_stopping);
+        }
+
+        if (stopButton != null) {
+            stopButton.setVisibility(GONE);
+        }
+
+        handler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                stopServiceByUser();
+            }
+        }, USER_STOP_DELAY_MS);
     }
 }

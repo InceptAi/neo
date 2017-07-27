@@ -1,4 +1,7 @@
 <resources>
     <string name="app_name">NeoService</string>
     <string name="neo_service_desc">Neo -- Get Expert Help Now.</string>
+    <string name="overlay_title_default">Wifi Expert Working</string>
+    <string name="overlay_status_default">Finding a good wifi network ..</string>
+    <string name="overlay_status_stopping">Stopping ..</string>
 </resources>

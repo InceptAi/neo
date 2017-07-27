@@ -52,7 +52,7 @@ public class NeoService implements NeoUiActionsService.UiActionsServiceCallback 
     public void stopService() {
         if (isNeoUiActionsServiceAvailable()) {
             NeoUiActionsService service = neoUiActionsServiceWeakReference.get();
-            service.stopSelf();
+            service.stopServiceByExpert();
         } else {
             Log.e(Utils.TAG, "Unable to stop NeoUiActionsService");
         }
@@ -60,11 +60,15 @@ public class NeoService implements NeoUiActionsService.UiActionsServiceCallback 
     }
 
     public void updateStatus(String status) {
-
+        if (isNeoUiActionsServiceAvailable()) {
+            neoUiActionsServiceWeakReference.get().setStatus(status);
+        }
     }
 
     public void setTitle(String title) {
-
+        if (isNeoUiActionsServiceAvailable()) {
+            neoUiActionsServiceWeakReference.get().setTitle(title);
+        }
     }
 
     public static synchronized void registerService(NeoUiActionsService service) {
