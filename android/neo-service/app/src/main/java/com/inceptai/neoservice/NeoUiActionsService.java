@@ -68,7 +68,7 @@ public class NeoUiActionsService extends AccessibilityService implements ExpertC
         neoOverlayLayout = new LayoutParams(
                 LayoutParams.MATCH_PARENT /* width */,
                 LayoutParams.WRAP_CONTENT /* height */,
-                LayoutParams.TYPE_SYSTEM_ERROR,
+                LayoutParams.TYPE_SYSTEM_ALERT,
                 LayoutParams.FLAG_DISMISS_KEYGUARD | LayoutParams.FLAG_NOT_FOCUSABLE | LayoutParams.FLAG_NOT_TOUCHABLE,
                 PixelFormat.OPAQUE);
         neoOverlayLayout.gravity = Gravity.BOTTOM | Gravity.LEFT;
