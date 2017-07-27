@@ -140,4 +140,3 @@ public class NeoMainActivity extends AppCompatActivity {
         startService(intent);
     }
 }
-

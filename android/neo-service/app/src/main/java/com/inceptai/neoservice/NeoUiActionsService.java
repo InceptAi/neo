@@ -189,8 +189,7 @@ public class NeoUiActionsService extends AccessibilityService implements ExpertC
         handler.postDelayed(new Runnable() {
             @Override
             public void run() {
-                FlatViewHierarchy viewHierarchy = uiManager.updateViewHierarchy(getRootInActiveWindow());
-                sendViewSnapshot(viewHierarchy);
+                refreshFullUi();
             }
         }, 5000);
 
@@ -325,5 +324,10 @@ public class NeoUiActionsService extends AccessibilityService implements ExpertC
                 stopServiceByUser();
             }
         }, USER_STOP_DELAY_MS);
+    }
+
+    public void refreshFullUi() {
+        FlatViewHierarchy viewHierarchy = uiManager.updateViewHierarchy(getRootInActiveWindow());
+        sendViewSnapshot(viewHierarchy);
     }
 }

@@ -25,6 +25,7 @@ public class UiManager {
     private static final String BACK_ACTION = "back";
     private static final String HOME_ACTION = "home";
     private static final String SETTINGS_ACTION = "settings";
+    private static final String REFRESH_ACTION = "refresh";
 
     private NeoUiActionsService neoService;
     private NeoThreadpool neoThreadpool;
@@ -104,6 +105,8 @@ public class UiManager {
                 showSettings();
             } else if (HOME_ACTION.equals(action)) {
                 neoService.performGlobalAction(AccessibilityService.GLOBAL_ACTION_HOME);
+            } else if (REFRESH_ACTION.equals(action)) {
+                neoService.refreshFullUi();
             }
         }
     }
