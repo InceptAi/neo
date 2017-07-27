@@ -7,6 +7,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.graphics.PixelFormat;
+import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
 import android.provider.Settings;
@@ -61,6 +62,7 @@ public class NeoUiActionsService extends AccessibilityService implements ExpertC
     private TextView overlayTitleTv;
     private TextView overlayStatusTv;
     private Handler handler;
+    private boolean overlayPermissionGranted;
 
     public interface UiActionsServiceCallback {
         void onSettingsError();
@@ -85,6 +87,13 @@ public class NeoUiActionsService extends AccessibilityService implements ExpertC
         neoOverlayLayout.x = 0;
         neoOverlayLayout.y = 0;
         setupOverlay(overlayView);
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            overlayPermissionGranted = Settings.canDrawOverlays(this);
+        } else {
+            overlayPermissionGranted = true;
+        }
+
         windowManager = (WindowManager) getSystemService(WINDOW_SERVICE);
         getDisplayDimensions();
         neoThreadpool = new NeoThreadpool();
@@ -185,7 +194,10 @@ public class NeoUiActionsService extends AccessibilityService implements ExpertC
                 sendViewSnapshot(viewHierarchy);
             }
         }, 5000);
-        showOverlay();
+
+        if (overlayPermissionGranted) {
+            showOverlay();
+        }
     }
 
     private boolean showAccessibilitySettings() {
