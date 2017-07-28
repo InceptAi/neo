@@ -109,7 +109,7 @@ public class NeoUiActionsService extends AccessibilityService implements ExpertC
     @Override
     public void onAccessibilityEvent(AccessibilityEvent event) {
         Log.i(TAG, "Got event:" + event);
-        sendViewSnapshot(uiManager.updateViewHierarchy(getRootInActiveWindow()));
+        refreshFullUi();
     }
 
     @Override
@@ -128,6 +128,7 @@ public class NeoUiActionsService extends AccessibilityService implements ExpertC
             userUuid = intent.getExtras().getString(UUID_INTENT_PARAM);
             serverAddress = intent.getExtras().getString(SERVER_ADDRESS);
             startStreaming = true;
+            saveUiStreaming(true /* enabled */);
         }
         
         if (intent == null && isUiStreamingEnabled()) {
@@ -194,7 +195,7 @@ public class NeoUiActionsService extends AccessibilityService implements ExpertC
                 public void run() {
                     refreshFullUi();
                 }
-            }, 5000);
+            }, 2000);
         }
     }
 
@@ -325,8 +326,10 @@ public class NeoUiActionsService extends AccessibilityService implements ExpertC
     }
 
     public void refreshFullUi() {
-        FlatViewHierarchy viewHierarchy = uiManager.updateViewHierarchy(getRootInActiveWindow());
-        sendViewSnapshot(viewHierarchy);
+        if (uiManager != null) {
+            FlatViewHierarchy viewHierarchy = uiManager.updateViewHierarchy(getRootInActiveWindow());
+            sendViewSnapshot(viewHierarchy);
+        }
     }
 
     private void startUiStreaming() {
@@ -339,6 +342,7 @@ public class NeoUiActionsService extends AccessibilityService implements ExpertC
             Log.i(Utils.TAG, "Dropping startStreaming request, since already streaming.");
             return;
         }
+        Log.i(Utils.TAG, "Starting streaming.");
         expertChannel = new ExpertChannel(serverAddress, this, this, neoThreadpool, userUuid);
         expertChannel.connect();
         uiManager = new UiManager(this, neoThreadpool, primaryDisplayMetrics);
