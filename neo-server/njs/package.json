@@ -5,6 +5,7 @@
   "main": "relay.js",
   "dependencies": {
     "connect": "^3.6.2",
+    "delayed": "^1.0.1",
     "serve-static": "^1.12.3",
     "ws": "^3.0.0"
   },
