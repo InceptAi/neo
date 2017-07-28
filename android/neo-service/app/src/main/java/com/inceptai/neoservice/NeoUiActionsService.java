@@ -123,7 +123,6 @@ public class NeoUiActionsService extends AccessibilityService implements ExpertC
         if (intent != null && intent.getExtras() != null) {
             // The fact that the intent has a user UUID means it was started from NeoService. We
             // should stream UI events to the server at this point even if its disable.
-            // TODO: Enable node js server UI streaming.
             userUuid = intent.getExtras().getString(UUID_INTENT_PARAM);
             serverAddress = intent.getExtras().getString(SERVER_ADDRESS);
             saveUiStreaming(true /* enabled */);
