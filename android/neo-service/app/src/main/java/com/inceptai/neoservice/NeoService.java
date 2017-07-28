@@ -13,7 +13,6 @@ import java.lang.ref.WeakReference;
  */
 
 public class NeoService implements NeoUiActionsService.UiActionsServiceCallback {
-
     public static final int REASON_STOPPED_BY_USER = 0;
     public static final int REASON_STOPPED_BY_EXPERT = 1;
     public static final int REASON_STOPPED_UNABLE_TO_SHOW_SETTINGS = 2;
@@ -29,8 +28,9 @@ public class NeoService implements NeoUiActionsService.UiActionsServiceCallback 
 
 
     public interface Callback {
-        void onStop(int reason);
+        void onServiceStopped(int reason);
         void onServiceReady();
+        void onStopClickedByUser();
     }
 
     public NeoService(String neoServerAddress, String userUuid, Context context, Callback serviceCallback) {
@@ -98,7 +98,7 @@ public class NeoService implements NeoUiActionsService.UiActionsServiceCallback 
     @Override
     public void onSettingsError() {
         if (serviceCallback != null) {
-            serviceCallback.onStop(REASON_STOPPED_UNABLE_TO_SHOW_SETTINGS);
+            serviceCallback.onServiceStopped(REASON_STOPPED_UNABLE_TO_SHOW_SETTINGS);
             Preconditions.checkArgument(!isServiceRunning, "Service should not be running");
         }
     }
@@ -112,9 +112,9 @@ public class NeoService implements NeoUiActionsService.UiActionsServiceCallback 
     }
 
     @Override
-    public void onStopByUser() {
+    public void onStopClickedByUser() {
        if (serviceCallback != null) {
-           serviceCallback.onStop(NeoService.REASON_STOPPED_BY_USER);
+           serviceCallback.onStopClickedByUser();
        }
     }
 
@@ -135,6 +135,4 @@ public class NeoService implements NeoUiActionsService.UiActionsServiceCallback 
     private static boolean isNeoUiActionsServiceAvailable() {
         return neoUiActionsServiceWeakReference != null && neoUiActionsServiceWeakReference.get() != null;
     }
-
-
 }

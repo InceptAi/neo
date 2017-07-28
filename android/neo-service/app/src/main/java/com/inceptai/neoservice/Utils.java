@@ -1,5 +1,7 @@
 package com.inceptai.neoservice;
 
+import android.content.Context;
+import android.content.SharedPreferences;
 import android.graphics.Rect;
 import android.util.Log;
 import android.view.accessibility.AccessibilityNodeInfo;
@@ -12,6 +14,7 @@ import com.google.gson.Gson;
 
 public class Utils {
     public static final String TAG = "NeoUiActionsService";
+    public static final String PREFERENCES_FILE = "NeoWifiExpert_preferences";
     public static final String EMPTY_STRING = "";
 
     public static Gson gson = new Gson();
@@ -64,5 +67,17 @@ public class Utils {
 
     public static boolean nullOrEmpty(String target) {
         return target == null || target.isEmpty() || target.equals("null");
+    }
+
+    public static boolean readSharedSetting(Context ctx, String settingName, boolean defaultValue) {
+        SharedPreferences sharedPref = ctx.getSharedPreferences(PREFERENCES_FILE, Context.MODE_PRIVATE);
+        return sharedPref.getBoolean(settingName, defaultValue);
+    }
+
+    public static void saveSharedSetting(Context ctx, String settingName, boolean settingValue) {
+        SharedPreferences sharedPref = ctx.getSharedPreferences(PREFERENCES_FILE, Context.MODE_PRIVATE);
+        SharedPreferences.Editor editor = sharedPref.edit();
+        editor.putBoolean(settingName, settingValue);
+        editor.apply();
     }
 }
