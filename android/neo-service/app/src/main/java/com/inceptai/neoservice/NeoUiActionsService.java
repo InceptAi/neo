@@ -9,7 +9,6 @@ import android.content.IntentFilter;
 import android.graphics.PixelFormat;
 import android.os.Build;
 import android.os.Handler;
-import android.os.Looper;
 import android.provider.Settings;
 import android.util.DisplayMetrics;
 import android.util.Log;
@@ -42,6 +41,8 @@ public class NeoUiActionsService extends AccessibilityService implements ExpertC
     private static final String DEFAULT_SERVER_IP = "192.168.1.129";
     private static final String NEO_INTENT = "com.inceptai.neo.ACTION";
     private static final int USER_STOP_DELAY_MS = 2500;
+    private static final String PREF_UI_STREAMING_ENABLED = "NeoStreaming";
+    private static final String PREF_ACCESSIBILITY_ENABLED = "NeoAccessibilityEnabled";
 
     private View overlayView;
     private LayoutParams neoOverlayLayout;
@@ -67,7 +68,7 @@ public class NeoUiActionsService extends AccessibilityService implements ExpertC
     public interface UiActionsServiceCallback {
         void onSettingsError();
         void onServiceReady();
-        void onStopByUser();
+        void onStopClickedByUser();
     }
 
     @Override
@@ -97,7 +98,6 @@ public class NeoUiActionsService extends AccessibilityService implements ExpertC
         windowManager = (WindowManager) getSystemService(WINDOW_SERVICE);
         getDisplayDimensions();
         neoThreadpool = new NeoThreadpool();
-        uiManager = new UiManager(this, neoThreadpool, primaryDisplayMetrics);
 
         handler = new Handler();
         intentReceiver = new NeoCustomIntentReceiver();
@@ -119,15 +119,21 @@ public class NeoUiActionsService extends AccessibilityService implements ExpertC
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        if (isStarted()) {
-            // Makes onStartCommand idempotent.
-            Log.i(Utils.TAG, "Service already started.");
-            return START_STICKY;
-        }
+        boolean startStreaming = false;
 
         if (intent != null && intent.getExtras() != null) {
+            // The fact that the intent has a user UUID means it was started from NeoService. We
+            // should stream UI events to the server at this point even if its disable.
+            // TODO: Enable node js server UI streaming.
             userUuid = intent.getExtras().getString(UUID_INTENT_PARAM);
             serverAddress = intent.getExtras().getString(SERVER_ADDRESS);
+            startStreaming = true;
+        }
+        
+        if (intent == null && isUiStreamingEnabled()) {
+            // We are started by Android, thus intent is null. However, we were streaming UI,
+            // so we continue it.
+            startStreaming = true;
         }
 
         if (serverAddress == null) {
@@ -138,22 +144,21 @@ public class NeoUiActionsService extends AccessibilityService implements ExpertC
             serverAddress = "ws://" + serverIp + ":8080/";
             Log.i(Utils.TAG, "serverAddress: " + serverAddress);
         }
-        Log.i(Utils.TAG, "userUuid: " + userUuid);
-        expertChannel = new ExpertChannel(serverAddress, this, this, neoThreadpool, userUuid);
-        expertChannel.connect();
-        if (!showAccessibilitySettings()) {
+
+        if (startStreaming) {
+            startUiStreaming();
+        }
+
+        if (!getAccessibilityServiceEnabledState() && !showAccessibilitySettings()) {
             Log.i(Utils.TAG, "Unable to show accessibility settings.");
             if (uiActionsServiceCallback != null) {
                 uiActionsServiceCallback.onSettingsError();
             }
         }
+
         return START_STICKY;
     }
-
-    public boolean isStarted () {
-        return expertChannel != null;
-    }
-
+    
     public void registerUiActionsCallback(UiActionsServiceCallback uiActionsServiceCallback) {
         this.uiActionsServiceCallback = uiActionsServiceCallback;
     }
@@ -168,14 +173,8 @@ public class NeoUiActionsService extends AccessibilityService implements ExpertC
             hideOverlay();
         }
         unregisterReceiver(intentReceiver);
-        if (expertChannel != null) {
-            expertChannel.cleanup();
-            expertChannel = null;
-        }
-        if (uiManager != null) {
-            uiManager.cleanup();
-            uiManager = null;
-        }
+        expertChannelCleanup();
+        uiManagerCleanup();
         uiActionsServiceCallback = null;
         NeoService.unregisterNeoUiActionsService();
         super.onDestroy();
@@ -184,18 +183,18 @@ public class NeoUiActionsService extends AccessibilityService implements ExpertC
     @Override
     protected void onServiceConnected() {
         super.onServiceConnected();
+        saveAccessibiltyServiceEnabledState(true /* enabled */);
+
         if (uiActionsServiceCallback != null) {
             uiActionsServiceCallback.onServiceReady();
         }
-        handler.postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                refreshFullUi();
-            }
-        }, 5000);
-
-        if (overlayPermissionGranted) {
-            showOverlay();
+        if (isUiStreamingEnabled()) {
+            handler.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    refreshFullUi();
+                }
+            }, 5000);
         }
     }
 
@@ -298,16 +297,14 @@ public class NeoUiActionsService extends AccessibilityService implements ExpertC
     }
 
     public void stopServiceByUser() {
-        hideOverlay();
         if (uiActionsServiceCallback != null) {
-            uiActionsServiceCallback.onStopByUser();
+            uiActionsServiceCallback.onStopClickedByUser();
         }
-        stopSelf();
+        stopUIStreaming();
     }
 
     public void stopServiceByExpert() {
-        hideOverlay();
-        stopSelf();
+        stopUIStreaming();
     }
 
     private void stopClickedByUser() {
@@ -330,5 +327,62 @@ public class NeoUiActionsService extends AccessibilityService implements ExpertC
     public void refreshFullUi() {
         FlatViewHierarchy viewHierarchy = uiManager.updateViewHierarchy(getRootInActiveWindow());
         sendViewSnapshot(viewHierarchy);
+    }
+
+    private void startUiStreaming() {
+        // Save the fact that UI streaming is enabled.
+        // Enable UI streaming.
+        saveUiStreaming(true /* enabled */);
+        Log.i(Utils.TAG, "userUuid: " + userUuid);
+        if (expertChannel != null && uiManager != null) {
+            // We are already streaming, so no need to start again.
+            Log.i(Utils.TAG, "Dropping startStreaming request, since already streaming.");
+            return;
+        }
+        expertChannel = new ExpertChannel(serverAddress, this, this, neoThreadpool, userUuid);
+        expertChannel.connect();
+        uiManager = new UiManager(this, neoThreadpool, primaryDisplayMetrics);
+        if (overlayPermissionGranted) {
+            showOverlay();
+        }
+    }
+
+    private void stopUIStreaming() {
+        // Save the fact that UI streaming is disabled.
+        // Disable UI streaming.
+        hideOverlay();
+        saveUiStreaming(false /* disabled */);
+        expertChannelCleanup();
+        uiManagerCleanup();
+    }
+
+    private void uiManagerCleanup() {
+        if (uiManager != null) {
+            uiManager.cleanup();
+            uiManager = null;
+        }
+    }
+
+    private void expertChannelCleanup() {
+        if (expertChannel != null) {
+            expertChannel.cleanup();
+            expertChannel = null;
+        }
+    }
+
+    private void saveUiStreaming(boolean state) {
+        Utils.saveSharedSetting(this, PREF_UI_STREAMING_ENABLED, state);
+    }
+
+    private boolean isUiStreamingEnabled() {
+        return Utils.readSharedSetting(this, PREF_UI_STREAMING_ENABLED, true);
+    }
+
+    private void saveAccessibiltyServiceEnabledState(boolean state) {
+        Utils.saveSharedSetting(this, PREF_ACCESSIBILITY_ENABLED, true);
+    }
+
+    private boolean getAccessibilityServiceEnabledState() {
+        return Utils.readSharedSetting(this, PREF_ACCESSIBILITY_ENABLED, false);
     }
 }

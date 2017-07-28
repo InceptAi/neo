@@ -95,9 +95,7 @@ public class NeoMainActivity extends AppCompatActivity {
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-
         Log.i(Utils.TAG, "onActivityResult:" + String.valueOf(requestCode));
-
         if (requestCode == REQUEST_CODE_MEDIA_PROJECTION_PERMISSION) {
             mediaProjection = mediaProjectionManager.getMediaProjection(resultCode, data);
             startNeoService();
