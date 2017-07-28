@@ -57,12 +57,11 @@
             android:layout_marginLeft="10dp"
             android:fontFamily="sans-serif-condensed-thin"
             android:layout_gravity="center_vertical|start"
+            android:layout_weight="0.9"
+            android:ellipsize="end"
+            android:maxLines="3"
             android:layout_height="wrap_content" />
 
-        <android.support.v4.widget.Space
-            android:layout_width="0dp"
-            android:layout_weight="0.8"
-            android:layout_height="match_parent" />
         <Button
             android:id="@+id/overlay_button_stop"
             android:layout_width="wrap_content"
@@ -72,6 +71,7 @@
             android:textColor="@android:color/white"
             android:layout_marginEnd="10dp"
             android:layout_marginRight="10dp"
+            android:layout_weight="0.1"
             android:background="@drawable/blue_button_selector"
             android:text="STOP"/>
     </LinearLayout>

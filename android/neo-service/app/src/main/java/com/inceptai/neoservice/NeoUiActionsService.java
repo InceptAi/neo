@@ -384,6 +384,17 @@ public class NeoUiActionsService extends AccessibilityService implements ExpertC
     }
 
     private boolean isAccessibilityPermissionGranted() {
+        int accessibilityEnabled = 0;
+        try {
+            accessibilityEnabled = Settings.Secure.getInt(
+                    this.getApplicationContext().getContentResolver(),
+                    android.provider.Settings.Secure.ACCESSIBILITY_ENABLED);
+        } catch (Settings.SettingNotFoundException e) {
+            Log.e(Utils.TAG, "Accessibility settings not found !");
+        }
+
+        if (accessibilityEnabled != 1) return false;
+
         String pkgClassName = this.getPackageName() + "/" + NeoUiActionsService.class.getCanonicalName();
         String enabledServices = Settings.Secure.getString(this.getContentResolver(), Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES);
         if (!Utils.nullOrEmpty(enabledServices)) {
