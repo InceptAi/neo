@@ -10,7 +10,7 @@
   },
   "devDependencies": {},
   "scripts": {
-    "start": "node relay.js"
+    "start": "node relay.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
