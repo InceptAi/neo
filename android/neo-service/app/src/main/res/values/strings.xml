@@ -2,6 +2,6 @@
     <string name="app_name">NeoService</string>
     <string name="neo_service_desc">Turning this ON will help the live Expert take actions on your devices to fix any issues.</string>
     <string name="overlay_title_default">Wifi Expert Working</string>
-    <string name="overlay_status_default">Finding a good wifi network ..</string>
+    <string name="overlay_status_default">Optimizing your wifi network ..</string>
     <string name="overlay_status_stopping">Stopping ..</string>
 </resources>
