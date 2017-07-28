@@ -206,7 +206,7 @@ function onExpertIncomingMessage(message) {
 
     // 3. Relay messages to an expert if one exists.
 	var clientToSend = this.activeSession.userWebSocket;
-	if (clientToSend !== this && clientToSend.readyState === WebSocket.OPEN) {
+	if (clientToSend !== undefined && clientToSend !== this && clientToSend.readyState === WebSocket.OPEN) {
 		clientToSend.send(message);
  	} else {
 		neoLog("client is not ready to receive expert message");
