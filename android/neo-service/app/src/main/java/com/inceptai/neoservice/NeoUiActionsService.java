@@ -119,22 +119,13 @@ public class NeoUiActionsService extends AccessibilityService implements ExpertC
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        boolean startStreaming = false;
-
         if (intent != null && intent.getExtras() != null) {
             // The fact that the intent has a user UUID means it was started from NeoService. We
             // should stream UI events to the server at this point even if its disable.
             // TODO: Enable node js server UI streaming.
             userUuid = intent.getExtras().getString(UUID_INTENT_PARAM);
             serverAddress = intent.getExtras().getString(SERVER_ADDRESS);
-            startStreaming = true;
             saveUiStreaming(true /* enabled */);
-        }
-        
-        if (intent == null && isUiStreamingEnabled()) {
-            // We are started by Android, thus intent is null. However, we were streaming UI,
-            // so we continue it.
-            startStreaming = true;
         }
 
         if (serverAddress == null) {
@@ -146,15 +137,15 @@ public class NeoUiActionsService extends AccessibilityService implements ExpertC
             Log.i(Utils.TAG, "serverAddress: " + serverAddress);
         }
 
-        if (startStreaming) {
-            startUiStreaming();
-        }
-
         if (!getAccessibilityServiceEnabledState() && !showAccessibilitySettings()) {
             Log.i(Utils.TAG, "Unable to show accessibility settings.");
             if (uiActionsServiceCallback != null) {
                 uiActionsServiceCallback.onSettingsError();
             }
+        }
+
+        if (getAccessibilityServiceEnabledState() && isUiStreamingEnabled()) {
+            startUiStreaming();
         }
 
         return START_STICKY;
@@ -190,12 +181,13 @@ public class NeoUiActionsService extends AccessibilityService implements ExpertC
             uiActionsServiceCallback.onServiceReady();
         }
         if (isUiStreamingEnabled()) {
+            startUiStreaming();
             handler.postDelayed(new Runnable() {
                 @Override
                 public void run() {
                     refreshFullUi();
                 }
-            }, 2000);
+            }, 4000);
         }
     }
 
