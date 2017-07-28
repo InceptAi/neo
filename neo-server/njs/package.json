@@ -10,7 +10,12 @@
   },
   "devDependencies": {},
   "scripts": {
+    "start": "node relay.js"
     "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/InceptAi/neo/"
   },
   "author": "",
   "license": "ISC"
