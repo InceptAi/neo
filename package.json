@@ -1,0 +1,6 @@
+{
+  "scripts": {
+    "start" : "cd neo-server/njs && node relay.js",
+    "postinstall": "cd neo-server/njs && npm install"
+  }
+}

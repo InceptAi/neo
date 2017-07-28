@@ -277,6 +277,17 @@ public class NeoUiActionsService extends AccessibilityService implements ExpertC
         overlayTitleTv = (TextView) overlayView.findViewById(R.id.overlay_title);
     }
 
+    // Resets the overlay views back to an initial state (potentially after being stopped).
+    private void resetOverlayViews() {
+        if (overlayStatusTv != null) {
+            overlayStatusTv.setText(R.string.overlay_status_default);
+        }
+
+        if (stopButton != null) {
+            stopButton.setVisibility(View.VISIBLE);
+        }
+    }
+
     public void setTitle(String title) {
         if (overlayTitleTv != null) {
             overlayTitleTv.setText(title);
@@ -339,6 +350,7 @@ public class NeoUiActionsService extends AccessibilityService implements ExpertC
         expertChannel.connect();
         uiManager = new UiManager(this, neoThreadpool, primaryDisplayMetrics);
         if (overlayPermissionGranted) {
+            resetOverlayViews();
             showOverlay();
         }
     }

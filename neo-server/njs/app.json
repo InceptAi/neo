@@ -1,0 +1,7 @@
+{
+  "name": "Neo Nodejs backend.",
+  "description": "A barebones Node.js app",
+  "repository": "https://github.com/InceptAi/neo/neo-server/njs",
+  "keywords": ["node", "express", "heroku"],
+  "image": "heroku/nodejs"
+}
