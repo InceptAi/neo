@@ -1,7 +1,9 @@
 package com.inceptai.neoservice;
 
+import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.Intent;
+import android.provider.Settings;
 import android.util.Log;
 
 import com.google.common.base.Preconditions;
@@ -15,7 +17,7 @@ import java.lang.ref.WeakReference;
 public class NeoService implements NeoUiActionsService.UiActionsServiceCallback {
     public static final int REASON_STOPPED_BY_USER = 0;
     public static final int REASON_STOPPED_BY_EXPERT = 1;
-    public static final int REASON_STOPPED_UNABLE_TO_SHOW_SETTINGS = 2;
+    public static final int REASON_STOPPED = 3;
 
     private static WeakReference<NeoUiActionsService> neoUiActionsServiceWeakReference;
     private static NeoService MY_INSTANCE = null;
@@ -24,13 +26,12 @@ public class NeoService implements NeoUiActionsService.UiActionsServiceCallback 
     private String userUuid;
     private Context context;
     private Callback serviceCallback;
-    private boolean isServiceRunning = false;
-
 
     public interface Callback {
         void onServiceStopped(int reason);
         void onServiceReady();
         void onStopClickedByUser();
+        void onRequestAccessibilitySettings();
     }
 
     public NeoService(String neoServerAddress, String userUuid, Context context, Callback serviceCallback) {
@@ -56,7 +57,6 @@ public class NeoService implements NeoUiActionsService.UiActionsServiceCallback 
         } else {
             Log.e(Utils.TAG, "Unable to stop NeoUiActionsService");
         }
-        isServiceRunning = false;
     }
 
     public void updateStatus(String status) {
@@ -92,15 +92,7 @@ public class NeoService implements NeoUiActionsService.UiActionsServiceCallback 
     }
 
     public boolean isServiceRunning() {
-        return isServiceRunning;
-    }
-
-    @Override
-    public void onSettingsError() {
-        if (serviceCallback != null) {
-            serviceCallback.onServiceStopped(REASON_STOPPED_UNABLE_TO_SHOW_SETTINGS);
-            Preconditions.checkArgument(!isServiceRunning, "Service should not be running");
-        }
+        return isNeoUiActionsServiceAvailable() && neoUiActionsServiceWeakReference.get().isServiceRunning();
     }
 
     @Override
@@ -108,7 +100,6 @@ public class NeoService implements NeoUiActionsService.UiActionsServiceCallback 
         if (serviceCallback != null) {
             serviceCallback.onServiceReady();
         }
-        isServiceRunning = true;
     }
 
     @Override
@@ -134,5 +125,33 @@ public class NeoService implements NeoUiActionsService.UiActionsServiceCallback 
 
     private static boolean isNeoUiActionsServiceAvailable() {
         return neoUiActionsServiceWeakReference != null && neoUiActionsServiceWeakReference.get() != null;
+    }
+
+    @Override
+    public void onServiceDestroy() {
+        if (serviceCallback != null) {
+            serviceCallback.onServiceStopped(REASON_STOPPED);
+        }
+    }
+
+    @Override
+    public void onRequestAccessibiltySettings() {
+        if (serviceCallback != null) {
+            serviceCallback.onRequestAccessibilitySettings();
+        }
+    }
+
+    public static boolean showAccessibilitySettings(Context context) {
+        Intent settingsIntent = new Intent(
+                Settings.ACTION_ACCESSIBILITY_SETTINGS);
+        settingsIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+
+        boolean isOk = true;
+        try {
+            context.startActivity(settingsIntent);
+        } catch (ActivityNotFoundException e) {
+            isOk = false;
+        }
+        return isOk;
     }
 }

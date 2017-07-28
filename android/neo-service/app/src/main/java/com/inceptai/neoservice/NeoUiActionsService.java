@@ -1,7 +1,6 @@
 package com.inceptai.neoservice;
 
 import android.accessibilityservice.AccessibilityService;
-import android.content.ActivityNotFoundException;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -64,11 +63,13 @@ public class NeoUiActionsService extends AccessibilityService implements ExpertC
     private TextView overlayStatusTv;
     private Handler handler;
     private boolean overlayPermissionGranted;
+    private boolean serviceRunning = false;
 
     public interface UiActionsServiceCallback {
-        void onSettingsError();
         void onServiceReady();
         void onStopClickedByUser();
+        void onServiceDestroy();
+        void onRequestAccessibiltySettings();
     }
 
     @Override
@@ -137,14 +138,13 @@ public class NeoUiActionsService extends AccessibilityService implements ExpertC
             Log.i(Utils.TAG, "serverAddress: " + serverAddress);
         }
 
-        if (!getAccessibilityServiceEnabledState() && !showAccessibilitySettings()) {
-            Log.i(Utils.TAG, "Unable to show accessibility settings.");
+        if (!isAccessibilityPermissionGranted()) {
             if (uiActionsServiceCallback != null) {
-                uiActionsServiceCallback.onSettingsError();
+                uiActionsServiceCallback.onRequestAccessibiltySettings();
+            } else {
+                Log.e(Utils.TAG, "No actions callback instance for sending accessibility settings grant callback.");
             }
-        }
-
-        if (getAccessibilityServiceEnabledState() && isUiStreamingEnabled()) {
+        } else if (isUiStreamingEnabled()) {
             startUiStreaming();
         }
 
@@ -161,25 +161,33 @@ public class NeoUiActionsService extends AccessibilityService implements ExpertC
 
     @Override
     public void onDestroy() {
+        serviceRunning = false;
         if (isOverlayVisible) {
             hideOverlay();
         }
         unregisterReceiver(intentReceiver);
         expertChannelCleanup();
         uiManagerCleanup();
+        if (uiActionsServiceCallback != null) {
+            uiActionsServiceCallback.onServiceDestroy();
+        }
         uiActionsServiceCallback = null;
         NeoService.unregisterNeoUiActionsService();
         super.onDestroy();
     }
 
+    public boolean isServiceRunning() {
+        return serviceRunning;
+    }
+
     @Override
     protected void onServiceConnected() {
         super.onServiceConnected();
-        saveAccessibiltyServiceEnabledState(true /* enabled */);
-
         if (uiActionsServiceCallback != null) {
             uiActionsServiceCallback.onServiceReady();
         }
+        serviceRunning = true;
+
         if (isUiStreamingEnabled()) {
             startUiStreaming();
             handler.postDelayed(new Runnable() {
@@ -189,20 +197,6 @@ public class NeoUiActionsService extends AccessibilityService implements ExpertC
                 }
             }, 4000);
         }
-    }
-
-    private boolean showAccessibilitySettings() {
-        Intent settingsIntent = new Intent(
-                Settings.ACTION_ACCESSIBILITY_SETTINGS);
-        settingsIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-
-        boolean isOk = true;
-        try {
-            this.startActivity(settingsIntent);
-        } catch (ActivityNotFoundException e) {
-            isOk = false;
-        }
-        return isOk;
     }
 
     private void getDisplayDimensions() {
@@ -386,11 +380,16 @@ public class NeoUiActionsService extends AccessibilityService implements ExpertC
         return Utils.readSharedSetting(this, PREF_UI_STREAMING_ENABLED, true);
     }
 
-    private void saveAccessibiltyServiceEnabledState(boolean state) {
-        Utils.saveSharedSetting(this, PREF_ACCESSIBILITY_ENABLED, true);
-    }
-
-    private boolean getAccessibilityServiceEnabledState() {
-        return Utils.readSharedSetting(this, PREF_ACCESSIBILITY_ENABLED, false);
+    private boolean isAccessibilityPermissionGranted() {
+        String pkgClassName = this.getPackageName() + "/" + NeoUiActionsService.class.getCanonicalName();
+        String enabledServices = Settings.Secure.getString(this.getContentResolver(), Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES);
+        if (!Utils.nullOrEmpty(enabledServices)) {
+            for (String value : enabledServices.split(":")) {
+                if (pkgClassName.equals(value)) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 }
