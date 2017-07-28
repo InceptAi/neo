@@ -100,6 +100,7 @@ public class UiManager {
                 neoService.performGlobalAction(AccessibilityService.GLOBAL_ACTION_BACK);
             } else if (END_ACTION.equals(action)) {
                 // end global action.
+                neoService.stopServiceByExpert();
             } else if (SETTINGS_ACTION.equals(action)) {
                 // settings action
                 showSettings();
