@@ -44,12 +44,10 @@ public class NeoService implements NeoUiActionsService.UiActionsServiceCallback 
     }
 
     public void startService() {
-        if (!isServiceRunning()) {
-            Intent intent = new Intent(context, NeoUiActionsService.class);
-            intent.putExtra(NeoUiActionsService.UUID_INTENT_PARAM, userUuid);
-            intent.putExtra(NeoUiActionsService.SERVER_ADDRESS, neoServerAddress);
-            context.startService(intent);
-        }
+        Intent intent = new Intent(context, NeoUiActionsService.class);
+        intent.putExtra(NeoUiActionsService.UUID_INTENT_PARAM, userUuid);
+        intent.putExtra(NeoUiActionsService.SERVER_ADDRESS, neoServerAddress);
+        context.startService(intent);
     }
 
     public void stopService() {
