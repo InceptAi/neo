@@ -7,6 +7,7 @@ const EXPERT_SPECIAL_ACTION_HOME = "home";
 const EXPERT_SPECIAL_ACTION_END_SESSION = "end";
 const EXPERT_SPECIAL_ACTION_GO_BACK = "back";
 const EXPERT_SPECIAL_ACTION_SHOW_SETTINGS = "settings";
+const EXPERT_SPECIAL_ACTION_REFRESH = "refresh";
 
 let webSocket;
 var lastSelectedUUID;
@@ -194,6 +195,10 @@ function sendHomeButtonCommand() {
 
 function sendShowSettingsButtonCommand() {
 	sendCommand(EXPERT_SPECIAL_ACTION_SHOW_SETTINGS);
+}
+
+function sendRefreshCommand() {
+	sendCommand(EXPERT_SPECIAL_ACTION_REFRESH);
 }
 
 function sendCommand(command) {
