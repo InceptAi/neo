@@ -146,6 +146,9 @@ public class NeoUiActionsService extends AccessibilityService implements ExpertC
             }
         } else if (isUiStreamingEnabled()) {
             startUiStreaming();
+            if (uiActionsServiceCallback != null) {
+                uiActionsServiceCallback.onServiceReady();
+            }
         }
 
         return START_STICKY;
