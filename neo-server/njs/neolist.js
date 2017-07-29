@@ -155,7 +155,8 @@ function processMessage(eventInfo) {
 
 function populateUuidList(uuidList) {
 	deleteCurrentUUIDList();
-	var elem = document.getElementById('uuidList'); //get 'ul' element from the DOM
+    var elem = document.getElementById('uuidList'); //get 'ul' element from the DOM
+    var lastUUIDgone = true;
     uuidList.forEach(function (item) {
       console.log("list item: " + item);
       var li = document.createElement('li');
@@ -164,6 +165,7 @@ function populateUuidList(uuidList) {
       li.uuid = item;
 	  if (lastSelectedUUID !== undefined && li.id == lastSelectedUUID) {
 		li.style.backgroundColor = 'lightgreen';
+        lastUUIDgone = false;
 	  }
       elem.appendChild(li);
       li.addEventListener('click', function() {
@@ -179,6 +181,10 @@ function populateUuidList(uuidList) {
 		lastSelectedUUID = this.uuid;
       });
    });
+
+   if (lastUUIDgone === true) {
+       lastSelectedUUID = undefined;
+   }
 }
 
 function endExpertSession() {

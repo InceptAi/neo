@@ -67,13 +67,29 @@ function clearUser(webSocket) {
   neoLog("Clearing User uuid: " + webSocket.activeSession.userUuid);
   var activeSession = webSocket.activeSession;
   if (activeSession !== undefined) {
+      //Send an update to the expert -- removing this user
   	  neoLog("Clearing User from sessions map");
+      var expertListening = activeSession.expertWebSocketList;
       var uuid = activeSession.userUuid;
       activeSessionsMap.delete(uuid);
-      /// remove user's websocket.
+      //TODO: Should we send message to ALL experts
+      if (expertListening !== undefined) {
+        sendUpdatedUUIDListToExperts(expertListening);
+      }
+     /// remove user's websocket.
       activeSession.userWebSocket = undefined;
       webSocket.activeSession == undefined;
   }  
+}
+
+
+function sendUpdatedUUIDListToExperts(expertWebSocketList) {
+    messageToSend = getUUIDListMessage(); 
+    expertWebSocketList.forEach(function each(socket) {
+        if (socket !== undefined && socket.readyState === WebSocket.OPEN) {
+            socket.send(message);
+        }
+    });
 }
 
 function createActiveSession(uuid) {
@@ -134,6 +150,10 @@ function onClientIncomingMessage(message) {
 
 function getUUIDList() {
 	return Array.from(activeSessionsMap.keys());
+}
+
+function getUUIDListMessage() {
+    return { uuidList :  getUUIDList(), code : SUCCESS_CODE };	
 }
 
 function removeExpertFromActiveSession(expertWebSocket) {
