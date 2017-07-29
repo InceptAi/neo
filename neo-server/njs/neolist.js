@@ -8,6 +8,7 @@ const EXPERT_SPECIAL_ACTION_END_SESSION = "end";
 const EXPERT_SPECIAL_ACTION_GO_BACK = "back";
 const EXPERT_SPECIAL_ACTION_SHOW_SETTINGS = "settings";
 const EXPERT_SPECIAL_ACTION_REFRESH = "refresh";
+const SERVER_ADDRESS = "dobby1743.duckdns.org";
 
 let webSocket;
 var lastSelectedUUID;
@@ -125,7 +126,7 @@ function initializeWebSocket() {
 		if (webSocket != undefined) {
 			return;
 		}
-		webSocket = new WebSocket("ws://0.0.0.0:" + WEB_SOCKET_PORT +"/");
+		webSocket = new WebSocket("ws://" + SERVER_ADDRESS + ":" + WEB_SOCKET_PORT +"/");
 		webSocket.onopen = handleSocketOpen;
 		webSocket.onmessage = processMessage;
 		webSocket.onclose = handleSocketClose;
@@ -171,6 +172,7 @@ function populateUuidList(uuidList) {
       li.addEventListener('click', function() {
 		console.log('onClick'+ this.uuid);
 		connectToUuid(this.uuid);
+		sendRefreshCommand();
 		if (lastSelectedUUID !== undefined) {
 			var lastSelectedItem = document.getElementById(lastSelectedUUID)
 			if (lastSelectedItem !== undefined) {
@@ -184,6 +186,7 @@ function populateUuidList(uuidList) {
 
    if (lastUUIDgone === true) {
        lastSelectedUUID = undefined;
+	   deleteCurrentActionList();
    }
 }
 

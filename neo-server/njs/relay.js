@@ -84,11 +84,10 @@ function clearUser(webSocket) {
 
 
 function sendUpdatedUUIDListToExperts(expertWebSocketList) {
-    var messageToSend = getUUIDListMessage(); 
+	neoLog('sending updated UUID list to experts: socketListLength: ' + expertWebSocketList.length);
+    var messageToSend = getUUIDListMessage();
     expertWebSocketList.forEach(function each(socket) {
-        if (socket !== undefined && socket.readyState === WebSocket.OPEN) {
-            socket.send(messageToSend);
-        }
+		sendMessageToExpert(socket, messageToSend)
     });
 }
 
@@ -184,7 +183,8 @@ function processExpertAction(webSocket, parsedMessage) {
 	var messageResponse = undefined;
 	if (parsedMessage.serverAction == LIST_ALL_UUIDS_EXPERT_ACTION) {
 		//send list of all UUIDs to expert
-		messageResponse = { uuidList :  getUUIDList(), code : SUCCESS_CODE };	
+		messageResponse = getUUIDListMessage();
+		//messageResponse = { uuidList :  getUUIDList(), code : SUCCESS_CODE };	
 	} else if (parsedMessage.serverAction == CONNECT_TO_UUID_EXPERT_ACTION) {
 		//Connect to a client and set it for this expert
 		messageResponse = addExpertToBroadcastList(webSocket, parsedMessage.uuid);
