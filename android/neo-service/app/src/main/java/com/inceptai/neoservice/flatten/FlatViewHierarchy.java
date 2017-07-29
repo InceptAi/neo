@@ -110,6 +110,16 @@ public class FlatViewHierarchy {
         return viewDb.get(Integer.valueOf(viewId));
     }
 
+    public AccessibilityNodeInfo findScrollableFlatView() {
+        for (int i = 0; i < viewDb.size(); i ++) {
+            FlatView flatView = viewDb.valueAt(i);
+            if (flatView.getNodeInfo().isScrollable()) {
+                return flatView.getNodeInfo();
+            }
+        }
+        return null;
+    }
+
     private String getSimpleViewStringForDemo(FlatView flatView) {
         String className = flatView.getClassName();
         if (FlatViewUtils.isImage(flatView)) {

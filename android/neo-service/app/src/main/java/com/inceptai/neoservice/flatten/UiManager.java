@@ -26,6 +26,8 @@ public class UiManager {
     private static final String HOME_ACTION = "home";
     private static final String SETTINGS_ACTION = "settings";
     private static final String REFRESH_ACTION = "refresh";
+    private static final String SCROLLUP_ACTION = "scrollup";
+    private static final String SCROLLDOWN_ACTION = "scrolldown";
 
     private NeoUiActionsService neoService;
     private NeoThreadpool neoThreadpool;
@@ -76,6 +78,31 @@ public class UiManager {
 
     }
 
+    private boolean performScroll(boolean forward) {
+        AccessibilityNodeInfo nodeInfo = flatViewHierarchy.findScrollableFlatView();
+        if (nodeInfo == null) {
+            Log.e(Utils.TAG, "Could not find scrollable view.");
+            return false;
+        }
+
+        boolean done = false;
+        boolean result = false;
+        while (!done) {
+            if (nodeInfo.isScrollable()) {
+                result = nodeInfo.performAction(forward ? AccessibilityNodeInfo.ACTION_SCROLL_FORWARD : AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD);
+            }
+            if (!result) {
+                nodeInfo = nodeInfo.getParent();
+                if (nodeInfo == null) {
+                    done = true;
+                }
+            } else {
+                done = true;
+            }
+        }
+        return result;
+    }
+
     public FlatViewHierarchy updateViewHierarchy(AccessibilityNodeInfo rootNode) {
         if (flatViewHierarchy == null) {
             flatViewHierarchy = new FlatViewHierarchy(rootNode, primaryDisplayMetrics);
@@ -108,6 +135,10 @@ public class UiManager {
                 neoService.performGlobalAction(AccessibilityService.GLOBAL_ACTION_HOME);
             } else if (REFRESH_ACTION.equals(action)) {
                 neoService.refreshFullUi();
+            } else if (SCROLLDOWN_ACTION.equals(action)) {
+                performScroll(true /* forward */);
+            } else if (SCROLLUP_ACTION.equals(action)) {
+                performScroll(false /* backward */);
             }
         }
     }
