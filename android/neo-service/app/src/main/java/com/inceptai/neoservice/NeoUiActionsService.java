@@ -67,7 +67,8 @@ public class NeoUiActionsService extends AccessibilityService implements ExpertC
 
     public interface UiActionsServiceCallback {
         void onServiceReady();
-        void onStopClickedByUser();
+        void onUiStreamingStoppedByUser();
+        void onUiStreamingStoppedByExpert();
         void onServiceDestroy();
         void onRequestAccessibiltySettings();
     }
@@ -297,14 +298,17 @@ public class NeoUiActionsService extends AccessibilityService implements ExpertC
     }
 
     public void stopServiceByUser() {
-        if (uiActionsServiceCallback != null) {
-            uiActionsServiceCallback.onStopClickedByUser();
-        }
         stopUIStreaming();
+        if (uiActionsServiceCallback != null) {
+            uiActionsServiceCallback.onUiStreamingStoppedByUser();
+        }
     }
 
     public void stopServiceByExpert() {
         stopUIStreaming();
+        if (uiActionsServiceCallback != null) {
+            uiActionsServiceCallback.onUiStreamingStoppedByExpert();
+        }
     }
 
     private void stopClickedByUser() {

@@ -15,10 +15,6 @@ import java.lang.ref.WeakReference;
  */
 
 public class NeoService implements NeoUiActionsService.UiActionsServiceCallback {
-    public static final int REASON_STOPPED_BY_USER = 0;
-    public static final int REASON_STOPPED_BY_EXPERT = 1;
-    public static final int REASON_STOPPED = 3;
-
     private static WeakReference<NeoUiActionsService> neoUiActionsServiceWeakReference;
     private static NeoService MY_INSTANCE = null;
 
@@ -28,9 +24,10 @@ public class NeoService implements NeoUiActionsService.UiActionsServiceCallback 
     private Callback serviceCallback;
 
     public interface Callback {
-        void onServiceStopped(int reason);
+        void onServiceStopped();
         void onServiceReady();
-        void onStopClickedByUser();
+        void onUiStreamingStoppedByUser();
+        void onUiStreamingStoppedByExpert();
         void onRequestAccessibilitySettings();
     }
 
@@ -103,10 +100,17 @@ public class NeoService implements NeoUiActionsService.UiActionsServiceCallback 
     }
 
     @Override
-    public void onStopClickedByUser() {
+    public void onUiStreamingStoppedByUser() {
        if (serviceCallback != null) {
-           serviceCallback.onStopClickedByUser();
+           serviceCallback.onUiStreamingStoppedByUser();
        }
+    }
+
+    @Override
+    public void onUiStreamingStoppedByExpert() {
+        if (serviceCallback != null) {
+            serviceCallback.onUiStreamingStoppedByExpert();
+        }
     }
 
     public void cleanup() {
@@ -130,7 +134,7 @@ public class NeoService implements NeoUiActionsService.UiActionsServiceCallback 
     @Override
     public void onServiceDestroy() {
         if (serviceCallback != null) {
-            serviceCallback.onServiceStopped(REASON_STOPPED);
+            serviceCallback.onServiceStopped();
         }
     }
 
