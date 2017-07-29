@@ -113,7 +113,7 @@ public class FlatViewHierarchy {
     public AccessibilityNodeInfo findScrollableFlatView() {
         for (int i = 0; i < viewDb.size(); i ++) {
             FlatView flatView = viewDb.valueAt(i);
-            if (flatView.getNodeInfo().isScrollable()) {
+            if (flatView != null && flatView.getNodeInfo() != null && flatView.getNodeInfo().isScrollable()) {
                 return flatView.getNodeInfo();
             }
         }

@@ -79,6 +79,7 @@ public class UiManager {
     }
 
     private boolean performScroll(boolean forward) {
+        Log.i(Utils.TAG, "Attempting scroll: " + (forward ? "UP" : "DOWN"));
         AccessibilityNodeInfo nodeInfo = flatViewHierarchy.findScrollableFlatView();
         if (nodeInfo == null) {
             Log.e(Utils.TAG, "Could not find scrollable view.");
@@ -99,6 +100,9 @@ public class UiManager {
             } else {
                 done = true;
             }
+        }
+        if (!result) {
+            Log.i(Utils.TAG, "Could not find scrollable view or scroll failed.");
         }
         return result;
     }
