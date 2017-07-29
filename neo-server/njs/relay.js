@@ -84,10 +84,10 @@ function clearUser(webSocket) {
 
 
 function sendUpdatedUUIDListToExperts(expertWebSocketList) {
-    messageToSend = getUUIDListMessage(); 
+    var messageToSend = getUUIDListMessage(); 
     expertWebSocketList.forEach(function each(socket) {
         if (socket !== undefined && socket.readyState === WebSocket.OPEN) {
-            socket.send(message);
+            socket.send(messageToSend);
         }
     });
 }
