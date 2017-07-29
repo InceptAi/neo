@@ -6,6 +6,7 @@
     android:fitsSystemWindows="true"
     android:clipToPadding="false"
     android:alpha="1.0"
+    android:keepScreenOn="true"
     android:layout_height="600dp">
 
     <LinearLayout
