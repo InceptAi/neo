@@ -8,6 +8,8 @@ const EXPERT_SPECIAL_ACTION_END_SESSION = "end";
 const EXPERT_SPECIAL_ACTION_GO_BACK = "back";
 const EXPERT_SPECIAL_ACTION_SHOW_SETTINGS = "settings";
 const EXPERT_SPECIAL_ACTION_REFRESH = "refresh";
+const EXPERT_SPECIAL_ACTION_SCROLL_UP = "scrollup";
+const EXPERT_SPECIAL_ACTION_SCROLL_DOWN = "scrolldown";
 const SERVER_ADDRESS = "dobby1743.duckdns.org";
 
 let webSocket;
@@ -108,15 +110,6 @@ function updateActionList(actionList) {
 		});
 		elem.appendChild(li); //append 'li' to the 'ul' element
 	}
-	/*
-	let elems = document.getElementsByTagName('settingsList').;
-	Array.from(elems).forEach((v, i) => v.addEventListener('click', function() {
-  		Array.from(elems).forEach((c,k) => {c.style.background = 'transparent'; c.innerHTML = getInnerHtmlItem(names[k]);});
-  		this.innerHTML = getInnerHtmlItem(names[i] + ', id: ' + viewIds[i]);
-  		this.style.background = '#E3F6CE';
-		sendMessageToClient(viewIds[i], names[i]);
-	}));
-	*/
 }
 
 function initializeWebSocket() {
@@ -209,6 +202,16 @@ function sendShowSettingsButtonCommand() {
 function sendRefreshCommand() {
 	sendCommand(EXPERT_SPECIAL_ACTION_REFRESH);
 }
+
+function sendScrollUpCommand() {
+	sendCommand(EXPERT_SPECIAL_ACTION_SCROLL_UP);
+}
+
+
+function sendScrollDownCommand() {
+	sendCommand(EXPERT_SPECIAL_ACTION_SCROLL_DOWN);
+}
+
 
 function sendCommand(command) {
 	//Send message to Client
