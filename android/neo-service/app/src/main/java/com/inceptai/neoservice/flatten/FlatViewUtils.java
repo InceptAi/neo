@@ -21,7 +21,8 @@ public class FlatViewUtils {
     }
 
     public static boolean hasText(FlatView flatView) {
-        return TEXTVIEW_CLASSNAME.equals(flatView.getClassName()) || !Utils.nullOrEmpty(flatView.getText());
+        return IMAGE_CLASSNAME.equals(flatView.getClassName()) || TEXTVIEW_CLASSNAME.equals(flatView.getClassName()) || !Utils.nullOrEmpty(flatView.getText())
+        || !Utils.nullOrEmpty(flatView.getContentDescription());
     }
 
     public static boolean isImage(FlatView flatView) {

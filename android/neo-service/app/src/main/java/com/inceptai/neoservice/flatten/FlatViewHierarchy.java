@@ -96,7 +96,7 @@ public class FlatViewHierarchy {
         SimpleViewHierarchySnapshot simpleViewHierarchySnapshot = new SimpleViewHierarchySnapshot();
         for (int i = 0; i < numViews; i ++) {
             FlatView flatView = viewDb.valueAt(i);
-            if (flatView.getClassName() != null && flatView.getText() != null && flatView.getClassName() != null) {
+            if (flatView.getClassName() != null && flatView.getText() != null) {
                 if (FlatViewUtils.hasText(flatView)) {
                     String displayString = getSimpleViewStringForDemo(flatView);
                     if (!displayString.isEmpty()) {
