@@ -55,7 +55,11 @@ public class FlatViewHierarchy {
             if (FlatViewUtils.hasText(flatView)) {
                 textViewDb.append(flatView.getHashKey(), flatView);
             } else if (flatView.getNodeInfo() != null && flatView.getNodeInfo().isScrollable()) {
-                scrollableViews.append(flatView.getHashKey(), flatView);
+                Log.i(Utils.TAG, "Potential scrollable view: " + flatView.getNodeInfo().toString());
+                if (FlatViewUtils.isScrollableView(flatView)) {
+                    Log.i(Utils.TAG, "Adding view.");
+                    scrollableViews.append(flatView.getHashKey(), flatView);
+                }
             } else {
                 flatView.recycle();
             }

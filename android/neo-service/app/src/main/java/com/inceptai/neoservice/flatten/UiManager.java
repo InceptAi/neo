@@ -85,24 +85,13 @@ public class UiManager {
             Log.e(Utils.TAG, "Could not find scrollable view.");
             return false;
         }
-
-        boolean done = false;
         boolean result = false;
-        while (!done) {
-            if (nodeInfo.isScrollable()) {
-                result = nodeInfo.performAction(forward ? AccessibilityNodeInfo.ACTION_SCROLL_FORWARD : AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD);
-            }
-            if (!result) {
-                nodeInfo = nodeInfo.getParent();
-                if (nodeInfo == null) {
-                    done = true;
-                }
-            } else {
-                done = true;
-            }
+        if (nodeInfo.isScrollable()) {
+            Log.i(Utils.TAG, "Trying scroll for: " + nodeInfo.toString());
+            result = nodeInfo.performAction(forward ? AccessibilityNodeInfo.ACTION_SCROLL_FORWARD : AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD);
         }
         if (!result) {
-            Log.i(Utils.TAG, "Could not find scrollable view or scroll failed.");
+            Log.i(Utils.TAG, "Scroll failed.");
         }
         return result;
     }
@@ -140,9 +129,9 @@ public class UiManager {
             } else if (REFRESH_ACTION.equals(action)) {
                 neoService.refreshFullUi();
             } else if (SCROLLDOWN_ACTION.equals(action)) {
-                performScroll(true /* forward */);
+                performScroll(false /* down */);
             } else if (SCROLLUP_ACTION.equals(action)) {
-                performScroll(false /* backward */);
+                performScroll(true /* up */);
             }
         }
     }
