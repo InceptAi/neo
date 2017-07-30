@@ -64,9 +64,9 @@ function getActiveSession(uuid) {
 }
 
 function clearUser(webSocket) {
-  neoLog("Clearing User uuid: " + webSocket.activeSession.userUuid);
   var activeSession = webSocket.activeSession;
   if (activeSession !== undefined) {
+  	  neoLog("Clearing User uuid: " + webSocket.activeSession.userUuid);
       //Send an update to the expert -- removing this user
   	  neoLog("Clearing User from sessions map");
       var expertListening = activeSession.expertWebSocketList;
