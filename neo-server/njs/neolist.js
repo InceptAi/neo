@@ -85,8 +85,7 @@ function getInnerHtmlItem(name) {
 function updateActionList(actionList) {
 	//JSON object here -- display a list
 	//get 'ul' element from the DOM
-	let elem = document.
-	getElementById('settingsList'); //get 'ul' element from the DOM
+	let elem = document.getElementById('settingsList'); //get 'ul' element from the DOM
 	console.log(actionList.viewMap);
 
 	//Delete the existing actionList first
