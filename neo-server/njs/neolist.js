@@ -27,9 +27,22 @@ function processMessageReceivedFromClient(eventInfo) {
 	var mesgRecv = eventInfo.data;
 	console.log("received msg = " + mesgRecv);
 	//convert mesg to json
-	actionList = JSON.parse(mesgRecv);
-	updateActionList(actionList);
-	console.log(Object.values(actionList.viewMap));
+	var actionList = undefined;
+	if (mesgRecv !== undefined) {
+		try {
+			actionList = JSON.parse(mesgRecv);
+		} catch (e) {
+			console.log('Error parsing json:' + e);
+			return;
+		}
+		if (actionList !== undefined) {
+			updateActionList(actionList);
+			if (actionList.viewMap !== undefined) {
+				console.log(Object.values(actionList.viewMap));
+			}
+		}
+	}
+	//console.log(Object.values(actionList.viewMap));
 	//console.log(actionList);
 }
 
