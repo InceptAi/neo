@@ -29,11 +29,13 @@ public class FlatViewHierarchy {
     private SparseArray<FlatView> viewDb;
     private DisplayMetrics displayMetrics;
     private SparseArray<FlatView> textViewDb;
+    private SparseArray<FlatView> scrollableViews;
 
     public FlatViewHierarchy(AccessibilityNodeInfo rootNode, DisplayMetrics displayMetrics) {
         this.rootNode = rootNode;
         this.viewDb = new SparseArray<>();
         this.textViewDb = new SparseArray<>();
+        this.scrollableViews = new SparseArray<>();
         this.displayMetrics = displayMetrics;
     }
 
@@ -52,6 +54,8 @@ public class FlatViewHierarchy {
             traverseChildrenFor(flatView, nodeQueue);
             if (FlatViewUtils.hasText(flatView)) {
                 textViewDb.append(flatView.getHashKey(), flatView);
+            } else if (flatView.getNodeInfo() != null && flatView.getNodeInfo().isScrollable()) {
+                scrollableViews.append(flatView.getHashKey(), flatView);
             } else {
                 flatView.recycle();
             }
@@ -103,6 +107,7 @@ public class FlatViewHierarchy {
     public void update(AccessibilityNodeInfo newRootNode) {
         viewDb.clear();
         textViewDb.clear();
+        scrollableViews.clear();
         rootNode = newRootNode;
     }
 
@@ -111,8 +116,8 @@ public class FlatViewHierarchy {
     }
 
     public AccessibilityNodeInfo findScrollableFlatView() {
-        for (int i = 0; i < viewDb.size(); i ++) {
-            FlatView flatView = viewDb.valueAt(i);
+        for (int i = 0; i < scrollableViews.size(); i ++) {
+            FlatView flatView = scrollableViews.valueAt(i);
             if (flatView != null && flatView.getNodeInfo() != null && flatView.getNodeInfo().isScrollable()) {
                 return flatView.getNodeInfo();
             }
