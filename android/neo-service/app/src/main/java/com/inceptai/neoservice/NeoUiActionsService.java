@@ -37,7 +37,7 @@ public class NeoUiActionsService extends AccessibilityService implements ExpertC
     public static final String SERVER_ADDRESS = "SERVER_ADDRESS";
 
     private static final String TAG = Utils.TAG;
-    private static final String DEFAULT_SERVER_IP = "192.168.1.129";
+    private static final String DEFAULT_SERVER_IP = "dobby1743.duckdns.org";
     private static final String NEO_INTENT = "com.inceptai.neo.ACTION";
     private static final int USER_STOP_DELAY_MS = 2500;
     private static final String PREF_UI_STREAMING_ENABLED = "NeoStreaming";
@@ -127,15 +127,6 @@ public class NeoUiActionsService extends AccessibilityService implements ExpertC
             userUuid = intent.getExtras().getString(UUID_INTENT_PARAM);
             serverAddress = intent.getExtras().getString(SERVER_ADDRESS);
             saveUiStreaming(true /* enabled */);
-        }
-
-        if (serverAddress == null) {
-            String serverIp = BuildConfig.SERVER_IP;
-            if (Utils.nullOrEmpty(serverIp)) {
-                serverIp = DEFAULT_SERVER_IP;
-            }
-            serverAddress = "ws://" + serverIp + ":8080/";
-            Log.i(Utils.TAG, "serverAddress: " + serverAddress);
         }
 
         if (!isAccessibilityPermissionGranted()) {
@@ -335,6 +326,18 @@ public class NeoUiActionsService extends AccessibilityService implements ExpertC
         }
     }
 
+    private String getServerAddress() {
+        if (serverAddress == null) {
+            String serverIp = BuildConfig.SERVER_IP;
+            if (Utils.nullOrEmpty(serverIp)) {
+                serverIp = DEFAULT_SERVER_IP;
+            }
+            serverAddress = "ws://" + serverIp + ":8080/";
+            Log.i(Utils.TAG, "serverAddress: " + serverAddress);
+        }
+        return serverAddress;
+    }
+
     private void startUiStreaming() {
         // Save the fact that UI streaming is enabled.
         // Enable UI streaming.
@@ -346,7 +349,7 @@ public class NeoUiActionsService extends AccessibilityService implements ExpertC
             return;
         }
         Log.i(Utils.TAG, "Starting streaming.");
-        expertChannel = new ExpertChannel(serverAddress, this, this, neoThreadpool, userUuid);
+        expertChannel = new ExpertChannel(getServerAddress(), this, this, neoThreadpool, userUuid);
         expertChannel.connect();
         uiManager = new UiManager(this, neoThreadpool, primaryDisplayMetrics);
         if (overlayPermissionGranted) {

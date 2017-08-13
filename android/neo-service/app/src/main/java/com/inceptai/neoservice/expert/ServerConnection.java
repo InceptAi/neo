@@ -51,6 +51,10 @@ public class ServerConnection extends WebSocketListener {
     }
 
     public void connect() {
+        if (serverUrl == null) {
+            Log.e(Utils.TAG, "Server url null, returning from connect");
+            return;
+        }
         if (numAttempts > 0) {
             Request request = new Request.Builder()
                     .url(serverUrl)
