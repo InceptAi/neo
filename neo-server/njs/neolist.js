@@ -36,7 +36,8 @@ function processMessageReceivedFromClient(eventInfo) {
 			return;
 		}
 		if (actionList !== undefined) {
-			updateActionList(actionList);
+			updateView(actionList);
+			//updateActionList(actionList);
 			if (actionList.viewMap !== undefined) {
 				console.log(Object.values(actionList.viewMap));
 			}
@@ -60,6 +61,15 @@ function sendMessageToClient(viewId, actionName) {
 function handleClickEvent(action) {
 }
 
+function deleteList(listName) {
+  	let currentList = document.getElementById(listName); //create 'li' element
+  	if (currentList != null) {
+		while (currentList.firstChild) {
+    		currentList.removeChild(currentList.firstChild);
+		}
+  	}
+}
+
 function deleteCurrentActionList() {
   	let currentList = document.getElementById('settingsList'); //create 'li' element
   	if (currentList != null) {
@@ -81,6 +91,100 @@ function deleteCurrentUUIDList() {
 function getInnerHtmlItem(name) {
 	return `<a href="#">` + name + `</a>`;
 }
+
+function drawRectangleWithText(context, x, y, width, height, text) {
+	context.lineWidth = "1";
+	context.beginPath();
+	context.rect(x, y, width, height);
+	context.stroke();
+	context.fillText(text, x, y, width);
+}
+
+function findViewIdOfClickedView(viewList, xClick, yClick) {
+	for (let key in viewList.viewMap) {
+		let leftX = viewList.viewMap[key].leftX;
+		let rightX = viewList.viewMap[key].rightX;
+		let bottomY = viewList.viewMap[key].bottomY;
+		let topY = viewList.viewMap[key].topY;
+		if (leftX == undefined || rightX == undefined || 
+			bottomY == undefined || topY == undefined) {
+			console.log("undefined coordinates, bailing");
+			continue;		
+		}
+		if (yClick > topY && yClick < bottomY && xClick > leftX && xClick < rightX) {
+            //alert('clicked an element');
+			return key;
+        }
+	}
+	return "";
+}
+
+function handleMouseClickOnCanvas(event, viewList) {
+	let xMouseCoordinate = event.pageX - canvasLeft;
+	let yMouseCoordinate = event.pageY - canvasTop;
+	console.log(xMouseCoordinate, yMouseCoordinate);
+	//find view Id of clicked event
+	let clickedViewId = findViewIdOfClickedView(viewList, xMouseCoordinate, yMouseCoordinate);
+	if (clickedViewId !== "") {
+		//alert("sending message to client");
+		console.log("Sending message to client for viewId", clickedViewId);
+		sendMessageToClient(clickedViewId, viewList.viewMap[clickedViewId].finalText);
+	}
+}
+
+function updateView(viewList) {
+	//JSON object here -- display a list
+	//get 'ul' element from the DOM
+	let remoteViewCanvas = document.getElementById("remoteView");
+	let canvasLeft = remoteViewCanvas.offsetLeft;
+    let canvasTop = remoteViewCanvas.offsetTop;
+	let ctx = remoteViewCanvas.getContext("2d");
+	console.log(viewList.viewMap);
+
+
+	//Delete the existing view
+	ctx.clearRect(0, 0, remoteViewCanvas.width, remoteViewCanvas.height);
+
+	// Add event listener for `click` events.
+	remoteViewCanvas.removeEventListener('click', handleMouseClickOnCanvas);
+	remoteViewCanvas.addEventListener('click', handleMouseClickOnCanvas);
+	remoteViewCanvas.addEventListener('click', function handleMouseClickOnCanvas(event) {
+    	let xMouseCoordinate = event.pageX - canvasLeft;
+		let yMouseCoordinate = event.pageY - canvasTop;
+    	console.log(xMouseCoordinate, yMouseCoordinate);
+	    //find view Id of clicked event
+		let clickedViewId = findViewIdOfClickedView(viewList, xMouseCoordinate, yMouseCoordinate);
+		if (clickedViewId !== "") {
+			//alert("sending message to client");
+			console.log("Sending message to client for viewId", clickedViewId);
+			sendMessageToClient(clickedViewId, viewList.viewMap[clickedViewId].finalText);
+		}
+	});
+
+	//Iterate over all the views and draw rect with text
+	for (let key in viewList.viewMap) {
+		let leftX = viewList.viewMap[key].leftX;
+		let rightX = viewList.viewMap[key].rightX;
+		let bottomY = viewList.viewMap[key].bottomY;
+		let topY = viewList.viewMap[key].topY;
+		if (leftX == undefined || rightX == undefined || 
+			bottomY == undefined || topY == undefined) {
+			console.log("undefined coordinates, bailing");
+			continue;		
+		}
+		let text = "NA";
+		if (viewList.viewMap[key].text !== "null") {
+			text = viewList.viewMap[key].text;
+		} else if (viewList.viewMap[key].contentDescription !== "null") {
+			text = viewList.viewMap[key].contentDescription;
+		}
+		viewList.viewMap[key].finalText = text;
+		drawRectangleWithText(ctx, leftX, topY, rightX - leftX, bottomY - topY, text);
+	}
+}
+
+
+
 
 function updateActionList(actionList) {
 	//JSON object here -- display a list
@@ -122,6 +226,10 @@ function updateActionList(actionList) {
 		});
 		elem.appendChild(li); //append 'li' to the 'ul' element
 	}
+}
+
+function registerEventListenerForCanvas() {
+
 }
 
 function initializeWebSocket() {

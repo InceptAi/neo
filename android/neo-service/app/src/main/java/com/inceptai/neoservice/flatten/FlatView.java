@@ -158,4 +158,20 @@ public class FlatView {
     public String getContentDescription() {
         return contentDescription;
     }
+
+    public long getParentViewId() {
+        return parentViewId;
+    }
+
+    public Rect getBoundsInScreen() {
+        return boundsInScreen;
+    }
+
+    public int getFlatViewId() {
+        return flatViewId;
+    }
+
+    public String getPackageName() {
+        return packageName;
+    }
 }

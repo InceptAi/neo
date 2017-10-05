@@ -108,6 +108,21 @@ public class FlatViewHierarchy {
         return Utils.gson.toJson(simpleViewHierarchySnapshot);
     }
 
+    public String toRenderingJson() {
+        int numViews = viewDb.size();
+        RenderingViewHierarchySnapshot renderingViewHierarchySnapshot = new RenderingViewHierarchySnapshot();
+        for (int i = 0; i < numViews; i ++) {
+            FlatView flatView = viewDb.valueAt(i);
+            if (flatView.getClassName() != null && flatView.getText() != null) {
+                if (FlatViewUtils.hasText(flatView)) {
+                    RenderingView renderingView = new RenderingView(flatView);
+                    renderingViewHierarchySnapshot.addView(String.valueOf(flatView.getHashKey()), renderingView);
+                }
+            }
+        }
+        return Utils.gson.toJson(renderingViewHierarchySnapshot);
+    }
+
     public void update(AccessibilityNodeInfo newRootNode) {
         viewDb.clear();
         textViewDb.clear();
@@ -186,6 +201,20 @@ public class FlatViewHierarchy {
 
         public void addView(String viewId, String title) {
             viewMap.put(viewId, title);
+            numViews ++;
+        }
+    }
+
+    private static class RenderingViewHierarchySnapshot {
+        int numViews;
+        Map<String, RenderingView> viewMap = new HashMap<>();
+
+        RenderingViewHierarchySnapshot() {
+            numViews = 0;
+        }
+
+        public void addView(String viewId, RenderingView renderingView) {
+            viewMap.put(viewId, renderingView);
             numViews ++;
         }
     }

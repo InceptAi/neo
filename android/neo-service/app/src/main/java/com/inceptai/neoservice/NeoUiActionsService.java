@@ -201,7 +201,8 @@ public class NeoUiActionsService extends AccessibilityService implements ExpertC
     private void sendViewSnapshot(FlatViewHierarchy flatViewHierarchy) {
         // expertChannel.sendViewHierarchy(flatViewHierarchy.toJson());
         if (expertChannel != null) {
-            expertChannel.sendViewHierarchy(flatViewHierarchy.toSimpleJson());
+            //expertChannel.sendViewHierarchy(flatViewHierarchy.toSimpleJson());
+            expertChannel.sendViewHierarchy(flatViewHierarchy.toRenderingJson());
         }
     }
 
@@ -386,7 +387,8 @@ public class NeoUiActionsService extends AccessibilityService implements ExpertC
     }
 
     private boolean isUiStreamingEnabled() {
-        return Utils.readSharedSetting(this, PREF_UI_STREAMING_ENABLED, true);
+        //By default UI streaming is disabled
+        return Utils.readSharedSetting(this, PREF_UI_STREAMING_ENABLED, false);
     }
 
     private boolean isAccessibilityPermissionGranted() {
