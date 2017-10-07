@@ -2,8 +2,6 @@ package com.inceptai.neoservice.flatten;
 
 import com.inceptai.neoservice.Utils;
 
-import org.json.JSONObject;
-
 /**
  * Created by arunesh on 7/12/17.
  */
@@ -11,6 +9,10 @@ import org.json.JSONObject;
 public class FlatViewUtils {
     private static final String TEXTVIEW_CLASSNAME = "android.widget.TextView";
     private static final String IMAGE_CLASSNAME = "android.widget.ImageButton";
+    private static final String LINEAR_LAYOUT_CLASSNAME = "android.widget.LinearLayout";
+    private static final String FRAME_LAYOUT_CLASSNAME = "android.widget.FrameLayout";
+    private static final String RELATIVE_LAYOUT_CLASSNAME = "android.widget.RelativeLayout";
+
     private static final String VIEWPAGER_CLASS = "ViewPager";
     private static final String NULL_STRING = "null";
 
@@ -40,4 +42,10 @@ public class FlatViewUtils {
         }
         return false;
     }
+
+    public static boolean isLinearRelativeOrFrameLayout(FlatView flatView) {
+        String className = flatView.getClassName();
+        return LINEAR_LAYOUT_CLASSNAME.equals(className) || RELATIVE_LAYOUT_CLASSNAME.equals(className) || FRAME_LAYOUT_CLASSNAME.equals(className);
+    }
+
 }

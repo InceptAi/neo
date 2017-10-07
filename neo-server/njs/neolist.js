@@ -93,11 +93,15 @@ function getInnerHtmlItem(name) {
 }
 
 function drawRectangleWithText(context, x, y, width, height, text) {
+	if (x < 0 || y < 0 || width < 0 || height < 0) {
+		return;
+	}
 	context.lineWidth = "1";
 	context.beginPath();
 	context.rect(x, y, width, height);
 	context.stroke();
-	context.fillText(text, x, y, width);
+	context.font="30px Georgia";
+	context.fillText(text, x + 50, y + 50);
 }
 
 function findViewIdOfClickedView(viewList, xClick, yClick) {
@@ -106,61 +110,72 @@ function findViewIdOfClickedView(viewList, xClick, yClick) {
 		let rightX = viewList.viewMap[key].rightX;
 		let bottomY = viewList.viewMap[key].bottomY;
 		let topY = viewList.viewMap[key].topY;
+		if (viewList.viewMap[key].isParentOfClickableView !== undefined &&
+			viewList.viewMap[key].isParentOfClickableView == true) {
+			//Don't count clicks on stuff which is just a parent of clickable stuff
+			continue;
+		}
 		if (leftX == undefined || rightX == undefined || 
 			bottomY == undefined || topY == undefined) {
 			console.log("undefined coordinates, bailing");
 			continue;		
 		}
 		if (yClick > topY && yClick < bottomY && xClick > leftX && xClick < rightX) {
-            //alert('clicked an element');
 			return key;
         }
 	}
 	return "";
 }
 
-function handleMouseClickOnCanvas(event, viewList) {
-	let xMouseCoordinate = event.pageX - canvasLeft;
-	let yMouseCoordinate = event.pageY - canvasTop;
+function recreateNode(el, withChildren) {
+  if (withChildren) {
+    el.parentNode.replaceChild(el.cloneNode(true), el);
+  }
+  else {
+    var newEl = el.cloneNode(false);
+    while (el.hasChildNodes()) newEl.appendChild(el.firstChild);
+    el.parentNode.replaceChild(newEl, el);
+  }
+}
+
+function handleMouseClickOnCanvas(evt) {
+	let xMouseCoordinate = evt.pageX - evt.target.canvasLeft;
+	let yMouseCoordinate = evt.pageY - evt.target.canvasTop;
 	console.log(xMouseCoordinate, yMouseCoordinate);
 	//find view Id of clicked event
-	let clickedViewId = findViewIdOfClickedView(viewList, xMouseCoordinate, yMouseCoordinate);
+	let clickedViewId = findViewIdOfClickedView(evt.target.viewList, xMouseCoordinate, yMouseCoordinate);
 	if (clickedViewId !== "") {
 		//alert("sending message to client");
 		console.log("Sending message to client for viewId", clickedViewId);
-		sendMessageToClient(clickedViewId, viewList.viewMap[clickedViewId].finalText);
+		sendMessageToClient(clickedViewId, evt.target.viewList.viewMap[clickedViewId].finalText);
 	}
 }
+
 
 function updateView(viewList) {
 	//JSON object here -- display a list
 	//get 'ul' element from the DOM
 	let remoteViewCanvas = document.getElementById("remoteView");
+	// Remove event listener for `click` events.
+	//recreateNode(remoteViewCanvas);
+
 	let canvasLeft = remoteViewCanvas.offsetLeft;
     let canvasTop = remoteViewCanvas.offsetTop;
 	let ctx = remoteViewCanvas.getContext("2d");
 	console.log(viewList.viewMap);
 
-
 	//Delete the existing view
 	ctx.clearRect(0, 0, remoteViewCanvas.width, remoteViewCanvas.height);
+
 
 	// Add event listener for `click` events.
 	remoteViewCanvas.removeEventListener('click', handleMouseClickOnCanvas);
 	remoteViewCanvas.addEventListener('click', handleMouseClickOnCanvas);
-	remoteViewCanvas.addEventListener('click', function handleMouseClickOnCanvas(event) {
-    	let xMouseCoordinate = event.pageX - canvasLeft;
-		let yMouseCoordinate = event.pageY - canvasTop;
-    	console.log(xMouseCoordinate, yMouseCoordinate);
-	    //find view Id of clicked event
-		let clickedViewId = findViewIdOfClickedView(viewList, xMouseCoordinate, yMouseCoordinate);
-		if (clickedViewId !== "") {
-			//alert("sending message to client");
-			console.log("Sending message to client for viewId", clickedViewId);
-			sendMessageToClient(clickedViewId, viewList.viewMap[clickedViewId].finalText);
-		}
-	});
+	remoteViewCanvas.viewList = viewList;
+	remoteViewCanvas.canvasLeft = canvasLeft;
+	remoteViewCanvas.canvasTop = canvasTop;
 
+	
 	//Iterate over all the views and draw rect with text
 	for (let key in viewList.viewMap) {
 		let leftX = viewList.viewMap[key].leftX;
@@ -226,10 +241,6 @@ function updateActionList(actionList) {
 		});
 		elem.appendChild(li); //append 'li' to the 'ul' element
 	}
-}
-
-function registerEventListenerForCanvas() {
-
 }
 
 function initializeWebSocket() {

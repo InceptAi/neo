@@ -66,23 +66,36 @@ public class FlatViewHierarchy {
         }
     }
 
-    private void traverseChildrenFor(FlatView parentFlatView, List<FlatView> queue) {
+    private boolean traverseChildrenFor(FlatView parentFlatView, List<FlatView> queue) {
         AccessibilityNodeInfo nodeInfo = parentFlatView.getNodeInfo();
+        AccessibilityNodeInfo.RangeInfo parentRangeInfo = nodeInfo.getRangeInfo();
+        if (parentRangeInfo != null) {
+            Log.i(TAG, "Non null range info");
+        }
         if (nodeInfo == null) {
             Log.i(TAG, "Stopped flattenNode for null nodeInfo.");
-            return;
+            return false;
         }
+        boolean isParentOfTextViewChild = false;
         int numChildren = nodeInfo.getChildCount();
         for (int i = 0; i < numChildren; i ++) {
             AccessibilityNodeInfo childInfo = nodeInfo.getChild(i);
+            AccessibilityNodeInfo.RangeInfo chileRangeInfo = childInfo.getRangeInfo();
+            if (chileRangeInfo != null) {
+                Log.i(TAG, "Non null range info");
+            }
             if (childInfo != null) {
                 FlatView childFlatView = new FlatView(childInfo);
                 queue.add(childFlatView);
                 parentFlatView.addChild(childFlatView.getHashKey());
+                if (FlatViewUtils.hasText(childFlatView)) {
+                    isParentOfTextViewChild = true;
+                }
             } else {
                 Log.i(Utils.TAG, "Null childinfo for node: " + nodeInfo.getClassName() + " at index: " + i);
             }
         }
+        return isParentOfTextViewChild;
     }
 
     public String toJson() {
@@ -114,8 +127,11 @@ public class FlatViewHierarchy {
         for (int i = 0; i < numViews; i ++) {
             FlatView flatView = viewDb.valueAt(i);
             if (flatView.getClassName() != null && flatView.getText() != null) {
-                if (FlatViewUtils.hasText(flatView)) {
+                //Adding views with text.
+                boolean isLLWithTVChild = isLayoutWithTextViewChild(flatView);
+                if (FlatViewUtils.hasText(flatView) || isLLWithTVChild) {
                     RenderingView renderingView = new RenderingView(flatView);
+                    renderingView.setParentOfClickableView(isLLWithTVChild);
                     renderingViewHierarchySnapshot.addView(String.valueOf(flatView.getHashKey()), renderingView);
                 }
             }
@@ -172,6 +188,19 @@ public class FlatViewHierarchy {
 
     private void addNode(FlatView flatView) {
         viewDb.append(flatView.getHashKey(), flatView);
+    }
+
+    public boolean isLayoutWithTextViewChild(FlatView flatView) {
+        if (flatView == null || !FlatViewUtils.isLinearRelativeOrFrameLayout(flatView)) {
+            return false;
+        }
+        for (Integer viewId: flatView.getChildren()) {
+            FlatView childFlatView = viewDb.get(viewId);
+            if (FlatViewUtils.hasText(childFlatView)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static class FlatViewHierarchySnapshot {

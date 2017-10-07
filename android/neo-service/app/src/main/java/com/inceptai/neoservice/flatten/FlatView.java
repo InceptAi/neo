@@ -174,4 +174,8 @@ public class FlatView {
     public String getPackageName() {
         return packageName;
     }
+
+    public ArrayList<Integer> getChildren() {
+        return children;
+    }
 }
