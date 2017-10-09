@@ -11,6 +11,20 @@ const EXPERT_SPECIAL_ACTION_REFRESH = "refresh";
 const EXPERT_SPECIAL_ACTION_SCROLL_UP = "scrollup";
 const EXPERT_SPECIAL_ACTION_SCROLL_DOWN = "scrolldown";
 const SERVER_ADDRESS = "dobby1743.duckdns.org";
+//Different class names
+const ROLE_SWITCH = "android.widget.Switch";
+const ROLE_TOGGLE = "android.widget.ToggleButton";
+const ROLE_TEXT_VIEW = "android.widget.TextView";
+const ROLE_CHECK_BOX = "android.widget.CompoundButton";
+const ROLE_SEEK_BAR = "android.widget.SeekBar";
+const ROLE_EDIT_TEXT = "android.widget.EditText";
+//Different text types
+const ON_TEXT = "ON";
+const OFF_TEXT = "OFF";
+//Colors
+const COLOR_BUTTON_ON = "#66c2ff"; 
+const COLOR_BUTTON_OFF = "#b6afaf";
+const COLOR_BLACK = "#000000";
 
 let webSocket;
 var lastSelectedUUID;
@@ -92,16 +106,34 @@ function getInnerHtmlItem(name) {
 	return `<a href="#">` + name + `</a>`;
 }
 
-function drawRectangleWithText(context, x, y, width, height, text) {
+function drawWithText(context, x, y, width, height, text, isParentOfClickableView, className) {
 	if (x < 0 || y < 0 || width < 0 || height < 0) {
 		return;
 	}
-	context.lineWidth = "1";
-	context.beginPath();
-	context.rect(x, y, width, height);
-	context.stroke();
-	context.font="30px Georgia";
-	context.fillText(text, x + 50, y + 50);
+
+	if (isParentOfClickableView !== undefined && isParentOfClickableView) {
+		context.lineWidth = "1";
+		context.beginPath();
+		context.rect(x, y, width, height);
+		context.stroke();
+	}
+
+	if (className === ROLE_SWITCH || className === ROLE_TOGGLE) {
+		if (text.toLowerCase() === ON_TEXT.toLowerCase()) {
+			context.fillStyle = COLOR_BUTTON_ON;
+		} else {
+			context.fillStyle = COLOR_BUTTON_OFF;
+		}
+		context.fillRect(x, y, width, height);
+		context.fillStyle = COLOR_BLACK;	
+	}
+
+
+	if (text !== "") {
+		context.font="30px Georgia";
+		context.fillText(text, x + 50, y + 50, width);
+	}
+	
 }
 
 function findViewIdOfClickedView(viewList, xClick, yClick) {
@@ -151,7 +183,6 @@ function handleMouseClickOnCanvas(evt) {
 	}
 }
 
-
 function updateView(viewList) {
 	//JSON object here -- display a list
 	//get 'ul' element from the DOM
@@ -166,7 +197,9 @@ function updateView(viewList) {
 
 	//Delete the existing view
 	ctx.clearRect(0, 0, remoteViewCanvas.width, remoteViewCanvas.height);
-
+	ctx.canvas.width = viewList.rootWidth;
+	ctx.canvas.height = viewList.rootHeight;
+	//https://stackoverflow.com/questions/1664785/resize-html5-canvas-to-fit-window
 
 	// Add event listener for `click` events.
 	remoteViewCanvas.removeEventListener('click', handleMouseClickOnCanvas);
@@ -178,28 +211,34 @@ function updateView(viewList) {
 	
 	//Iterate over all the views and draw rect with text
 	for (let key in viewList.viewMap) {
-		let leftX = viewList.viewMap[key].leftX;
-		let rightX = viewList.viewMap[key].rightX;
-		let bottomY = viewList.viewMap[key].bottomY;
-		let topY = viewList.viewMap[key].topY;
-		if (leftX == undefined || rightX == undefined || 
-			bottomY == undefined || topY == undefined) {
-			console.log("undefined coordinates, bailing");
-			continue;		
-		}
-		let text = "NA";
-		if (viewList.viewMap[key].text !== "null") {
-			text = viewList.viewMap[key].text;
-		} else if (viewList.viewMap[key].contentDescription !== "null") {
-			text = viewList.viewMap[key].contentDescription;
-		}
-		viewList.viewMap[key].finalText = text;
-		drawRectangleWithText(ctx, leftX, topY, rightX - leftX, bottomY - topY, text);
+		processView(ctx, viewList.viewMap[key]);
 	}
 }
 
 
+function processView(ctx, viewInfo) {
+	let leftX = viewInfo.leftX;
+	let rightX = viewInfo.rightX;
+	let bottomY = viewInfo.bottomY;
+	let topY = viewInfo.topY;
 
+	if (leftX == undefined || rightX == undefined || 
+		bottomY == undefined || topY == undefined) {
+		console.log("undefined coordinates, bailing");
+		return;		
+	}
+
+	let text = "";
+	if (viewInfo.text !== "null") {
+		text = viewInfo.text;
+	} else if (viewInfo.contentDescription !== "null") {
+		text = viewInfo.contentDescription;
+	}
+	
+	let shouldDrawBoundary = viewInfo.isParentOfClickableView === undefined ? false : viewInfo.isParentOfClickableView;
+
+	drawWithText(ctx, leftX, topY, rightX - leftX, bottomY - topY, text, shouldDrawBoundary, viewInfo.className);
+}
 
 function updateActionList(actionList) {
 	//JSON object here -- display a list

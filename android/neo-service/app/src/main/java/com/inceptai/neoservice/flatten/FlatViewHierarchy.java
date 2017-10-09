@@ -123,7 +123,8 @@ public class FlatViewHierarchy {
 
     public String toRenderingJson() {
         int numViews = viewDb.size();
-        RenderingViewHierarchySnapshot renderingViewHierarchySnapshot = new RenderingViewHierarchySnapshot();
+        RenderingViewHierarchySnapshot renderingViewHierarchySnapshot =
+                new RenderingViewHierarchySnapshot(displayMetrics.widthPixels, displayMetrics.heightPixels);
         for (int i = 0; i < numViews; i ++) {
             FlatView flatView = viewDb.valueAt(i);
             if (flatView.getClassName() != null && flatView.getText() != null) {
@@ -235,11 +236,15 @@ public class FlatViewHierarchy {
     }
 
     private static class RenderingViewHierarchySnapshot {
+        int rootWidth;
+        int rootHeight;
         int numViews;
         Map<String, RenderingView> viewMap = new HashMap<>();
 
-        RenderingViewHierarchySnapshot() {
+        RenderingViewHierarchySnapshot(int rootWidth, int rootHeight) {
             numViews = 0;
+            this.rootWidth = rootWidth;
+            this.rootHeight = rootHeight;
         }
 
         public void addView(String viewId, RenderingView renderingView) {
