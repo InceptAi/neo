@@ -229,6 +229,20 @@ function handleMouseClickOnCanvas(evt) {
 		}
 }
 
+function handleMouseScrollOnCanvas(evt) {
+	// cross-browser wheel delta
+	//var evt = window.event || evt; // old IE support
+	var delta = Math.max(-1, Math.min(1, (evt.wheelDelta || -evt.detail)));
+	if (delta > 0) {
+		//scroll up
+		sendScrollUpCommand();
+	} else if (delta < 0) {
+		//scroll down
+		sendScrollDownCommand();
+	}
+	return false;
+}
+
 function updateView(viewList) {
 	//JSON object here -- display a list
 	//get 'ul' element from the DOM
@@ -250,6 +264,11 @@ function updateView(viewList) {
 	// Add event listener for `click` events.
 	remoteViewCanvas.removeEventListener('click', handleMouseClickOnCanvas);
 	remoteViewCanvas.addEventListener('click', handleMouseClickOnCanvas);
+	//Listener for scroll
+	remoteViewCanvas.removeEventListener('mousewheel', handleMouseScrollOnCanvas);
+	remoteViewCanvas.removeEventListener("DOMMouseScroll", handleMouseScrollOnCanvas);
+	remoteViewCanvas.addEventListener('mousewheel', handleMouseScrollOnCanvas, false);
+	remoteViewCanvas.addEventListener("DOMMouseScroll", handleMouseScrollOnCanvas, false);
 	remoteViewCanvas.viewList = viewList;
 	remoteViewCanvas.canvasLeft = canvasLeft;
 	remoteViewCanvas.canvasTop = canvasTop;
@@ -280,8 +299,7 @@ function processView(ctx, viewInfo) {
 		text = viewInfo.contentDescription;
 	}
 	
-	//let shouldDrawBoundary = viewInfo.isParentOfClickableView === undefined ? false : viewInfo.isParentOfClickableView;
-    let shouldDrawBoundary = true;	
+	let shouldDrawBoundary = viewInfo.isParentOfClickableView === undefined ? false : viewInfo.isParentOfClickableView;
 	drawWithText(ctx, leftX, topY, rightX - leftX, bottomY - topY, text, viewInfo.className, shouldDrawBoundary, viewInfo.isCheckable, viewInfo.isChecked);
 }
 
