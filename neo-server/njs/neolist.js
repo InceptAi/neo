@@ -17,7 +17,7 @@ const ROLE_SWITCH = "android.widget.Switch";
 const ROLE_TOGGLE = "android.widget.ToggleButton";
 const ROLE_TEXT_VIEW = "android.widget.TextView";
 const ROLE_CHECKED_TEXT_VIEW = "android.widget.CheckedTextView";
-const ROLE_CHECK_BOX = "android.widget.CompoundButton";
+const ROLE_CHECK_BOX = "android.widget.CheckBox";
 const ROLE_SEEK_BAR = "android.widget.SeekBar";
 const ROLE_EDIT_TEXT = "android.widget.EditText";
 

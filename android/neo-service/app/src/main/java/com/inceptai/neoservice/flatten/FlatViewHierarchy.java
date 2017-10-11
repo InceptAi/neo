@@ -52,7 +52,7 @@ public class FlatViewHierarchy {
             FlatView flatView = nodeQueue.remove(0);
             addNode(flatView);
             traverseChildrenFor(flatView, nodeQueue);
-            if (FlatViewUtils.hasText(flatView)) {
+            if (FlatViewUtils.shouldSendViewToServer(flatView)) {
                 textViewDb.append(flatView.getHashKey(), flatView);
             } else if (flatView.getNodeInfo() != null && flatView.getNodeInfo().isScrollable()) {
                 Log.i(Utils.TAG, "Potential scrollable view: " + flatView.getNodeInfo().toString());
@@ -85,7 +85,7 @@ public class FlatViewHierarchy {
                 FlatView childFlatView = new FlatView(childInfo);
                 queue.add(childFlatView);
                 parentFlatView.addChild(childFlatView.getHashKey());
-                if (FlatViewUtils.hasText(childFlatView)) {
+                if (FlatViewUtils.shouldSendViewToServer(childFlatView)) {
                     isParentOfTextViewChild = true;
                 }
             } else {
@@ -107,7 +107,7 @@ public class FlatViewHierarchy {
         for (int i = 0; i < numViews; i ++) {
             FlatView flatView = viewDb.valueAt(i);
             if (flatView.getClassName() != null && flatView.getText() != null) {
-                if (FlatViewUtils.hasText(flatView)) {
+                if (FlatViewUtils.shouldSendViewToServer(flatView)) {
                     String displayString = getSimpleViewStringForDemo(flatView);
                     if (!displayString.isEmpty()) {
                         simpleViewHierarchySnapshot.addView(String.valueOf(flatView.getHashKey()), displayString);
@@ -128,7 +128,7 @@ public class FlatViewHierarchy {
             if (flatView.getClassName() != null && flatView.getText() != null) {
                 //Adding views with text.
                 boolean isLLWithTVChild = isLayoutWithTextViewChild(flatView);
-                if (FlatViewUtils.hasText(flatView) || isLLWithTVChild) {
+                if (FlatViewUtils.shouldSendViewToServer(flatView) || isLLWithTVChild) {
                     RenderingView renderingView = new RenderingView(flatView, displayMetrics);
                     renderingView.setParentOfClickableView(isLLWithTVChild);
                     renderingViewHierarchySnapshot.addView(String.valueOf(flatView.getHashKey()), renderingView);
@@ -195,7 +195,7 @@ public class FlatViewHierarchy {
         }
         for (Integer viewId: flatView.getChildren()) {
             FlatView childFlatView = viewDb.get(viewId);
-            if (FlatViewUtils.hasText(childFlatView)) {
+            if (FlatViewUtils.shouldSendViewToServer(childFlatView)) {
                 return true;
             }
         }
