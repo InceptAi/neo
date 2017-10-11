@@ -3,6 +3,7 @@ package com.inceptai.neoservice;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.graphics.Rect;
+import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.accessibility.AccessibilityNodeInfo;
 
@@ -80,4 +81,29 @@ public class Utils {
         editor.putBoolean(settingName, settingValue);
         editor.apply();
     }
+
+    /**
+     * This method converts dp unit to equivalent pixels, depending on device density.
+     *
+     * @param dp A value in dp (density independent pixels) unit. Which we need to convert into pixels
+     * @param displayMetrics DisplayMetrics
+     * @return A float value to represent px equivalent to dp depending on device density
+     */
+    public static int convertDpToPixel(float dp, DisplayMetrics displayMetrics){
+        float px = dp * ((float)displayMetrics.densityDpi / DisplayMetrics.DENSITY_DEFAULT);
+        return (int)px;
+    }
+
+    /**
+     * This method converts device specific pixels to density independent pixels.
+     *
+     * @param px A value in px (pixels) unit. Which we need to convert into db
+     * @param displayMetrics DisplayMetrics
+     * @return A float value to represent dp equivalent to px value
+     */
+    public static int convertPixelsToDp(float px, DisplayMetrics displayMetrics) {
+        float dp = px / ((float) displayMetrics.densityDpi / DisplayMetrics.DENSITY_DEFAULT);
+        return (int)dp;
+    }
+
 }

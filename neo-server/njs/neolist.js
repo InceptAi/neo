@@ -11,21 +11,29 @@ const EXPERT_SPECIAL_ACTION_REFRESH = "refresh";
 const EXPERT_SPECIAL_ACTION_SCROLL_UP = "scrollup";
 const EXPERT_SPECIAL_ACTION_SCROLL_DOWN = "scrolldown";
 const SERVER_ADDRESS = "dobby1743.duckdns.org";
+
 //Different class names
 const ROLE_SWITCH = "android.widget.Switch";
 const ROLE_TOGGLE = "android.widget.ToggleButton";
 const ROLE_TEXT_VIEW = "android.widget.TextView";
+const ROLE_CHECKED_TEXT_VIEW = "android.widget.CheckedTextView";
 const ROLE_CHECK_BOX = "android.widget.CompoundButton";
 const ROLE_SEEK_BAR = "android.widget.SeekBar";
 const ROLE_EDIT_TEXT = "android.widget.EditText";
+
 //Different text types
 const ON_TEXT = "ON";
 const OFF_TEXT = "OFF";
+
 //Colors
 const COLOR_BUTTON_ON = "#66c2ff"; 
 const COLOR_BUTTON_OFF = "#b6afaf";
 const COLOR_BLACK = "#000000";
 
+//static dimensions
+const HEIGHT_CHECK_BOX = 30;
+const WIDTH_CHECK_BOX = 30;
+ 
 let webSocket;
 var lastSelectedUUID;
 
@@ -106,12 +114,30 @@ function getInnerHtmlItem(name) {
 	return `<a href="#">` + name + `</a>`;
 }
 
-function drawWithText(context, x, y, width, height, text, isParentOfClickableView, className) {
+function drawCheckBox(context, x, y, isChecked) {
+    //draw outer boxi
+	context.save();
+    context.lineWidth = "2";
+	context.strokeRect(x, y, WIDTH_CHECK_BOX, HEIGHT_CHECK_BOX);
+ 
+    //draw check or x
+    if (isChecked) {
+		context.font="40px Arial";
+        context.fillStyle = COLOR_BUTTON_ON;
+        context.fillText("\u2713", x, y + (HEIGHT_CHECK_BOX * 0.8));
+        context.fillStyle = COLOR_BLACK;
+    }
+	context.restore(); 
+}
+
+
+
+function drawWithText(context, x, y, width, height, text, className, shouldDrawBoundary, isCheckable, isChecked) {
 	if (x < 0 || y < 0 || width < 0 || height < 0) {
 		return;
 	}
 
-	if (isParentOfClickableView !== undefined && isParentOfClickableView) {
+	if (shouldDrawBoundary !== undefined && shouldDrawBoundary) {
 		context.lineWidth = "1";
 		context.beginPath();
 		context.rect(x, y, width, height);
@@ -126,12 +152,21 @@ function drawWithText(context, x, y, width, height, text, isParentOfClickableVie
 		}
 		context.fillRect(x, y, width, height);
 		context.fillStyle = COLOR_BLACK;	
+	} else if (className === ROLE_CHECKED_TEXT_VIEW) {
+		let yOffset = (height - HEIGHT_CHECK_BOX)/2;
+		if (yOffset < 0) {
+			yOffset = 0;
+		}
+		drawCheckBox(context, x + width - WIDTH_CHECK_BOX, y + yOffset, isChecked);
+	} else if (className === ROLE_CHECK_BOX) {
+		drawCheckBox(context, x, y, isChecked);
 	}
 
 
 	if (text !== "") {
-		context.font="30px Georgia";
-		context.fillText(text, x + 50, y + 50, width);
+		//context.font="30px Georgia";
+		//context.fillText(text, x + 50, y + 50, width);
+		context.fillText(text, x + 10, y + (height/2), width);
 	}
 	
 }
@@ -170,17 +205,28 @@ function recreateNode(el, withChildren) {
   }
 }
 
+function getCursorPosition(canvas, event) {
+    var rect = canvas.getBoundingClientRect();
+    var x = event.clientX - rect.left;
+    var y = event.clientY - rect.top;
+    console.log("x: " + x + " y: " + y);
+}
+
 function handleMouseClickOnCanvas(evt) {
-	let xMouseCoordinate = evt.pageX - evt.target.canvasLeft;
-	let yMouseCoordinate = evt.pageY - evt.target.canvasTop;
-	console.log(xMouseCoordinate, yMouseCoordinate);
+	//let xMouseCoordinate = evt.pageX - evt.target.canvasLeft;
+	//let yMouseCoordinate = evt.pageY - evt.target.canvasTop;
+	let rect = evt.target.getBoundingClientRect();
+	let xMouseCoordinate = evt.clientX - rect.left;
+	let yMouseCoordinate = evt.clientY - rect.top;
+	console.log(xMouseCoordinate, yMouseCoordinate, evt.clientX, evt.clientY, rect.left, rect.top);
+	//alert(xMouseCoordinate + " , " + yMouseCoordinate + " -- " +  evt.clientX + " , " + evt.clientY + " -- " + rect.left + " , "  + rect.top);
 	//find view Id of clicked event
 	let clickedViewId = findViewIdOfClickedView(evt.target.viewList, xMouseCoordinate, yMouseCoordinate);
 	if (clickedViewId !== "") {
 		//alert("sending message to client");
 		console.log("Sending message to client for viewId", clickedViewId);
 		sendMessageToClient(clickedViewId, evt.target.viewList.viewMap[clickedViewId].finalText);
-	}
+		}
 }
 
 function updateView(viewList) {
@@ -208,7 +254,6 @@ function updateView(viewList) {
 	remoteViewCanvas.canvasLeft = canvasLeft;
 	remoteViewCanvas.canvasTop = canvasTop;
 
-	
 	//Iterate over all the views and draw rect with text
 	for (let key in viewList.viewMap) {
 		processView(ctx, viewList.viewMap[key]);
@@ -235,9 +280,9 @@ function processView(ctx, viewInfo) {
 		text = viewInfo.contentDescription;
 	}
 	
-	let shouldDrawBoundary = viewInfo.isParentOfClickableView === undefined ? false : viewInfo.isParentOfClickableView;
-
-	drawWithText(ctx, leftX, topY, rightX - leftX, bottomY - topY, text, shouldDrawBoundary, viewInfo.className);
+	//let shouldDrawBoundary = viewInfo.isParentOfClickableView === undefined ? false : viewInfo.isParentOfClickableView;
+    let shouldDrawBoundary = true;	
+	drawWithText(ctx, leftX, topY, rightX - leftX, bottomY - topY, text, viewInfo.className, shouldDrawBoundary, viewInfo.isCheckable, viewInfo.isChecked);
 }
 
 function updateActionList(actionList) {
