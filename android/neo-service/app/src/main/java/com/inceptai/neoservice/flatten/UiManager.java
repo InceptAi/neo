@@ -96,11 +96,11 @@ public class UiManager {
         return result;
     }
 
-    public FlatViewHierarchy updateViewHierarchy(AccessibilityNodeInfo rootNode) {
+    public FlatViewHierarchy updateViewHierarchy(AccessibilityNodeInfo rootNode, AccessibilityEvent accessibilityEvent) {
         if (flatViewHierarchy == null) {
-            flatViewHierarchy = new FlatViewHierarchy(rootNode, primaryDisplayMetrics);
+            flatViewHierarchy = new FlatViewHierarchy(rootNode, accessibilityEvent, primaryDisplayMetrics);
         } else {
-            flatViewHierarchy.update(rootNode);
+            flatViewHierarchy.update(rootNode, accessibilityEvent);
         }
         flatViewHierarchy.flatten();
         return flatViewHierarchy;
@@ -127,7 +127,7 @@ public class UiManager {
             } else if (HOME_ACTION.equals(action)) {
                 neoService.performGlobalAction(AccessibilityService.GLOBAL_ACTION_HOME);
             } else if (REFRESH_ACTION.equals(action)) {
-                neoService.refreshFullUi();
+                neoService.refreshFullUi(null);
             } else if (SCROLLDOWN_ACTION.equals(action)) {
                 performScroll(false /* down */);
             } else if (SCROLLUP_ACTION.equals(action)) {

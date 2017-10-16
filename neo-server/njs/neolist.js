@@ -11,6 +11,9 @@ const EXPERT_SPECIAL_ACTION_REFRESH = "refresh";
 const EXPERT_SPECIAL_ACTION_SCROLL_UP = "scrollup";
 const EXPERT_SPECIAL_ACTION_SCROLL_DOWN = "scrolldown";
 const SERVER_ADDRESS = "dobby1743.duckdns.org";
+//Crawling stuff
+const CRAWLING_SERVER_ADDRESS = "dobby1743.duckdns.org";
+const CRAWLING_SOCKET_PORT = 9000;
 
 //Different class names
 const ROLE_SWITCH = "android.widget.Switch";
@@ -45,6 +48,18 @@ function handleSocketClose() {
 	alert("Socket is closed");
 }
 
+function sendMessageToCrawlingBackend(jsonMessage) {
+	let xhr = new XMLHttpRequest();
+	let url = "http://" + CRAWLING_SERVER_ADDRESS + ":" + CRAWLING_SOCKET_PORT; 
+	xhr.open("POST", url, true);
+	xhr.setRequestHeader('Content-Type', 'application/json');
+	xhr.send(jsonMessage);
+	//xhr.send(JSON.stringify({
+    //	value: value
+	//}));
+
+}
+
 function processMessageReceivedFromClient(eventInfo) {
 	var mesgRecv = eventInfo.data;
 	console.log("received msg = " + mesgRecv);
@@ -65,8 +80,8 @@ function processMessageReceivedFromClient(eventInfo) {
 			}
 		}
 	}
-	//console.log(Object.values(actionList.viewMap));
-	//console.log(actionList);
+	//Send data to crawling backend
+	sendMessageToCrawlingBackend(mesgRecv);
 }
 
 function sendMessageToClient(viewId, actionName) {

@@ -106,4 +106,11 @@ public class Utils {
         return (int)dp;
     }
 
+    public static String convertCharSeqToStringSafely(CharSequence charSequence) {
+        if (charSequence == null) {
+            return Utils.EMPTY_STRING;
+        }
+        return charSequence.toString();
+    }
+
 }

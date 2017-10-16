@@ -1,8 +1,10 @@
 package com.inceptai.neoservice.flatten;
 
+import android.support.annotation.Nullable;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.util.SparseArray;
+import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
 
 import com.inceptai.neoservice.Utils;
@@ -25,17 +27,24 @@ public class FlatViewHierarchy {
 
     private AccessibilityNodeInfo rootNode;
     private FlatView rootNodeFlatView;
+    private FlatView titleTextView;
+    private FlatView lastScreenTitleView;
 
     private SparseArray<FlatView> viewDb;
     private DisplayMetrics displayMetrics;
     private SparseArray<FlatView> textViewDb;
     private SparseArray<FlatView> scrollableViews;
 
-    public FlatViewHierarchy(AccessibilityNodeInfo rootNode, DisplayMetrics displayMetrics) {
+    private AccessibilityEvent accessibilityEventTrigger;
+
+    public FlatViewHierarchy(AccessibilityNodeInfo rootNode,
+                             @Nullable AccessibilityEvent accessibilityEvent,
+                             DisplayMetrics displayMetrics) {
         this.rootNode = rootNode;
         this.viewDb = new SparseArray<>();
         this.textViewDb = new SparseArray<>();
         this.scrollableViews = new SparseArray<>();
+        this.accessibilityEventTrigger = accessibilityEvent;
         this.displayMetrics = displayMetrics;
     }
 
@@ -51,6 +60,9 @@ public class FlatViewHierarchy {
         while (!nodeQueue.isEmpty()) {
             FlatView flatView = nodeQueue.remove(0);
             addNode(flatView);
+            if (titleTextView == null && FlatViewUtils.isTextView(flatView)) {
+                titleTextView = flatView;
+            }
             traverseChildrenFor(flatView, nodeQueue);
             if (FlatViewUtils.shouldSendViewToServer(flatView)) {
                 textViewDb.append(flatView.getHashKey(), flatView);
@@ -135,14 +147,44 @@ public class FlatViewHierarchy {
                 }
             }
         }
+        //Set the title of the screen
+        if (titleTextView != null) {
+            renderingViewHierarchySnapshot.setRootTitle(titleTextView.getText());
+            renderingViewHierarchySnapshot.setRootPackageName(titleTextView.getPackageName());
+        }
+        if (lastScreenTitleView != null) {
+            renderingViewHierarchySnapshot.setLastScreenTitle(lastScreenTitleView.getText());
+            renderingViewHierarchySnapshot.setLastScreenPackageName(lastScreenTitleView.getPackageName());
+        }
+        //Set the event which triggered it
+        if (accessibilityEventTrigger != null) {
+            RenderingView lastViewClicked = null;
+            String lastClassName = Utils.convertCharSeqToStringSafely(accessibilityEventTrigger.getClassName());
+            String lastPackageName = Utils.convertCharSeqToStringSafely(accessibilityEventTrigger.getPackageName());
+            String lastContentDescription = Utils.convertCharSeqToStringSafely(accessibilityEventTrigger.getContentDescription());
+            String lastText = Utils.EMPTY_STRING;
+            if (accessibilityEventTrigger.getText() != null && ! accessibilityEventTrigger.getText().isEmpty()) {
+                lastText = Utils.convertCharSeqToStringSafely(accessibilityEventTrigger.getText().get(0));
+            }
+            try {
+                lastViewClicked = new RenderingView(lastClassName, lastPackageName, lastContentDescription, lastText);
+            } catch (Exception e) {
+                Log.v("NEO", "Exception :" + e.toString());
+            }
+            renderingViewHierarchySnapshot.setLastViewClicked(lastViewClicked);
+            renderingViewHierarchySnapshot.setLastUIAction(AccessibilityEvent.eventTypeToString(accessibilityEventTrigger.getEventType()));
+        }
         return Utils.gson.toJson(renderingViewHierarchySnapshot);
     }
 
-    public void update(AccessibilityNodeInfo newRootNode) {
+    public void update(AccessibilityNodeInfo newRootNode, AccessibilityEvent accessibilityEvent) {
         viewDb.clear();
         textViewDb.clear();
         scrollableViews.clear();
+        lastScreenTitleView = titleTextView;
+        titleTextView = null;
         rootNode = newRootNode;
+        accessibilityEventTrigger = accessibilityEvent;
     }
 
     public FlatView getFlatViewFor(String viewId) {
@@ -237,17 +279,53 @@ public class FlatViewHierarchy {
         int rootWidth;
         int rootHeight;
         int numViews;
+        String rootTitle;
+        String lastScreenTitle;
+        String lastScreenPackageName;
+        String lastUIAction;
+        RenderingView lastViewClicked;
+        String rootPackageName;
         Map<String, RenderingView> viewMap = new HashMap<>();
 
         RenderingViewHierarchySnapshot(int rootWidth, int rootHeight) {
             numViews = 0;
             this.rootWidth = rootWidth;
             this.rootHeight = rootHeight;
+            this.rootTitle = Utils.EMPTY_STRING;
+            this.lastScreenTitle = Utils.EMPTY_STRING;
+            this.lastViewClicked = null;
+            this.lastUIAction = Utils.EMPTY_STRING;
+            this.lastScreenPackageName = Utils.EMPTY_STRING;
+            this.rootPackageName = Utils.EMPTY_STRING;
         }
 
         public void addView(String viewId, RenderingView renderingView) {
             viewMap.put(viewId, renderingView);
             numViews ++;
+        }
+
+        public void setRootPackageName(String rootPackageName) {
+            this.rootPackageName = rootPackageName;
+        }
+
+        public void setRootTitle(String rootTitle) {
+            this.rootTitle = rootTitle;
+        }
+
+        public void setLastScreenTitle(String lastScreenTitle) {
+            this.lastScreenTitle = lastScreenTitle;
+        }
+
+        public void setLastUIAction(String lastUIAction) {
+            this.lastUIAction = lastUIAction;
+        }
+
+        public void setLastViewClicked(RenderingView lastViewClicked) {
+            this.lastViewClicked = lastViewClicked;
+        }
+
+        public void setLastScreenPackageName(String lastScreenPackageName) {
+            this.lastScreenPackageName = lastScreenPackageName;
         }
     }
 }

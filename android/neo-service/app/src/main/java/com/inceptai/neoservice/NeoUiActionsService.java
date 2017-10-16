@@ -9,6 +9,7 @@ import android.graphics.PixelFormat;
 import android.os.Build;
 import android.os.Handler;
 import android.provider.Settings;
+import android.support.annotation.Nullable;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.Gravity;
@@ -111,7 +112,7 @@ public class NeoUiActionsService extends AccessibilityService implements ExpertC
     @Override
     public void onAccessibilityEvent(AccessibilityEvent event) {
         Log.i(TAG, "Got event:" + event);
-        refreshFullUi();
+        refreshFullUi(event);
     }
 
     @Override
@@ -187,7 +188,7 @@ public class NeoUiActionsService extends AccessibilityService implements ExpertC
             handler.postDelayed(new Runnable() {
                 @Override
                 public void run() {
-                    refreshFullUi();
+                    refreshFullUi(null);
                 }
             }, 4000);
         }
@@ -320,9 +321,9 @@ public class NeoUiActionsService extends AccessibilityService implements ExpertC
         }, USER_STOP_DELAY_MS);
     }
 
-    public void refreshFullUi() {
+    public void refreshFullUi(@Nullable AccessibilityEvent accessibilityEvent) {
         if (uiManager != null) {
-            FlatViewHierarchy viewHierarchy = uiManager.updateViewHierarchy(getRootInActiveWindow());
+            FlatViewHierarchy viewHierarchy = uiManager.updateViewHierarchy(getRootInActiveWindow(), accessibilityEvent);
             sendViewSnapshot(viewHierarchy);
         }
     }
