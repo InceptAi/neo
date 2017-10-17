@@ -3,11 +3,14 @@ package com.inceptai.neoservice;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.graphics.Rect;
+import android.os.Build;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.accessibility.AccessibilityNodeInfo;
 
 import com.google.gson.Gson;
+
+import java.util.HashMap;
 
 /**
  * Created by arunesh on 6/29/17.
@@ -111,6 +114,17 @@ public class Utils {
             return Utils.EMPTY_STRING;
         }
         return charSequence.toString();
+    }
+
+    public static HashMap<String, String> getDeviceDetails() {
+        HashMap<String, String> phoneInfo = new HashMap<>();
+        phoneInfo.put("manufacturer", Build.MANUFACTURER);
+        phoneInfo.put("model", Build.MODEL);
+        phoneInfo.put("release", Build.VERSION.RELEASE);
+        phoneInfo.put("sdk", Integer.toString(Build.VERSION.SDK_INT));
+        phoneInfo.put("hardware", Build.HARDWARE);
+        phoneInfo.put("product", Build.PRODUCT);
+        return phoneInfo;
     }
 
 }

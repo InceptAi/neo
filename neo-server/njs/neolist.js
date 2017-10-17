@@ -39,6 +39,23 @@ const WIDTH_CHECK_BOX = 30;
  
 let webSocket;
 var lastSelectedUUID;
+let supportsPassiveListener = false;
+
+function detectIfPassiveListenerIsSupported() {
+	// Test via a getter in the options object to see if the passive property is accessed
+	var supportsPassive = false;
+	try {
+  		var opts = Object.defineProperty({}, 'passive', {
+    		get: function() {
+      			supportsPassive = true;
+    		}
+  		});
+  		window.addEventListener("test", null, opts);
+	} catch (e) {}
+	return supportsPassive;
+	// Use our detect's results. passive applied if supported, capture will be false either way.
+	//elem.addEventListener('touchstart', fn, supportsPassive ? { passive: true } : false); 
+}
 
 function handleSocketOpen() {
 	alert("Socket is open");
@@ -279,11 +296,12 @@ function updateView(viewList) {
 	// Add event listener for `click` events.
 	remoteViewCanvas.removeEventListener('click', handleMouseClickOnCanvas);
 	remoteViewCanvas.addEventListener('click', handleMouseClickOnCanvas);
+	
 	//Listener for scroll
 	remoteViewCanvas.removeEventListener('mousewheel', handleMouseScrollOnCanvas);
 	remoteViewCanvas.removeEventListener("DOMMouseScroll", handleMouseScrollOnCanvas);
-	remoteViewCanvas.addEventListener('mousewheel', handleMouseScrollOnCanvas, false);
-	remoteViewCanvas.addEventListener("DOMMouseScroll", handleMouseScrollOnCanvas, false);
+	remoteViewCanvas.addEventListener('mousewheel', handleMouseScrollOnCanvas, supportsPassiveListener ? { passive: true } : false);
+	remoteViewCanvas.addEventListener("DOMMouseScroll", handleMouseScrollOnCanvas, supportsPassiveListener ? { passive: true } : false);
 	remoteViewCanvas.viewList = viewList;
 	remoteViewCanvas.canvasLeft = canvasLeft;
 	remoteViewCanvas.canvasTop = canvasTop;
@@ -375,6 +393,7 @@ function initializeWebSocket() {
  		// The browser doesn't support WebSocket
 		alert("WebSocket NOT supported by your Browser!");
 	}
+	supportsPassiveListener = detectIfPassiveListenerIsSupported();
 }
 
 function processMessage(eventInfo) {

@@ -285,6 +285,7 @@ public class FlatViewHierarchy {
         String lastUIAction;
         RenderingView lastViewClicked;
         String rootPackageName;
+        Map<String, String> deviceInfo = new HashMap<>();
         Map<String, RenderingView> viewMap = new HashMap<>();
 
         RenderingViewHierarchySnapshot(int rootWidth, int rootHeight) {
@@ -297,6 +298,7 @@ public class FlatViewHierarchy {
             this.lastUIAction = Utils.EMPTY_STRING;
             this.lastScreenPackageName = Utils.EMPTY_STRING;
             this.rootPackageName = Utils.EMPTY_STRING;
+            this.deviceInfo = Utils.getDeviceDetails();
         }
 
         public void addView(String viewId, RenderingView renderingView) {
