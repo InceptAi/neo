@@ -43,6 +43,9 @@ public class NeoUiActionsService extends AccessibilityService implements ExpertC
     private static final int USER_STOP_DELAY_MS = 2500;
     private static final String PREF_UI_STREAMING_ENABLED = "NeoStreaming";
     private static final String PREF_ACCESSIBILITY_ENABLED = "NeoAccessibilityEnabled";
+    private static final boolean SUPRESS_SYSTEM_UI_UPDATES = true;
+    private static final String SYSTEM_UI_PACKAGE_NAME = "com.android.systemui";
+
 
     private View overlayView;
     private LayoutParams neoOverlayLayout;
@@ -112,6 +115,9 @@ public class NeoUiActionsService extends AccessibilityService implements ExpertC
     @Override
     public void onAccessibilityEvent(AccessibilityEvent event) {
         Log.i(TAG, "Got event:" + event);
+        if (SUPRESS_SYSTEM_UI_UPDATES && event.getPackageName() != null && event.getPackageName().equals(SYSTEM_UI_PACKAGE_NAME)) {
+            return;
+        }
         refreshFullUi(event);
     }
 
