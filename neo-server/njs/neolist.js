@@ -58,7 +58,7 @@ function detectIfPassiveListenerIsSupported() {
 }
 
 function handleSocketOpen() {
-	alert("Socket is open");
+	//alert("Socket is open");
 }
 
 function handleSocketClose() {
@@ -380,7 +380,7 @@ function updateActionList(actionList) {
 
 function initializeWebSocket() {
 	if ("WebSocket" in window) {
-		alert("WebSocket is supported by your Browser!, initializing webSocket");
+		//alert("WebSocket is supported by your Browser!, initializing webSocket");
 		// Let us open a web socket
 		if (webSocket != undefined) {
 			return;
