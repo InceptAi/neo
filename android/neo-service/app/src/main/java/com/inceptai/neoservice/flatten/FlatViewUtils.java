@@ -7,12 +7,19 @@ import com.inceptai.neoservice.Utils;
  */
 
 public class FlatViewUtils {
-    private static final String TEXTVIEW_CLASSNAME = "android.widget.TextView";
-    private static final String IMAGE_CLASSNAME = "android.widget.ImageButton";
-    private static final String LINEAR_LAYOUT_CLASSNAME = "android.widget.LinearLayout";
-    private static final String FRAME_LAYOUT_CLASSNAME = "android.widget.FrameLayout";
-    private static final String RELATIVE_LAYOUT_CLASSNAME = "android.widget.RelativeLayout";
-    private static final String CHECK_BOX_CLASSNAME = "android.widget.CheckBox";
+    public static final String TEXT_VIEW_CLASSNAME = "android.widget.TextView";
+    public static final String IMAGE_CLASSNAME = "android.widget.ImageButton";
+    public static final String LINEAR_LAYOUT_CLASSNAME = "android.widget.LinearLayout";
+    public static final String FRAME_LAYOUT_CLASSNAME = "android.widget.FrameLayout";
+    public static final String RELATIVE_LAYOUT_CLASSNAME = "android.widget.RelativeLayout";
+    public static final String CHECK_BOX_CLASSNAME = "android.widget.CheckBox";
+    public static final String CHECKED_TEXT_VIEW_CLASS_NAME = "android.widget.CheckedTextView";
+    public static final String SWITCH_CLASSNAME = "android.widget.Switch";
+    public static final String SEEK_BAR_CLASS_NAME = "android.widget.SeekBar";
+    public static final String EDIT_TEXT_VIEW_CLASS_NAME = "android.widget.EditText";
+    public static final String ON_TEXT = "ON";
+    public static final String OFF_TEXT = "OFF";
+
 
     private static final String VIEWPAGER_CLASS = "ViewPager";
     private static final String NULL_STRING = "null";
@@ -20,13 +27,13 @@ public class FlatViewUtils {
     private FlatViewUtils() {}
 
     public static boolean isTextView(FlatView flatView) {
-        return TEXTVIEW_CLASSNAME.equals(flatView.getClassName());
+        return TEXT_VIEW_CLASSNAME.equals(flatView.getClassName());
     }
 
     public static boolean shouldSendViewToServer(FlatView flatView) {
         return IMAGE_CLASSNAME.equals(flatView.getClassName())
                 || CHECK_BOX_CLASSNAME.equals(flatView.getClassName())
-                || TEXTVIEW_CLASSNAME.equals(flatView.getClassName())
+                || TEXT_VIEW_CLASSNAME.equals(flatView.getClassName())
                 || !Utils.nullOrEmpty(flatView.getText())
                 || !Utils.nullOrEmpty(flatView.getContentDescription());
     }

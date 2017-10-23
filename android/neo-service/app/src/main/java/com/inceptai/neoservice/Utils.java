@@ -9,8 +9,12 @@ import android.util.Log;
 import android.view.accessibility.AccessibilityNodeInfo;
 
 import com.google.gson.Gson;
+import com.inceptai.neoservice.flatten.FlatViewUtils;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 
 /**
  * Created by arunesh on 6/29/17.
@@ -20,12 +24,13 @@ public class Utils {
     public static final String TAG = "NeoUiActionsService";
     public static final String PREFERENCES_FILE = "NeoWifiExpert_preferences";
     public static final String EMPTY_STRING = "";
+    public static final String MULTIPLE_WORD_MATCH_DELIMITER = "#";
 
     public static Gson gson = new Gson();
 
     private Utils() {}
 
-    public static void logNodeHierachy(AccessibilityNodeInfo nodeInfo, int depth) {
+    public static void logNodeHierarchy(AccessibilityNodeInfo nodeInfo, int depth) {
         Rect bounds = new Rect();
         nodeInfo.getBoundsInScreen(bounds);
 
@@ -47,7 +52,7 @@ public class Utils {
         for (int i=0; i<nodeInfo.getChildCount(); i++) {
             AccessibilityNodeInfo childNode = nodeInfo.getChild(i);
             if (childNode != null) {
-                logNodeHierachy(childNode, depth + 1);
+                logNodeHierarchy(childNode, depth + 1);
             }
         }
     }
@@ -68,6 +73,150 @@ public class Utils {
         }
         return sourceNode;
     }
+
+    public static boolean matchScreenWithRootNode(String screenTitle,
+                                                  String screenPackageName,
+                                                  AccessibilityNodeInfo nodeInfo) {
+        return (findUIElement(FlatViewUtils.TEXT_VIEW_CLASSNAME,
+                screenPackageName,
+                Arrays.asList(screenTitle.split(" ")),
+                nodeInfo,
+                false) != null);
+    }
+
+    private static AccessibilityNodeInfo findFirstParentWithTargetClassName(AccessibilityNodeInfo accessibilityNodeInfo,
+                                                                            String targetClassName,
+                                                                            boolean isClickable) {
+        if (accessibilityNodeInfo == null) {
+            return null;
+        }
+        if ((!isClickable || accessibilityNodeInfo.isClickable()) && accessibilityNodeInfo.getClassName().equals(targetClassName)) {
+            return accessibilityNodeInfo;
+        }
+        return findFirstParentWithTargetClassName(accessibilityNodeInfo.getParent(), targetClassName, isClickable);
+    }
+
+    private static HashMap<String, AccessibilityNodeInfo> searchForKeyword(String keyWord,
+                                                                           String matchingClassName,
+                                                                           List<AccessibilityNodeInfo> accessibilityNodeInfoList,
+                                                                           boolean isClickable) {
+        HashMap<String, AccessibilityNodeInfo> overallCandidates = new HashMap<>();
+        for (AccessibilityNodeInfo accessibilityNodeInfo: accessibilityNodeInfoList) {
+            HashMap<String, AccessibilityNodeInfo> candidates = searchForKeyword(keyWord,
+                    matchingClassName, accessibilityNodeInfo, isClickable);
+            overallCandidates.putAll(candidates);
+        }
+        return overallCandidates;
+    }
+
+    private static HashMap<String, AccessibilityNodeInfo> searchForKeyword(String keyWord,
+                                                                           String matchingClassName,
+                                                                           AccessibilityNodeInfo rootNodeInfo,
+                                                                           boolean isClickable) {
+
+        List<AccessibilityNodeInfo> matchingNodes = new ArrayList<>();
+        List<String> wordsToMatch = Arrays.asList(keyWord.split(MULTIPLE_WORD_MATCH_DELIMITER));
+        for (String word: wordsToMatch) {
+            matchingNodes.addAll(rootNodeInfo.findAccessibilityNodeInfosByText(word));
+        }
+        HashMap<String, AccessibilityNodeInfo> nodesWithKeyWord = new HashMap<>();
+        for (AccessibilityNodeInfo currentNode: matchingNodes) {
+            if ((!isClickable || currentNode.isClickable()) && currentNode.getClassName().equals(matchingClassName)) {
+                nodesWithKeyWord.put(String.valueOf(currentNode.hashCode()),currentNode);
+            } else {
+                AccessibilityNodeInfo parentInfo = findFirstParentWithTargetClassName(currentNode, matchingClassName, isClickable);
+                if (parentInfo != null) {
+                    nodesWithKeyWord.put(String.valueOf(parentInfo.hashCode()), parentInfo);
+                }
+            }
+//            AccessibilityNodeInfo parentNode = currentNode.getParent();
+//            //Use the element class name to do this better
+//            if (parentNode != null && parentNode.isClickable()) {
+//                clickableNodes.put(String.valueOf(parentNode.hashCode()), parentNode);
+//            } else {
+//                clickableNodes.put(String.valueOf(currentNode.hashCode()),currentNode);
+//            }
+        }
+        return nodesWithKeyWord;
+    }
+
+    public static AccessibilityNodeInfo findUIElement(String elementClassName,
+                                                      String elementPackageName,
+                                                      List<String> keyWords,
+                                                      AccessibilityNodeInfo nodeInfo,
+                                                      boolean isClickable) {
+        if (keyWords == null || nodeInfo == null) {
+            return null;
+        }
+        HashMap<String, AccessibilityNodeInfo> candidateNodes = new HashMap<>();
+        List<AccessibilityNodeInfo> accessibilityNodeInfoListToSearch = new ArrayList<>();
+        accessibilityNodeInfoListToSearch.add(nodeInfo);
+        for (String keyWord: keyWords) {
+            //Need to recycle the views
+            candidateNodes = searchForKeyword(keyWord, elementClassName, accessibilityNodeInfoListToSearch, isClickable);
+            if (candidateNodes.size() <= 1) {
+                break;
+            }
+            accessibilityNodeInfoListToSearch = new ArrayList<>(candidateNodes.values());
+        }
+
+        if(candidateNodes.size() == 1) {
+            List<AccessibilityNodeInfo> finalMatchingInfo = new ArrayList<>(candidateNodes.values());
+            AccessibilityNodeInfo finalMatch = finalMatchingInfo.get(0);
+            if (finalMatch.getPackageName().equals(elementPackageName)) {
+                return finalMatch;
+            }
+        }
+
+        return null;
+    }
+
+    public static AccessibilityNodeInfo findChildWithClassNames(AccessibilityNodeInfo accessibilityNodeInfo, List<String> classNames) {
+        if (accessibilityNodeInfo == null) {
+            return null;
+        }
+        for (String className: classNames) {
+            if (accessibilityNodeInfo.getClassName().equals(className)) {
+                return accessibilityNodeInfo;
+            }
+        }
+        for (int childIndex=0; childIndex < accessibilityNodeInfo.getChildCount(); childIndex++) {
+            AccessibilityNodeInfo childInfo = findChildWithClassNames(accessibilityNodeInfo.getChild(childIndex), classNames);
+            if (childInfo != null) {
+                return childInfo;
+            }
+        }
+        return null;
+    }
+
+    public static boolean checkCondition(String textToMatch, AccessibilityNodeInfo elementInfo) {
+        //Check isClickable, isCheckable, isChecked
+        //First look for switch like elements
+        AccessibilityNodeInfo switchNodeInfo = findChildWithClassNames(
+                elementInfo,
+                Arrays.asList(FlatViewUtils.SWITCH_CLASSNAME,
+                        FlatViewUtils.CHECK_BOX_CLASSNAME,
+                        FlatViewUtils.CHECKED_TEXT_VIEW_CLASS_NAME));
+        if (switchNodeInfo != null) {
+            //Found switch element. //Check its state based on input textToMatch
+            if (textToMatch.equalsIgnoreCase(FlatViewUtils.ON_TEXT)) {
+                return switchNodeInfo.isEnabled() && switchNodeInfo.isChecked();
+            } else {
+                return !switchNodeInfo.isChecked();
+            }
+        }
+        //Non switch nodes -- TODO handle non switch elements like SEEK, EDIT TEXT etc.
+        return false;
+    }
+
+
+    public static AccessibilityNodeInfo findUIElementFlattenHierarchy(String elementClassName,
+                                                                      String elementPackageName,
+                                                                      List<String> keyWords,
+                                                                      AccessibilityNodeInfo nodeInfo) {
+        return null;
+    }
+
 
     public static boolean nullOrEmpty(String target) {
         return target == null || target.isEmpty() || target.equals("null");

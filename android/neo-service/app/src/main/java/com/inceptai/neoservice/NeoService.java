@@ -6,9 +6,10 @@ import android.content.Intent;
 import android.provider.Settings;
 import android.util.Log;
 
-import com.google.common.base.Preconditions;
+import com.inceptai.neoservice.uiactions.views.ActionDetails;
 
 import java.lang.ref.WeakReference;
+import java.util.List;
 
 /**
  * Created by arunesh on 7/26/17.
@@ -29,6 +30,7 @@ public class NeoService implements NeoUiActionsService.UiActionsServiceCallback 
         void onUiStreamingStoppedByUser();
         void onUiStreamingStoppedByExpert();
         void onRequestAccessibilitySettings();
+        void onUIActionsAvailable(List<ActionDetails> actionDetailsList);
     }
 
     public NeoService(String neoServerAddress, String userUuid, Context context, Callback serviceCallback) {
@@ -92,6 +94,12 @@ public class NeoService implements NeoUiActionsService.UiActionsServiceCallback 
         return isNeoUiActionsServiceAvailable() && neoUiActionsServiceWeakReference.get().isServiceRunning();
     }
 
+    public void fetchUIActions(String query) {
+        if(isNeoUiActionsServiceAvailable()) {
+            neoUiActionsServiceWeakReference.get().fetchUIActions(query);
+        }
+    }
+
     @Override
     public void onServiceReady() {
         if (serviceCallback != null) {
@@ -110,6 +118,13 @@ public class NeoService implements NeoUiActionsService.UiActionsServiceCallback 
     public void onUiStreamingStoppedByExpert() {
         if (serviceCallback != null) {
             serviceCallback.onUiStreamingStoppedByExpert();
+        }
+    }
+
+    @Override
+    public void onUIActionsAvailable(List<ActionDetails> actionDetailsList) {
+        if (serviceCallback != null) {
+            serviceCallback.onUIActionsAvailable(actionDetailsList);
         }
     }
 
@@ -158,4 +173,6 @@ public class NeoService implements NeoUiActionsService.UiActionsServiceCallback 
         }
         return isOk;
     }
+
+
 }

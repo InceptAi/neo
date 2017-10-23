@@ -1,16 +1,16 @@
 package com.inceptai.neoservice.uiactions.views;
 
+import java.util.List;
+
 public class ElementIdentifier {
     private String className;
     private String packageName;
-    private String primaryText;
-    private String childText;
+    private List<String> keywordList;
 
-    public ElementIdentifier(String className, String packageName, String primaryText, String childText) {
+    public ElementIdentifier(String className, String packageName, List<String> keywordList) {
         this.className = className;
         this.packageName = packageName;
-        this.primaryText = primaryText;
-        this.childText = childText;
+        this.keywordList = keywordList;
     }
 
     public String getClassName() {
@@ -29,19 +29,11 @@ public class ElementIdentifier {
         this.packageName = packageName;
     }
 
-    public String getPrimaryText() {
-        return primaryText;
+    public List<String> getKeywordList() {
+        return keywordList;
     }
 
-    public void setPrimaryText(String primaryText) {
-        this.primaryText = primaryText;
-    }
-
-    public String getChildText() {
-        return childText;
-    }
-
-    public void setChildText(String childText) {
-        this.childText = childText;
+    public void setKeywordList(List<String> keywordList) {
+        this.keywordList = keywordList;
     }
 }

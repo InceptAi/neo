@@ -24,8 +24,12 @@ import android.widget.Toast;
 import com.inceptai.neoservice.expert.ExpertChannel;
 import com.inceptai.neoservice.flatten.FlatViewHierarchy;
 import com.inceptai.neoservice.flatten.UiManager;
+import com.inceptai.neoservice.uiactions.UIActionController;
+import com.inceptai.neoservice.uiactions.views.ActionDetails;
 
 import org.json.JSONObject;
+
+import java.util.List;
 
 import static android.view.View.GONE;
 
@@ -33,7 +37,9 @@ import static android.view.View.GONE;
  * Created by arunesh on 6/29/17.
  */
 
-public class NeoUiActionsService extends AccessibilityService implements ExpertChannel.ExpertChannelCallback {
+public class NeoUiActionsService extends AccessibilityService implements
+        ExpertChannel.ExpertChannelCallback,
+        UIActionController.UIActionControllerCallback {
     public static final String UUID_INTENT_PARAM = "UUID";
     public static final String SERVER_ADDRESS = "SERVER_ADDRESS";
 
@@ -62,6 +68,8 @@ public class NeoUiActionsService extends AccessibilityService implements ExpertC
     private String serverAddress;
     private UiActionsServiceCallback uiActionsServiceCallback;
 
+    private UIActionController uiActionController;
+
     private Button stopButton;
     private TextView overlayTitleTv;
     private TextView overlayStatusTv;
@@ -69,12 +77,14 @@ public class NeoUiActionsService extends AccessibilityService implements ExpertC
     private boolean overlayPermissionGranted;
     private boolean serviceRunning = false;
 
+
     public interface UiActionsServiceCallback {
         void onServiceReady();
         void onUiStreamingStoppedByUser();
         void onUiStreamingStoppedByExpert();
         void onServiceDestroy();
         void onRequestAccessibiltySettings();
+        void onUIActionsAvailable(List<ActionDetails> actionDetailsList);
     }
 
     @Override
@@ -104,6 +114,9 @@ public class NeoUiActionsService extends AccessibilityService implements ExpertC
         windowManager = (WindowManager) getSystemService(WINDOW_SERVICE);
         getDisplayDimensions();
         neoThreadpool = new NeoThreadpool();
+
+        //UI Actions
+        uiActionController = new UIActionController(this, neoThreadpool.getExecutor());
 
         handler = new Handler();
         intentReceiver = new NeoCustomIntentReceiver();
@@ -231,6 +244,20 @@ public class NeoUiActionsService extends AccessibilityService implements ExpertC
         }
     }
 
+
+    //UIActionController callback
+    @Override
+    public void onUIActionDetails(List<ActionDetails> actionDetailsList) {
+        if (uiActionsServiceCallback != null) {
+            uiActionsServiceCallback.onUIActionsAvailable(actionDetailsList);
+        }
+    }
+
+    @Override
+    public void onUIActionError(String error) {
+        Log.d("UIAction", "Error in fetching actions : " + error);
+    }
+
     private void showOverlay() {
         if (windowManager != null) {
             overlayView.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_STABLE
@@ -334,6 +361,13 @@ public class NeoUiActionsService extends AccessibilityService implements ExpertC
         }
     }
 
+
+    //Public functions for uiActions callback from the app
+    public void fetchUIActions(String query) {
+        uiActionController.fetchUIActions(query);
+    }
+
+
     private String getServerAddress() {
         if (serverAddress == null) {
             String serverIp = BuildConfig.SERVER_IP;
@@ -421,4 +455,5 @@ public class NeoUiActionsService extends AccessibilityService implements ExpertC
         }
         return false;
     }
+
 }

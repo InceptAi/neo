@@ -1,8 +1,6 @@
 package com.inceptai.neoservice.uiactions;
 
-import com.inceptai.neoservice.uiactions.views.ActionDetails;
-
-import java.util.List;
+import com.inceptai.neoservice.uiactions.views.ActionResponse;
 
 import retrofit2.Call;
 import retrofit2.http.GET;
@@ -15,13 +13,13 @@ import retrofit2.http.Query;
 
 public interface UIActionsAPI {
     @GET("settings")
-    Call<List<ActionDetails>> getUIActions(@Query("query") String actionQuery);
-    //Call<List<ActionDetails>> getUIActions( @QueryMap Map<String, String> options);
+    Call<ActionResponse> getUIActionsForQuery(@Query("query") String actionQuery);
+    //Call<List<ActionDetails>> getUIActionsForQuery( @QueryMap Map<String, String> options);
 
     @GET("actions/all")
-    Call<List<ActionDetails>> getAllUIActions();
+    Call<ActionResponse> getAllUIActions();
 
     @GET("settings/device/{deviceInfo}/")
-    Call<List<ActionDetails>> getUIActionsForDevice(@Path("deviceInfo") String deviceInfo, @Query("query") String actionQuery);
+    Call<ActionResponse> getUIActionsForDeviceAndQuery(@Path("deviceInfo") String deviceInfo, @Query("query") String actionQuery);
 
 }
