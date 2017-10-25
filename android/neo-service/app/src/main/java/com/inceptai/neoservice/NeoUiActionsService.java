@@ -17,6 +17,7 @@ import android.view.View;
 import android.view.WindowManager;
 import android.view.WindowManager.LayoutParams;
 import android.view.accessibility.AccessibilityEvent;
+import android.view.accessibility.AccessibilityNodeInfo;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -131,7 +132,19 @@ public class NeoUiActionsService extends AccessibilityService implements
         if (SUPRESS_SYSTEM_UI_UPDATES && event.getPackageName() != null && event.getPackageName().equals(SYSTEM_UI_PACKAGE_NAME)) {
             return;
         }
-        refreshFullUi(event);
+        AccessibilityNodeInfo nodeInfo = event.getSource();
+        if (nodeInfo != null) {
+            Log.v("NeoUIActionsService", "source of event: " + AccessibilityEvent.eventTypeToString(event.getEventType()) + " nodeInfo: " + nodeInfo.toString());
+//            AccessibilityNodeInfo rootNodeInfo = Utils.findRootNode(nodeInfo);
+//            String screenTitleForEvent = Utils.findScreenTitleForNode(nodeInfo);
+//            if (rootNodeInfo != null) {
+//                Log.v("NeoUIActionsService", "root of event: " + rootNodeInfo);
+//                Log.v("NeoUIActionsService", "screen title of event: " + screenTitleForEvent);
+//            }
+        } else {
+            Log.v("NeoUIActionsService", "source of event is null for eventType: "  + AccessibilityEvent.eventTypeToString(event.getEventType()));
+        }
+        refreshFullUi(event, nodeInfo);
     }
 
     @Override
@@ -207,7 +220,7 @@ public class NeoUiActionsService extends AccessibilityService implements
             handler.postDelayed(new Runnable() {
                 @Override
                 public void run() {
-                    refreshFullUi(null);
+                    refreshFullUi(null, null);
                 }
             }, 4000);
         }
@@ -250,6 +263,10 @@ public class NeoUiActionsService extends AccessibilityService implements
     public void onUIActionDetails(List<ActionDetails> actionDetailsList) {
         if (uiActionsServiceCallback != null) {
             uiActionsServiceCallback.onUIActionsAvailable(actionDetailsList);
+        }
+        //TODO -- remove the hack for only settings action
+        if (actionDetailsList != null && !actionDetailsList.isEmpty()) {
+            uiManager.takeSettingsAction(actionDetailsList.get(0));
         }
     }
 
@@ -354,10 +371,12 @@ public class NeoUiActionsService extends AccessibilityService implements
         }, USER_STOP_DELAY_MS);
     }
 
-    public void refreshFullUi(@Nullable AccessibilityEvent accessibilityEvent) {
+    public void refreshFullUi(@Nullable AccessibilityEvent accessibilityEvent, @Nullable AccessibilityNodeInfo eventSourceInfo) {
         if (uiManager != null) {
-            FlatViewHierarchy viewHierarchy = uiManager.updateViewHierarchy(getRootInActiveWindow(), accessibilityEvent);
-            sendViewSnapshot(viewHierarchy);
+            FlatViewHierarchy viewHierarchy = uiManager.updateViewHierarchy(getRootInActiveWindow(), accessibilityEvent, eventSourceInfo);
+            if (viewHierarchy != null) {
+                sendViewSnapshot(viewHierarchy);
+            }
         }
     }
 

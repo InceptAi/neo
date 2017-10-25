@@ -13,6 +13,7 @@ import com.inceptai.neoservice.flatten.FlatViewUtils;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 
@@ -25,6 +26,10 @@ public class Utils {
     public static final String PREFERENCES_FILE = "NeoWifiExpert_preferences";
     public static final String EMPTY_STRING = "";
     public static final String MULTIPLE_WORD_MATCH_DELIMITER = "#";
+    public static final String WIFI_SANITIZED = "wifi";
+    public static final char WIFI_ACCESSIBILITY_HYPHEN = (char)8209;
+    public static final String WIFI_ACCESSIBILITY = "Wi" + WIFI_ACCESSIBILITY_HYPHEN + "Fi";
+
 
     public static Gson gson = new Gson();
 
@@ -74,6 +79,39 @@ public class Utils {
         return sourceNode;
     }
 
+    public static AccessibilityNodeInfo findRootNode(AccessibilityNodeInfo nodeInfo) {
+        if (nodeInfo == null) {
+            return null;
+        }
+        if (nodeInfo.getParent() == null) {
+            return nodeInfo;
+        }
+        return findRootNode(nodeInfo.getParent());
+    }
+
+    public static String findScreenTitleForNode(AccessibilityNodeInfo nodeInfo) {
+        //Check for correct input
+        if (nodeInfo == null) {
+            return Utils.EMPTY_STRING;
+        }
+
+        //Check for root node
+        AccessibilityNodeInfo rootNodeInfo = findRootNode(nodeInfo);
+        if (rootNodeInfo == null) {
+            return Utils.EMPTY_STRING;
+        }
+
+        //Found root node
+        AccessibilityNodeInfo screenTitleNodeInfo =
+                findFirstChildWithGivenClassNames(rootNodeInfo, Collections.singletonList(FlatViewUtils.TEXT_VIEW_CLASSNAME));
+        if (screenTitleNodeInfo == null || screenTitleNodeInfo.getText() == null) {
+            return Utils.EMPTY_STRING;
+        }
+
+        return screenTitleNodeInfo.getText().toString();
+
+    }
+
     public static boolean matchScreenWithRootNode(String screenTitle,
                                                   String screenPackageName,
                                                   AccessibilityNodeInfo nodeInfo) {
@@ -109,6 +147,16 @@ public class Utils {
         return overallCandidates;
     }
 
+    private static String translateWordForAccessibilitySearch(String word) {
+        if (Utils.nullOrEmpty(word)) {
+            return Utils.EMPTY_STRING;
+        }
+        if (word.equalsIgnoreCase(WIFI_SANITIZED)) {
+            return WIFI_ACCESSIBILITY;
+        }
+        return word;
+    }
+
     private static HashMap<String, AccessibilityNodeInfo> searchForKeyword(String keyWord,
                                                                            String matchingClassName,
                                                                            AccessibilityNodeInfo rootNodeInfo,
@@ -117,7 +165,7 @@ public class Utils {
         List<AccessibilityNodeInfo> matchingNodes = new ArrayList<>();
         List<String> wordsToMatch = Arrays.asList(keyWord.split(MULTIPLE_WORD_MATCH_DELIMITER));
         for (String word: wordsToMatch) {
-            matchingNodes.addAll(rootNodeInfo.findAccessibilityNodeInfosByText(word));
+            matchingNodes.addAll(rootNodeInfo.findAccessibilityNodeInfosByText(translateWordForAccessibilitySearch(word)));
         }
         HashMap<String, AccessibilityNodeInfo> nodesWithKeyWord = new HashMap<>();
         for (AccessibilityNodeInfo currentNode: matchingNodes) {
@@ -139,6 +187,7 @@ public class Utils {
         }
         return nodesWithKeyWord;
     }
+
 
     public static AccessibilityNodeInfo findUIElement(String elementClassName,
                                                       String elementPackageName,
@@ -166,22 +215,95 @@ public class Utils {
             if (finalMatch.getPackageName().equals(elementPackageName)) {
                 return finalMatch;
             }
+        } else if (candidateNodes.size() > 1) {
+            //Find the best matching one, match the keywords string sorted with the node string
+            int maxCount = 0;
+            AccessibilityNodeInfo accessibilityNodeInfoToReturn = null;
+            for (AccessibilityNodeInfo finalMatchInfo: candidateNodes.values()) {
+                //Find the string for this node -- text + child text -- sorted and separated by spaces
+                int matchingCount  = getMatchingWordCount(keyWords, finalMatchInfo);
+                if (matchingCount > maxCount) {
+                    accessibilityNodeInfoToReturn = finalMatchInfo;
+                    maxCount = matchingCount;
+                }
+            }
+            return accessibilityNodeInfoToReturn;
         }
-
         return null;
     }
 
-    public static AccessibilityNodeInfo findChildWithClassNames(AccessibilityNodeInfo accessibilityNodeInfo, List<String> classNames) {
+    private static int getMatchingWordCount(List<String> wordList, AccessibilityNodeInfo nodeInfo) {
+        List<String> wordListForNode = getWordsForNodeInfo(nodeInfo);
+        return getMatchingWordCount(wordList, wordListForNode);
+    }
+
+    private static int getMatchingWordCount(AccessibilityNodeInfo nodeInfo1, AccessibilityNodeInfo nodeInfo2) {
+        List<String> wordList1 = getWordsForNodeInfo(nodeInfo1);
+        List<String> wordList2 = getWordsForNodeInfo(nodeInfo2);
+        return getMatchingWordCount(wordList1, wordList2);
+    }
+
+    private static List<String> getWordsForNodeInfo(AccessibilityNodeInfo accessibilityNodeInfo) {
+        List<String> wordList = new ArrayList<>();
+        if (accessibilityNodeInfo == null) {
+            return wordList;
+        }
+        if (accessibilityNodeInfo.getText() != null) {
+            wordList.addAll(Arrays.asList(accessibilityNodeInfo.getText().toString().split(" ")));
+        }
+        for (int childIndex = 0; childIndex < accessibilityNodeInfo.getChildCount(); childIndex++) {
+            AccessibilityNodeInfo childInfo = accessibilityNodeInfo.getChild(childIndex);
+            wordList.addAll(getWordsForNodeInfo(childInfo));
+        }
+        return wordList;
+    }
+
+    private static int getMatchingWordCount(List<String> inputList1, List<String> inputList2) {
+        if (inputList1 == null || inputList2 == null) {
+            return 0;
+        }
+
+        int matchingCount = 0;
+        int length1 = inputList1.size();
+        int length2 = inputList2.size();
+        List<String> shorterList;
+        List<String> longerList;
+        if (length1 < length2) {
+            shorterList = inputList1;
+            longerList = inputList2;
+        } else {
+            shorterList = inputList2;
+            longerList = inputList1;
+        }
+
+        HashMap<String, Boolean> wordHashMap = new HashMap<>();
+        for (String word: shorterList) {
+            wordHashMap.put(word.trim().toLowerCase(), false);
+        }
+
+        for (String word: longerList) {
+            word = word.trim().toLowerCase();
+            Boolean alreadyCounted = wordHashMap.get(word);
+            if (alreadyCounted != null && !alreadyCounted) {
+                matchingCount++;
+            }
+            wordHashMap.put(word, true);
+        }
+        return matchingCount;
+    }
+
+    public static AccessibilityNodeInfo findFirstChildWithGivenClassNames(AccessibilityNodeInfo accessibilityNodeInfo,
+                                                                          List<String> classNames) {
         if (accessibilityNodeInfo == null) {
             return null;
         }
         for (String className: classNames) {
-            if (accessibilityNodeInfo.getClassName().equals(className)) {
+            if (accessibilityNodeInfo.getClassName() != null && accessibilityNodeInfo.getClassName().equals(className)) {
                 return accessibilityNodeInfo;
             }
         }
         for (int childIndex=0; childIndex < accessibilityNodeInfo.getChildCount(); childIndex++) {
-            AccessibilityNodeInfo childInfo = findChildWithClassNames(accessibilityNodeInfo.getChild(childIndex), classNames);
+            AccessibilityNodeInfo childInfo = findFirstChildWithGivenClassNames(accessibilityNodeInfo.getChild(childIndex), classNames);
             if (childInfo != null) {
                 return childInfo;
             }
@@ -192,7 +314,7 @@ public class Utils {
     public static boolean checkCondition(String textToMatch, AccessibilityNodeInfo elementInfo) {
         //Check isClickable, isCheckable, isChecked
         //First look for switch like elements
-        AccessibilityNodeInfo switchNodeInfo = findChildWithClassNames(
+        AccessibilityNodeInfo switchNodeInfo = findFirstChildWithGivenClassNames(
                 elementInfo,
                 Arrays.asList(FlatViewUtils.SWITCH_CLASSNAME,
                         FlatViewUtils.CHECK_BOX_CLASSNAME,

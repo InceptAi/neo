@@ -102,7 +102,10 @@ public class RenderingView {
     }
 
 
-    public RenderingView(String className, String packageName, String contentDescription, String text) {
+    public RenderingView(String className,
+                         String packageName,
+                         String contentDescription,
+                         String text) {
         this.viewIdResourceName = Utils.EMPTY_STRING;
         this.className = className;
         this.packageName = packageName;

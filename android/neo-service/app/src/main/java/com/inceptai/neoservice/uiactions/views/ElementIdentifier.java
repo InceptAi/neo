@@ -36,4 +36,13 @@ public class ElementIdentifier {
     public void setKeywordList(List<String> keywordList) {
         this.keywordList = keywordList;
     }
+
+    @Override
+    public String toString() {
+        return "ElementIdentifier{" +
+                "className='" + className + '\'' +
+                ", packageName='" + packageName + '\'' +
+                ", keywordList=" + keywordList +
+                '}';
+    }
 }

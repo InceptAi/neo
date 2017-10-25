@@ -5,15 +5,26 @@ public class ActionIdentifier {
     private ElementIdentifier elementIdentifier;
     private String actionDescription;
     private String actionToTake;
+    private double confidenceScore;
 
     public ActionIdentifier(ScreenIdentifier screenIdentifier,
                             ElementIdentifier elementIdentifier,
                             String actionDescription,
-                            String actionToTake) {
+                            String actionToTake,
+                            double confidenceScore) {
         this.screenIdentifier = screenIdentifier;
         this.elementIdentifier = elementIdentifier;
         this.actionDescription = actionDescription;
         this.actionToTake = actionToTake;
+        this.confidenceScore = confidenceScore;
+    }
+
+    public double getConfidenceScore() {
+        return confidenceScore;
+    }
+
+    public void setConfidenceScore(double confidenceScore) {
+        this.confidenceScore = confidenceScore;
     }
 
     public ScreenIdentifier getScreenIdentifier() {
@@ -46,5 +57,16 @@ public class ActionIdentifier {
 
     public void setActionToTake(String actionToTake) {
         this.actionToTake = actionToTake;
+    }
+
+    @Override
+    public String toString() {
+        return "ActionIdentifier{" +
+                "screenIdentifier=" + screenIdentifier +
+                ", elementIdentifier=" + elementIdentifier +
+                ", actionDescription='" + actionDescription + '\'' +
+                ", actionToTake='" + actionToTake + '\'' +
+                ", confidenceScore=" + confidenceScore +
+                '}';
     }
 }

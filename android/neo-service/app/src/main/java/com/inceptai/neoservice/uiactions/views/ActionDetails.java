@@ -41,4 +41,13 @@ public class ActionDetails {
     public void setActionIdentifier(ActionIdentifier actionIdentifier) {
         this.actionIdentifier = actionIdentifier;
     }
+
+    @Override
+    public String toString() {
+        return "ActionDetails{" +
+                "successCondition=" + successCondition +
+                ", navigationIdentifierList=" + navigationIdentifierList +
+                ", actionIdentifier=" + actionIdentifier +
+                '}';
+    }
 }

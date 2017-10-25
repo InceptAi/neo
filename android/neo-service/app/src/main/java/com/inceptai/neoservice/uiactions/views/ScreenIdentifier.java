@@ -24,4 +24,12 @@ public class ScreenIdentifier {
     public void setPackageName(String packageName) {
         this.packageName = packageName;
     }
+
+    @Override
+    public String toString() {
+        return "ScreenIdentifier{" +
+                "title='" + title + '\'' +
+                ", packageName='" + packageName + '\'' +
+                '}';
+    }
 }

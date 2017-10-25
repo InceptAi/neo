@@ -48,4 +48,13 @@ public class NavigationIdentifier {
         this.uiActionToTake = uiActionToTake;
     }
 
+    @Override
+    public String toString() {
+        return "NavigationIdentifier{" +
+                "srcScreenIdentifier=" + srcScreenIdentifier +
+                ", dstScreenIdentifier=" + dstScreenIdentifier +
+                ", elementIdentifier=" + elementIdentifier +
+                ", uiActionToTake='" + uiActionToTake + '\'' +
+                '}';
+    }
 }

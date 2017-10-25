@@ -39,4 +39,13 @@ public class Condition {
     public void setMaxValue(int maxValue) {
         this.maxValue = maxValue;
     }
+
+    @Override
+    public String toString() {
+        return "Condition{" +
+                "textToMatch='" + textToMatch + '\'' +
+                ", minValue=" + minValue +
+                ", maxValue=" + maxValue +
+                '}';
+    }
 }

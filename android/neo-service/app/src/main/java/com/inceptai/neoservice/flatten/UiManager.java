@@ -40,6 +40,9 @@ public class UiManager {
     private static final String SEEK_ACTION = "SEEK";
     private static final String SUBMIT_ACTION = "SUBMIT";
 
+    //Delay
+    private static final int SCREEN_TRANSITION_DELAY_MS = 300;
+
     private NeoUiActionsService neoService;
     private NeoThreadpool neoThreadpool;
     private DisplayMetrics primaryDisplayMetrics;
@@ -103,14 +106,52 @@ public class UiManager {
         return result;
     }
 
-    public FlatViewHierarchy updateViewHierarchy(AccessibilityNodeInfo rootNode, AccessibilityEvent accessibilityEvent) {
+    public FlatViewHierarchy updateViewHierarchy(AccessibilityNodeInfo rootNode,
+                                                 AccessibilityEvent accessibilityEvent,
+                                                 AccessibilityNodeInfo eventSourceInfo) {
+        if (rootNode == null) {
+            return null;
+        }
+
         if (flatViewHierarchy == null) {
-            flatViewHierarchy = new FlatViewHierarchy(rootNode, accessibilityEvent, primaryDisplayMetrics);
+            flatViewHierarchy = new FlatViewHierarchy(
+                    rootNode,
+                    accessibilityEvent,
+                    eventSourceInfo,
+                    primaryDisplayMetrics);
         } else {
-            flatViewHierarchy.update(rootNode, accessibilityEvent);
+            flatViewHierarchy.update(rootNode, accessibilityEvent, eventSourceInfo);
         }
         flatViewHierarchy.flatten();
         return flatViewHierarchy;
+    }
+
+    public boolean takeSettingsAction(final ActionDetails actionDetails) {
+        //Navigate to settings
+        showSettings();
+        //Need delay here before we proceed
+        waitForScreenTransition();
+        takeUIAction(actionDetails);
+//
+//        final int SCREEN_TRANSITION_DELAY_MS = 300;
+//        new Timer().schedule(new TimerTask() {
+//            @Override
+//            public void run() {
+//                // this code will be executed after 2 seconds
+//                takeUIAction(actionDetails);
+//            }
+//        }, SCREEN_TRANSITION_DELAY_MS);
+//        final Handler handler = new Handler();
+//        handler.postDelayed(new Runnable() {
+//            @Override
+//            public void run() {
+//                // Do something after 5s = 5000ms
+//                takeUIAction(actionDetails);
+//            }
+//        }, SCREEN_TRANSITION_DELAY_MS);
+        //takeUIAction
+        //return takeUIAction(actionDetails);
+        return true;
     }
 
     public boolean takeUIAction(ActionDetails actionDetails) {
@@ -175,11 +216,15 @@ public class UiManager {
         }
 
         performHierarchicalClick(elementInfo);
+        waitForScreenTransition();
 
         //Refresh the views --
         //currentScreenInfo.refresh(); //TODO switch to API level 18 so we can just use refresh
         currentScreenInfo.recycle();
         currentScreenInfo = neoService.getRootInActiveWindow();
+        if (currentScreenInfo == null) {
+            return false;
+        }
         elementInfo = Utils.findUIElement(elementClassName, elementPackageName, keyWordList, currentScreenInfo, true);
         //Check condition again to see if it worked
         // TODO make sure the element info is still relevant -- do we need to get another one ?
@@ -198,6 +243,10 @@ public class UiManager {
         }
         //Navigate to the right
         AccessibilityNodeInfo currentScreenInfo = neoService.getRootInActiveWindow();
+        if (currentScreenInfo == null) {
+            return false;
+        }
+
         for (NavigationIdentifier navigationIdentifier: navigationIdentifierList) {
 
             //match the starting screen with current root node info
@@ -224,10 +273,14 @@ public class UiManager {
 
             //Perform the click
             performHierarchicalClick(elementInfo);
+            waitForScreenTransition();
 
             // /Update the screen info
             currentScreenInfo.recycle();
             currentScreenInfo = neoService.getRootInActiveWindow();
+            if (currentScreenInfo == null) {
+                return false;
+            }
 
             //Check if arrived at the right destination
             if (!Utils.matchScreenWithRootNode(
@@ -268,7 +321,7 @@ public class UiManager {
             } else if (HOME_ACTION.equals(action)) {
                 neoService.performGlobalAction(AccessibilityService.GLOBAL_ACTION_HOME);
             } else if (REFRESH_ACTION.equals(action)) {
-                neoService.refreshFullUi(null);
+                neoService.refreshFullUi(null, null);
             } else if (SCROLLDOWN_ACTION.equals(action)) {
                 performScroll(false /* down */);
             } else if (SCROLLUP_ACTION.equals(action)) {
@@ -288,5 +341,21 @@ public class UiManager {
         Intent intent = new Intent(Settings.ACTION_SETTINGS);
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         neoService.startActivity(intent);
+    }
+
+    private void waitForScreenTransition() {
+        try {
+            Thread.sleep(SCREEN_TRANSITION_DELAY_MS);
+        }catch (InterruptedException e) {
+            Log.e("UIManager", "Exception while waiting");
+        }
+    }
+
+    private void waitForScreenTransition(int delayMs) {
+        try {
+            Thread.sleep(delayMs);
+        }catch (InterruptedException e) {
+            Log.e("UIManager", "Exception while waiting");
+        }
     }
 }
