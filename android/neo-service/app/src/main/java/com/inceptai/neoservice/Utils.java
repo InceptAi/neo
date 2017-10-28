@@ -1,9 +1,13 @@
 package com.inceptai.neoservice;
 
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageManager;
 import android.graphics.Rect;
 import android.os.Build;
+import android.support.annotation.Nullable;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.accessibility.AccessibilityNodeInfo;
@@ -13,7 +17,6 @@ import com.inceptai.neoservice.flatten.FlatViewUtils;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 
@@ -102,14 +105,15 @@ public class Utils {
         }
 
         //Found root node
-        AccessibilityNodeInfo screenTitleNodeInfo =
-                findFirstChildWithGivenClassNames(rootNodeInfo, Collections.singletonList(FlatViewUtils.TEXT_VIEW_CLASSNAME));
+//        AccessibilityNodeInfo screenTitleNodeInfo =
+//                findFirstChildWithGivenClassNames(rootNodeInfo, Collections.singletonList(FlatViewUtils.TEXT_VIEW_CLASSNAME), false);
+        AccessibilityNodeInfo screenTitleNodeInfo = findTopMostTextView(rootNodeInfo, null);
+
         if (screenTitleNodeInfo == null || screenTitleNodeInfo.getText() == null) {
             return Utils.EMPTY_STRING;
         }
 
         return screenTitleNodeInfo.getText().toString();
-
     }
 
     public static boolean matchScreenWithRootNode(String screenTitle,
@@ -172,18 +176,17 @@ public class Utils {
             if ((!isClickable || currentNode.isClickable()) && currentNode.getClassName().equals(matchingClassName)) {
                 nodesWithKeyWord.put(String.valueOf(currentNode.hashCode()),currentNode);
             } else {
-                AccessibilityNodeInfo parentInfo = findFirstParentWithTargetClassName(currentNode, matchingClassName, isClickable);
-                if (parentInfo != null) {
-                    nodesWithKeyWord.put(String.valueOf(parentInfo.hashCode()), parentInfo);
+                AccessibilityNodeInfo parentMatch = findFirstParentWithTargetClassName(currentNode, matchingClassName, isClickable);
+                if (parentMatch != null) {
+                    nodesWithKeyWord.put(String.valueOf(parentMatch.hashCode()), parentMatch);
+                } else {
+                    //We couldn't find suitable parent, look for suitable child
+                    AccessibilityNodeInfo childMatch = findFirstChildWithGivenClassNames(currentNode, Arrays.asList(matchingClassName), isClickable);
+                    if (childMatch != null) {
+                        nodesWithKeyWord.put(String.valueOf(childMatch.hashCode()), childMatch);
+                    }
                 }
             }
-//            AccessibilityNodeInfo parentNode = currentNode.getParent();
-//            //Use the element class name to do this better
-//            if (parentNode != null && parentNode.isClickable()) {
-//                clickableNodes.put(String.valueOf(parentNode.hashCode()), parentNode);
-//            } else {
-//                clickableNodes.put(String.valueOf(currentNode.hashCode()),currentNode);
-//            }
         }
         return nodesWithKeyWord;
     }
@@ -292,18 +295,66 @@ public class Utils {
         return matchingCount;
     }
 
+    private static AccessibilityNodeInfo getTopLeftNode(AccessibilityNodeInfo nodeInfo1, AccessibilityNodeInfo nodeInfo2) {
+        if (nodeInfo1 == null && nodeInfo2 == null) {
+            return null;
+        } else if (nodeInfo1 == null) {
+            return nodeInfo2;
+        } else if (nodeInfo2 == null) {
+            return nodeInfo1;
+        }
+
+        Rect bounds1 = new Rect();
+        Rect bounds2 = new Rect();
+        nodeInfo1.getBoundsInScreen(bounds1);
+        nodeInfo2.getBoundsInScreen(bounds2);
+        if (bounds1.top < bounds2.top) {
+            return nodeInfo1;
+        } else if (bounds1.top > bounds2.top) {
+            return nodeInfo2;
+        } else if (bounds1.left < bounds2.left) {
+            return nodeInfo1;
+        } else if (bounds1.left > bounds2.left) {
+            return nodeInfo2;
+        } else {
+            return nodeInfo1;
+        }
+    }
+    public static AccessibilityNodeInfo findTopMostTextView(AccessibilityNodeInfo accessibilityNodeInfo,
+                                                            @Nullable AccessibilityNodeInfo bestNodeSoFar) {
+        if (accessibilityNodeInfo == null) {
+            return null;
+        }
+
+        if (accessibilityNodeInfo.getClassName() != null &&
+                    accessibilityNodeInfo.getClassName().equals(FlatViewUtils.TEXT_VIEW_CLASSNAME) &&
+                accessibilityNodeInfo.getText() != null &&
+                !accessibilityNodeInfo.getText().toString().equals(Utils.EMPTY_STRING)) {
+            bestNodeSoFar = getTopLeftNode(accessibilityNodeInfo, bestNodeSoFar);
+        }
+
+        for (int childIndex=0; childIndex < accessibilityNodeInfo.getChildCount(); childIndex++) {
+            bestNodeSoFar = findTopMostTextView(accessibilityNodeInfo.getChild(childIndex), bestNodeSoFar);
+        }
+
+        return bestNodeSoFar;
+    }
+
     public static AccessibilityNodeInfo findFirstChildWithGivenClassNames(AccessibilityNodeInfo accessibilityNodeInfo,
-                                                                          List<String> classNames) {
+                                                                          List<String> classNames,
+                                                                          boolean isClickable) {
         if (accessibilityNodeInfo == null) {
             return null;
         }
         for (String className: classNames) {
-            if (accessibilityNodeInfo.getClassName() != null && accessibilityNodeInfo.getClassName().equals(className)) {
+            if (accessibilityNodeInfo.getClassName() != null &&
+                    accessibilityNodeInfo.getClassName().equals(className) &&
+                    (!isClickable || accessibilityNodeInfo.isClickable())) {
                 return accessibilityNodeInfo;
             }
         }
         for (int childIndex=0; childIndex < accessibilityNodeInfo.getChildCount(); childIndex++) {
-            AccessibilityNodeInfo childInfo = findFirstChildWithGivenClassNames(accessibilityNodeInfo.getChild(childIndex), classNames);
+            AccessibilityNodeInfo childInfo = findFirstChildWithGivenClassNames(accessibilityNodeInfo.getChild(childIndex), classNames, isClickable);
             if (childInfo != null) {
                 return childInfo;
             }
@@ -318,7 +369,7 @@ public class Utils {
                 elementInfo,
                 Arrays.asList(FlatViewUtils.SWITCH_CLASSNAME,
                         FlatViewUtils.CHECK_BOX_CLASSNAME,
-                        FlatViewUtils.CHECKED_TEXT_VIEW_CLASS_NAME));
+                        FlatViewUtils.CHECKED_TEXT_VIEW_CLASS_NAME), false);
         if (switchNodeInfo != null) {
             //Found switch element. //Check its state based on input textToMatch
             if (textToMatch.equalsIgnoreCase(FlatViewUtils.ON_TEXT)) {
@@ -397,5 +448,45 @@ public class Utils {
         phoneInfo.put("product", Build.PRODUCT);
         return phoneInfo;
     }
+
+    public static boolean searchAndLaunchApp(Context context, String appName) {
+        final PackageManager pm = context.getPackageManager();
+        List<ApplicationInfo> packages = pm.getInstalledApplications(PackageManager.GET_META_DATA);
+        for (ApplicationInfo packageInfo : packages) {
+            Log.d(TAG, "Installed package :" + packageInfo.packageName);
+            Log.d(TAG, "Source dir : " + packageInfo.sourceDir);
+            Log.d(TAG, "Launch Activity :" + pm.getLaunchIntentForPackage(packageInfo.packageName));
+            if (packageInfo.packageName.toLowerCase().contains(appName.toLowerCase())) {
+                //Found the app
+                launchApp(context, packageInfo.packageName);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static void launchApp(Context context, String packageName) {
+        Intent launchIntentForPackage = context.getPackageManager()
+                .getLaunchIntentForPackage(packageName);
+        context.startActivity(launchIntentForPackage);
+    }
+
+    public static void launchAppIfInstalled(Context context, String packageName) {
+        boolean isInstalled = isAppInstalled(context, packageName);
+        if (isInstalled) {
+           launchApp(context, packageName);
+        }
+    }
+
+    private static boolean isAppInstalled(Context context, String packageName) {
+        try {
+            context.getPackageManager().getApplicationInfo(packageName, 0);
+            return true;
+        }
+        catch (PackageManager.NameNotFoundException e) {
+            return false;
+        }
+    }
+
 
 }

@@ -73,6 +73,9 @@ public class FlatView {
     private boolean isChecked = false;
     private boolean isCheckable = false;
     private boolean isClickable = false;
+    private boolean isScrollable = false;
+    private boolean isEnabled = false;
+    private boolean isSelected = false;
 
     // We use "transient" so that this field does not get processed by gson.
     private transient AccessibilityNodeInfo sourceNodeInfo;
@@ -113,6 +116,9 @@ public class FlatView {
         this.isCheckable = nodeInfo.isCheckable();
         this.isChecked = nodeInfo.isChecked();
         this.isClickable = nodeInfo.isClickable();
+        this.isEnabled = nodeInfo.isEnabled();
+        this.isScrollable = nodeInfo.isScrollable();
+        this.isSelected = nodeInfo.isSelected();
         try {
             this.sourceNodeId = (long) (sGetSourceNodeIdMethod != null ? sGetSourceNodeIdMethod.invoke(nodeInfo) : UNABLE_TO_FETCH_SOURCE_NODE_ID);
         } catch (Exception e) {
@@ -198,5 +204,17 @@ public class FlatView {
 
     public boolean isClickable() {
         return isClickable;
+    }
+
+    public boolean isScrollable() {
+        return isScrollable;
+    }
+
+    public boolean isEnabled() {
+        return isEnabled;
+    }
+
+    public boolean isSelected() {
+        return isSelected;
     }
 }

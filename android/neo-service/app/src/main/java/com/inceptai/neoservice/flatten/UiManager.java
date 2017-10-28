@@ -41,7 +41,7 @@ public class UiManager {
     private static final String SUBMIT_ACTION = "SUBMIT";
 
     //Delay
-    private static final int SCREEN_TRANSITION_DELAY_MS = 300;
+    private static final int SCREEN_TRANSITION_DELAY_MS = 600;
 
     private NeoUiActionsService neoService;
     private NeoThreadpool neoThreadpool;
@@ -121,6 +121,7 @@ public class UiManager {
                     primaryDisplayMetrics);
         } else {
             flatViewHierarchy.update(rootNode, accessibilityEvent, eventSourceInfo);
+            //flatViewHierarchy.updateNew(rootNode, accessibilityEvent, eventSourceInfo);
         }
         flatViewHierarchy.flatten();
         return flatViewHierarchy;
