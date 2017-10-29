@@ -26,6 +26,7 @@ import static com.inceptai.neoservice.Utils.EMPTY_STRING;
  */
 
 public class FlatViewHierarchy {
+    private static final boolean SHOULD_SEND_LAST_DIFFERENT_SCREEN_TITLE_ALWAYS = false;
 
     private AccessibilityNodeInfo rootNode;
     private FlatView rootNodeFlatView;
@@ -233,8 +234,8 @@ public class FlatViewHierarchy {
             //Update last screen info
             //Put a hack that puts in lastScreenInfo instead of event screen info for more options
             //Use either packageName or
-            ScreenTitleAndPackage eventScreenInfo = null;
-            if (isSubSettingAndWindowStateChangedHack(accessibilityEventTrigger)) {
+            ScreenTitleAndPackage eventScreenInfo;
+            if (SHOULD_SEND_LAST_DIFFERENT_SCREEN_TITLE_ALWAYS || isSubSettingAndWindowStateChangedHack(accessibilityEventTrigger)) {
                 eventScreenInfo = lastScreenInfo;
             } else {
                 eventScreenInfo = windowIdToScreenInfo.get(accessibilityEventTrigger.getWindowId());
