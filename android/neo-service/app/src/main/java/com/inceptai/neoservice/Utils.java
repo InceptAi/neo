@@ -316,7 +316,16 @@ public class Utils {
             return nodeInfo1;
         } else if (bounds1.left > bounds2.left) {
             return nodeInfo2;
+        } else if (bounds1.centerY() < bounds2.centerY()) {
+            return nodeInfo1;
+        } else if (bounds1.centerY() > bounds2.centerY()) {
+            return nodeInfo2;
+        } else if (bounds1.centerX() < bounds2.centerX()) {
+            return nodeInfo1;
+        } else if (bounds1.centerX() > bounds2.centerX()) {
+            return nodeInfo2;
         } else {
+            //both are equal, return the current best
             return nodeInfo1;
         }
     }
@@ -326,11 +335,17 @@ public class Utils {
             return null;
         }
 
+        AccessibilityNodeInfo oldBestNode = bestNodeSoFar;
+
         if (accessibilityNodeInfo.getClassName() != null &&
                     accessibilityNodeInfo.getClassName().equals(FlatViewUtils.TEXT_VIEW_CLASSNAME) &&
                 accessibilityNodeInfo.getText() != null &&
                 !accessibilityNodeInfo.getText().toString().equals(Utils.EMPTY_STRING)) {
-            bestNodeSoFar = getTopLeftNode(accessibilityNodeInfo, bestNodeSoFar);
+            Log.d(TAG, "subsettingXX found textview with bounds: " + accessibilityNodeInfo.toString());
+            bestNodeSoFar = getTopLeftNode(bestNodeSoFar, accessibilityNodeInfo);
+            if (bestNodeSoFar != oldBestNode) {
+                Log.d(TAG, "subsettingXX updating best node to " + bestNodeSoFar.toString());
+            }
         }
 
         for (int childIndex=0; childIndex < accessibilityNodeInfo.getChildCount(); childIndex++) {

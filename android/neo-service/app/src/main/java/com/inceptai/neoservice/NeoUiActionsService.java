@@ -135,12 +135,6 @@ public class NeoUiActionsService extends AccessibilityService implements
         AccessibilityNodeInfo nodeInfo = event.getSource();
         if (nodeInfo != null) {
             Log.v("NeoUIActionsService", "source of event: " + AccessibilityEvent.eventTypeToString(event.getEventType()) + " nodeInfo: " + nodeInfo.toString());
-//            AccessibilityNodeInfo rootNodeInfo = Utils.findRootNode(nodeInfo);
-//            String screenTitleForEvent = Utils.findScreenTitleForNode(nodeInfo);
-//            if (rootNodeInfo != null) {
-//                Log.v("NeoUIActionsService", "root of event: " + rootNodeInfo);
-//                Log.v("NeoUIActionsService", "screen title of event: " + screenTitleForEvent);
-//            }
         } else {
             Log.v("NeoUIActionsService", "source of event is null for eventType: "  + AccessibilityEvent.eventTypeToString(event.getEventType()));
         }

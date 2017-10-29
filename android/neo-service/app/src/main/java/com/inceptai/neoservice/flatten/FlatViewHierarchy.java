@@ -29,8 +29,9 @@ public class FlatViewHierarchy {
 
     private AccessibilityNodeInfo rootNode;
     private FlatView rootNodeFlatView;
-    private String currentTitle;
-    private String currentPackageName;
+    private ScreenTitleAndPackage currentScreenInfo;
+    private ScreenTitleAndPackage lastScreenInfo;
+
 
     private SparseArray<FlatView> viewDb;
     private DisplayMetrics displayMetrics;
@@ -40,12 +41,56 @@ public class FlatViewHierarchy {
     private AccessibilityEvent accessibilityEventTrigger;
     private AccessibilityNodeInfo accessibilityEventSourceInfo;
 
-    //To keep track of last screen
-    private boolean firstEventAfterUpdatingScreen;
-    private Set<Integer> lastViewIdsDb;
-    private int lastRootNodeId;
-    private String lastScreenTitle;
-    private String lastPackageName;
+    private class ScreenTitleAndPackage {
+        private String title;
+        private String packageName;
+        ScreenTitleAndPackage(String title, String packageName) {
+            this.title = title;
+            this.packageName = packageName;
+        }
+
+        public String getTitle() {
+            return title;
+        }
+
+        public String getPackageName() {
+            return packageName;
+        }
+
+        public void setTitle(String title) {
+            this.title = title;
+        }
+
+        public void setPackageName(String packageName) {
+            this.packageName = packageName;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+
+            ScreenTitleAndPackage that = (ScreenTitleAndPackage) o;
+
+            if (!title.equalsIgnoreCase(that.title)) return false;
+            return packageName.equalsIgnoreCase(that.packageName);
+
+        }
+
+        @Override
+        public int hashCode() {
+            int result = title.hashCode();
+            result = 31 * result + packageName.hashCode();
+            return result;
+        }
+
+        public boolean isEmpty() {
+            return title.isEmpty() || packageName.isEmpty();
+        }
+    }
+
+    private SparseArray<ScreenTitleAndPackage> windowIdToScreenInfo;
+
 
     public FlatViewHierarchy(AccessibilityNodeInfo rootNode,
                              @Nullable AccessibilityEvent accessibilityEvent,
@@ -55,14 +100,14 @@ public class FlatViewHierarchy {
         this.viewDb = new SparseArray<>();
         this.textViewDb = new SparseArray<>();
         this.scrollableViews = new SparseArray<>();
-        this.lastViewIdsDb = new HashSet<>();
         this.accessibilityEventTrigger = accessibilityEvent;
         this.accessibilityEventSourceInfo = accessibilityEventSourceInfo;
         this.displayMetrics = displayMetrics;
-        this.lastScreenTitle = Utils.EMPTY_STRING;
-        this.lastPackageName = Utils.EMPTY_STRING;
-        this.firstEventAfterUpdatingScreen = false;
+        windowIdToScreenInfo = new SparseArray<>();
+        this.currentScreenInfo = new ScreenTitleAndPackage(Utils.EMPTY_STRING, Utils.EMPTY_STRING);
+        this.lastScreenInfo = new ScreenTitleAndPackage(Utils.EMPTY_STRING, Utils.EMPTY_STRING);
     }
+
 
     public void flatten() {
         if (rootNode == null) {
@@ -72,14 +117,7 @@ public class FlatViewHierarchy {
         rootNodeFlatView = addNode(rootNode);
         List<FlatView> nodeQueue = new LinkedList<>();
         nodeQueue.add(rootNodeFlatView);
-        if (Utils.nullOrEmpty(currentTitle)) {
-            currentTitle = Utils.findScreenTitleForNode(rootNode);
-        }
-        if (Utils.nullOrEmpty(currentPackageName)) {
-            currentPackageName = rootNode.getPackageName() != null ?
-                    rootNode.getPackageName().toString() : Utils.EMPTY_STRING;
-        }
-
+        currentScreenInfo = findAndUpdateScreenInfoFromRootNode(rootNode);
         while (!nodeQueue.isEmpty()) {
             FlatView flatView = nodeQueue.remove(0);
             addNode(flatView);
@@ -127,6 +165,21 @@ public class FlatViewHierarchy {
         return isParentOfTextViewChild;
     }
 
+    private ScreenTitleAndPackage findAndUpdateScreenInfoFromRootNode(AccessibilityNodeInfo rootNodeInfo) {
+        ScreenTitleAndPackage screenTitleAndPackage = null;
+        if (rootNodeInfo != null) {
+            screenTitleAndPackage = windowIdToScreenInfo.get(rootNodeInfo.getWindowId());
+            if (screenTitleAndPackage == null) {
+                //Not found, find it using traversal and update
+                String currentTitle = Utils.findScreenTitleForNode(rootNodeInfo);
+                String currentPackageName = rootNodeInfo.getPackageName() != null ? rootNodeInfo.getPackageName().toString() : Utils.EMPTY_STRING;
+                screenTitleAndPackage = new ScreenTitleAndPackage(currentTitle, currentPackageName);
+                windowIdToScreenInfo.append(rootNodeInfo.getWindowId(), screenTitleAndPackage);
+            }
+        }
+        return screenTitleAndPackage;
+    }
+
     public String toJson() {
         FlatViewHierarchySnapshot snapshot = new FlatViewHierarchySnapshot(viewDb,
                 displayMetrics.heightPixels, displayMetrics.widthPixels);
@@ -168,56 +221,58 @@ public class FlatViewHierarchy {
             }
         }
         //Set the title of the screen
-        renderingViewHierarchySnapshot.setRootTitle(currentTitle);
-        renderingViewHierarchySnapshot.setRootPackageName(currentPackageName);
+        renderingViewHierarchySnapshot.setRootTitle(currentScreenInfo.getTitle());
+        renderingViewHierarchySnapshot.setRootPackageName(currentScreenInfo.getPackageName());
 
         //Set the event which triggered it
         if (accessibilityEventTrigger != null) {
-//            String lastClassName = Utils.convertCharSeqToStringSafely(accessibilityEventTrigger.getClassName());
-//            String lastPackageName = Utils.convertCharSeqToStringSafely(accessibilityEventTrigger.getPackageName());
-//            String lastContentDescription = Utils.convertCharSeqToStringSafely(accessibilityEventTrigger.getContentDescription());
-//            String lastText = Utils.EMPTY_STRING;
-//            if (accessibilityEventTrigger.getText() != null && ! accessibilityEventTrigger.getText().isEmpty()) {
-//                lastText = Utils.convertCharSeqToStringSafely(accessibilityEventTrigger.getText().get(0));
-//            }
-            //RenderingView lastViewClicked = new RenderingView(lastClassName, lastPackageName, lastContentDescription, lastText);
             RenderingView lastViewClicked = getAccessibilityEventTriggerView(accessibilityEventTrigger, accessibilityEventSourceInfo);
             renderingViewHierarchySnapshot.setLastViewClicked(lastViewClicked);
             renderingViewHierarchySnapshot.setLastUIAction(AccessibilityEvent.eventTypeToString(accessibilityEventTrigger.getEventType()));
             Log.d("FVH", "Processing eventType: " + AccessibilityEvent.eventTypeToString(accessibilityEventTrigger.getEventType()));
-            renderingViewHierarchySnapshot.setLastScreenTitle(lastScreenTitle);
-            renderingViewHierarchySnapshot.setLastScreenPackageName(lastPackageName);
-//            if (accessibilityEventSourceInfo != null) {
-//
-//
-//                int sourceId = accessibilityEventSourceInfo.hashCode();
-//                String titleToSet = Utils.EMPTY_STRING;
-//                String packageNameToSet = Utils.EMPTY_STRING;
-//                if ((lastViewIdsDb != null && lastViewIdsDb.contains(sourceId)) || firstEventAfterUpdatingScreen) {
-//                    //this trigger is in the last screen, set title/package name accordingly
-//                    titleToSet = lastScreenTitle;
-//                    packageNameToSet = lastPackageName;
-//                } else {
-//                    Set<Integer> currentViewIdsSet = getViewIdsFromDb(viewDb);
-//                    if (currentViewIdsSet.contains(sourceId)) {
-//                        titleToSet = currentTitle;
-//                        packageNameToSet = currentPackageName;
-//                    }
-//                }
-//                Log.d("FVH", "title/package " + titleToSet + " " + packageNameToSet);
-//                renderingViewHierarchySnapshot.setLastScreenTitle(titleToSet);
-//                renderingViewHierarchySnapshot.setLastScreenPackageName(packageNameToSet);
-//                firstEventAfterUpdatingScreen = false;
-//            }
+            //Update last screen info
+            //Put a hack that puts in lastScreenInfo instead of event screen info for more options
+            //Use either packageName or
+            ScreenTitleAndPackage eventScreenInfo = null;
+            if (isSubSettingAndWindowStateChangedHack(accessibilityEventTrigger)) {
+                eventScreenInfo = lastScreenInfo;
+            } else {
+                eventScreenInfo = windowIdToScreenInfo.get(accessibilityEventTrigger.getWindowId());
+
+            }
+            if (eventScreenInfo != null) {
+                renderingViewHierarchySnapshot.setLastScreenTitle(eventScreenInfo.getTitle());
+                renderingViewHierarchySnapshot.setLastScreenPackageName(eventScreenInfo.getPackageName());
+            } else {
+                renderingViewHierarchySnapshot.setLastScreenTitle(Utils.EMPTY_STRING);
+                renderingViewHierarchySnapshot.setLastScreenPackageName(Utils.EMPTY_STRING);
+            }
         }
-
-//        else if (lastScreenTitleView != null) {
-//            renderingViewHierarchySnapshot.setLastScreenTitle(lastScreenTitleView.getText());
-//            renderingViewHierarchySnapshot.setLastScreenPackageName(lastScreenTitleView.getPackageName());
-//        }
-
-
+        String clickedText = renderingViewHierarchySnapshot.lastViewClicked != null &&
+                renderingViewHierarchySnapshot.lastViewClicked.getText() != null ?
+                renderingViewHierarchySnapshot.lastViewClicked.getText() : Utils.EMPTY_STRING;
+        Log.d(TAG, "JSONXX Sending to server, currentTitle: " +
+                renderingViewHierarchySnapshot.rootTitle +
+                " lastTitle: " +
+                renderingViewHierarchySnapshot.lastScreenTitle +
+                " action:" +
+                renderingViewHierarchySnapshot.lastUIAction +
+                " eventText" +
+                clickedText);
         return Utils.gson.toJson(renderingViewHierarchySnapshot);
+    }
+
+    private boolean isSubSettingAndWindowStateChangedHack(AccessibilityEvent accessibilityEvent) {
+        final String ANDROID_SUB_SETTING_CLASS = "com.android.settings.SubSettings";
+        if (accessibilityEvent == null) {
+            return false;
+        }
+        if (accessibilityEvent.getClassName() != null &&
+                accessibilityEvent.getClassName().toString().equalsIgnoreCase(ANDROID_SUB_SETTING_CLASS) &&
+                accessibilityEvent.getEventType() == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
+            return true;
+        }
+        return false;
     }
 
     private void recycleViewDb() {
@@ -256,7 +311,6 @@ public class FlatViewHierarchy {
         if (accessibilityEvent == null) {
             return null;
         }
-        String eventTypeString = AccessibilityEvent.eventTypeToString(accessibilityEvent.getEventType());
         String lastClassName = Utils.convertCharSeqToStringSafely(accessibilityEvent.getClassName());
         String lastPackageName = Utils.nullOrEmpty(overWritePackageName) ? Utils.convertCharSeqToStringSafely(accessibilityEvent.getPackageName()) : overWritePackageName;
         String lastContentDescription = Utils.convertCharSeqToStringSafely(accessibilityEvent.getContentDescription());
@@ -287,31 +341,23 @@ public class FlatViewHierarchy {
     public void update(AccessibilityNodeInfo newRootNode,
                        AccessibilityEvent accessibilityEvent,
                        AccessibilityNodeInfo accessibilityEventSourceInfo) {
-        if (newRootNode != null && rootNode != null && newRootNode.hashCode() != rootNode.hashCode()) {
-            String newScreenTitle = Utils.findScreenTitleForNode(newRootNode);
-            String newPackageName = newRootNode.getPackageName() != null ? newRootNode.getPackageName().toString() : Utils.EMPTY_STRING;
-            if ((!Utils.nullOrEmpty(newScreenTitle) && !newScreenTitle.equals(currentTitle)) ||
-                    (!Utils.nullOrEmpty(newPackageName) && !newPackageName.equals(currentPackageName))) {
-                Log.d("FVH", "updating last node since title changed from " + currentTitle + " -> " +
-                        newScreenTitle + " or pkg from " + currentPackageName + " -> " + newPackageName);
-                lastRootNodeId = rootNode.hashCode();
-                lastRootNodeId = rootNode.hashCode();
-                lastViewIdsDb = getViewIdsFromDb(viewDb);
-                lastScreenTitle = currentTitle;
-                lastPackageName = currentPackageName;
-                firstEventAfterUpdatingScreen = true;
+        if (newRootNode != null && rootNode != null && newRootNode.getWindowId() != rootNode.getWindowId()) {
+            ScreenTitleAndPackage newScreenInfo = findAndUpdateScreenInfoFromRootNode(newRootNode);
+            if (!newScreenInfo.isEmpty() && !newScreenInfo.equals(currentScreenInfo)) {
+                lastScreenInfo = currentScreenInfo;
+                Log.d("FVH", "updating last node since title changed from " + currentScreenInfo.toString() + " -> " + newScreenInfo.toString());
+                lastScreenInfo = currentScreenInfo;
             }
         }
         viewDb.clear();
         textViewDb.clear();
         scrollableViews.clear();
-        currentTitle = Utils.EMPTY_STRING;
-        currentPackageName = Utils.EMPTY_STRING;
         rootNode = newRootNode;
         accessibilityEventTrigger = accessibilityEvent;
         this.accessibilityEventSourceInfo = accessibilityEventSourceInfo;
     }
 
+    /*
     public boolean updateNew(AccessibilityNodeInfo newRootNode,
                           AccessibilityEvent accessibilityEvent,
                           AccessibilityNodeInfo accessibilityEventSourceInfo) {
@@ -366,7 +412,7 @@ public class FlatViewHierarchy {
         this.accessibilityEventSourceInfo = accessibilityEventSourceInfo;
         return true;
     }
-
+    */
 
     public FlatView getFlatViewFor(String viewId) {
         return viewDb.get(Integer.valueOf(viewId));
