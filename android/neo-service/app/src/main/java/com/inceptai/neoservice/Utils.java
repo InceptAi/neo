@@ -320,7 +320,8 @@ public class Utils {
             List<String> translatedWords = Utils.getWordsForAccessibilitySearch(word);
             //For matching both Wi-Fi and WiFi
             for (String translatedWord: translatedWords) {
-                matchingNodes.addAll(rootNodeInfo.findAccessibilityNodeInfosByText(translatedWord));
+                matchingNodes.addAll(searchAccessibilityNodeInfoByText(translatedWord, rootNodeInfo));
+                //matchingNodes.addAll(rootNodeInfo.findAccessibilityNodeInfosByText(translatedWord));
             }
             //matchingNodes.addAll(rootNodeInfo.findAccessibilityNodeInfosByText(translateWordForAccessibilitySearch(word)));
         }
