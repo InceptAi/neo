@@ -7,16 +7,20 @@ import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.graphics.Rect;
 import android.os.Build;
+import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.accessibility.AccessibilityNodeInfo;
 
+import com.google.common.collect.MinMaxPriorityQueue;
 import com.google.gson.Gson;
 import com.inceptai.neoservice.flatten.FlatViewUtils;
+import com.inceptai.neoservice.uiactions.model.ScreenInfo;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 
@@ -32,6 +36,8 @@ public class Utils {
     public static final String WIFI_SANITIZED = "wifi";
     public static final char WIFI_ACCESSIBILITY_HYPHEN = (char)8209;
     public static final String WIFI_ACCESSIBILITY = "Wi" + WIFI_ACCESSIBILITY_HYPHEN + "Fi";
+    public static final String SETTINGS_APP_NAME = "SETTINGS";
+    public static final String SETTINGS_PACKAGE_NAME = "com.android.settings";
 
 
     public static Gson gson = new Gson();
@@ -89,8 +95,20 @@ public class Utils {
         if (nodeInfo.getParent() == null) {
             return nodeInfo;
         }
+        //        try {
+//            if (nodeInfo.getParent() == null) {
+//                return nodeInfo;
+//            }
+//        } catch (IllegalStateException e) {
+//            Log.e(TAG, "Illegal state exception while trying to find the parent of root node");
+//            return null;
+//        }
+//
         return findRootNode(nodeInfo.getParent());
     }
+
+
+
 
     public static String findScreenTitleForNode(AccessibilityNodeInfo nodeInfo) {
         //Check for correct input
@@ -115,6 +133,91 @@ public class Utils {
 
         return screenTitleNodeInfo.getText().toString();
     }
+
+    public static ScreenInfo findScreenInfoForNode(AccessibilityNodeInfo nodeInfo, DisplayMetrics displayMetrics) {
+        final int MAX_VIEWS_FOR_SCREEN_INFO = 2;
+        MinMaxPriorityQueue<AccessibilityNodeInfo> bestNodesSoFar = MinMaxPriorityQueue.orderedBy(new AccessibilityNodeBoundsComparator())
+                .maximumSize(MAX_VIEWS_FOR_SCREEN_INFO)
+                .create();
+
+        //Check for correct input
+        if (nodeInfo == null) {
+            return new ScreenInfo();
+        }
+
+        //Check for root node
+        AccessibilityNodeInfo rootNodeInfo = findRootNode(nodeInfo);
+        if (rootNodeInfo == null) {
+            return new ScreenInfo();
+        }
+
+        findTopNTextView(rootNodeInfo, bestNodesSoFar);
+
+        AccessibilityNodeInfo topMostTextView = null;
+        AccessibilityNodeInfo secondTopMostTextView = null;
+        if (bestNodesSoFar.size() > 0) {
+            topMostTextView = bestNodesSoFar.removeFirst();
+        }
+        if (bestNodesSoFar.size() > 0) {
+            secondTopMostTextView = bestNodesSoFar.removeFirst();
+        }
+
+        ScreenInfo screenInfo = new ScreenInfo();
+        if (topMostTextView != null) {
+            screenInfo.setTitle(topMostTextView.getText().toString());
+        }
+        if (secondTopMostTextView != null) {
+            screenInfo.setSubTitle(secondTopMostTextView.getText().toString());
+        }
+
+        if (rootNodeInfo.getPackageName() != null) {
+            screenInfo.setPackageName(rootNodeInfo.getPackageName().toString());
+        }
+
+        screenInfo.setScreenType(isFullScreenNode(rootNodeInfo, displayMetrics));
+        return screenInfo;
+    }
+
+    public static boolean isFullScreenNode(AccessibilityNodeInfo nodeInfo, @NonNull DisplayMetrics displayMetrics) {
+        AccessibilityNodeInfo rootNodeInfo = Utils.findRootNode(nodeInfo);
+        if (rootNodeInfo == null) {
+            return false;
+        }
+        final double MIN_SIZE_FRACTION_FOR_FULL_SCREEN = 0.7;
+        Rect rootNodeBounds = new Rect();
+        rootNodeInfo.getBoundsInScreen(rootNodeBounds);
+        int currentRootHeight = rootNodeBounds.height();
+        int currentRootWidth = rootNodeBounds.width();
+        int nodeSize = currentRootWidth * currentRootHeight;
+        int totalSize =  displayMetrics.widthPixels * displayMetrics.heightPixels;
+        double fraction = (double) nodeSize / (double) totalSize;
+        return fraction > MIN_SIZE_FRACTION_FOR_FULL_SCREEN;
+    }
+
+    public static boolean matchScreenWithRootNode(String screenTitle,
+                                                  String screenSubTitle,
+                                                  String screenPackageName,
+                                                  AccessibilityNodeInfo nodeInfo,
+                                                  boolean checkSubtitle) {
+        AccessibilityNodeInfo titleTextView = findUIElement(
+                FlatViewUtils.TEXT_VIEW_CLASSNAME,
+                screenPackageName,
+                Arrays.asList(screenTitle.split(" ")),
+                nodeInfo,
+                false);
+        boolean found = titleTextView != null;
+        if (found && checkSubtitle) {
+            AccessibilityNodeInfo subTitleTextView = findUIElement(
+                    FlatViewUtils.TEXT_VIEW_CLASSNAME,
+                    screenPackageName,
+                    Arrays.asList(screenSubTitle.split(" ")),
+                    nodeInfo,
+                    false);
+            found = subTitleTextView != null;
+        }
+        return found;
+    }
+
 
     public static boolean matchScreenWithRootNode(String screenTitle,
                                                   String screenPackageName,
@@ -161,6 +264,51 @@ public class Utils {
         return word;
     }
 
+    private static List<String> getWordsForAccessibilitySearch(String word) {
+        if (Utils.nullOrEmpty(word)) {
+            return new ArrayList<>();
+        }
+
+        List<String> wordList = new ArrayList<>();
+        wordList.add(word);
+
+        if (word.equalsIgnoreCase(WIFI_SANITIZED)) {
+            wordList.add(WIFI_ACCESSIBILITY);
+        }
+
+        return wordList;
+    }
+
+    public static String sanitizeText(String input) {
+        if (nullOrEmpty(input)) {
+            return input;
+        }
+        return input.replaceAll("[^\\w\\s]","").trim().toLowerCase();
+    }
+
+    private static List<AccessibilityNodeInfo> searchAccessibilityNodeInfoByText(String inputText, AccessibilityNodeInfo accessibilityNodeInfo) {
+        if (accessibilityNodeInfo == null) {
+            return new ArrayList<>();
+        }
+        List<AccessibilityNodeInfo> accessibilityNodeInfoList = new ArrayList<>();
+        String nodeText = Utils.EMPTY_STRING;
+        if (accessibilityNodeInfo.getText() != null) {
+            nodeText += nodeText + accessibilityNodeInfo.getText().toString() + " ";
+        }
+        if (accessibilityNodeInfo.getContentDescription() != null) {
+            nodeText += nodeText + accessibilityNodeInfo.getContentDescription().toString();
+        }
+        nodeText = sanitizeText(nodeText);
+        inputText = sanitizeText(inputText);
+        if (nodeText.contains(inputText)) {
+            accessibilityNodeInfoList.add(accessibilityNodeInfo);
+        }
+        for (int childIndex=0; childIndex < accessibilityNodeInfo.getChildCount(); childIndex++) {
+            accessibilityNodeInfoList.addAll(searchAccessibilityNodeInfoByText(inputText, accessibilityNodeInfo.getChild(childIndex)));
+        }
+        return accessibilityNodeInfoList;
+    }
+
     private static HashMap<String, AccessibilityNodeInfo> searchForKeyword(String keyWord,
                                                                            String matchingClassName,
                                                                            AccessibilityNodeInfo rootNodeInfo,
@@ -169,7 +317,12 @@ public class Utils {
         List<AccessibilityNodeInfo> matchingNodes = new ArrayList<>();
         List<String> wordsToMatch = Arrays.asList(keyWord.split(MULTIPLE_WORD_MATCH_DELIMITER));
         for (String word: wordsToMatch) {
-            matchingNodes.addAll(rootNodeInfo.findAccessibilityNodeInfosByText(translateWordForAccessibilitySearch(word)));
+            List<String> translatedWords = Utils.getWordsForAccessibilitySearch(word);
+            //For matching both Wi-Fi and WiFi
+            for (String translatedWord: translatedWords) {
+                matchingNodes.addAll(rootNodeInfo.findAccessibilityNodeInfosByText(translatedWord));
+            }
+            //matchingNodes.addAll(rootNodeInfo.findAccessibilityNodeInfosByText(translateWordForAccessibilitySearch(word)));
         }
         HashMap<String, AccessibilityNodeInfo> nodesWithKeyWord = new HashMap<>();
         for (AccessibilityNodeInfo currentNode: matchingNodes) {
@@ -200,6 +353,7 @@ public class Utils {
         if (keyWords == null || nodeInfo == null) {
             return null;
         }
+        //TODO: FIX this -- search should begin at root node
         HashMap<String, AccessibilityNodeInfo> candidateNodes = new HashMap<>();
         List<AccessibilityNodeInfo> accessibilityNodeInfoListToSearch = new ArrayList<>();
         accessibilityNodeInfoListToSearch.add(nodeInfo);
@@ -220,24 +374,46 @@ public class Utils {
             }
         } else if (candidateNodes.size() > 1) {
             //Find the best matching one, match the keywords string sorted with the node string
-            int maxCount = 0;
+            double bestMatchingMetric = 0;
             AccessibilityNodeInfo accessibilityNodeInfoToReturn = null;
             for (AccessibilityNodeInfo finalMatchInfo: candidateNodes.values()) {
                 //Find the string for this node -- text + child text -- sorted and separated by spaces
-                int matchingCount  = getMatchingWordCount(keyWords, finalMatchInfo);
-                if (matchingCount > maxCount) {
+                double matchingMetric = getMatchingMetric(keyWords, finalMatchInfo);
+                if (matchingMetric > bestMatchingMetric) {
                     accessibilityNodeInfoToReturn = finalMatchInfo;
-                    maxCount = matchingCount;
+                    bestMatchingMetric = matchingMetric;
                 }
             }
             return accessibilityNodeInfoToReturn;
         }
+//
+//        else if (candidateNodes.size() > 1) {
+//            //Find the best matching one, match the keywords string sorted with the node string
+//            //int maxCount = 0;
+//            double bestMatchingMetric = 0;
+//            AccessibilityNodeInfo accessibilityNodeInfoToReturn = null;
+//            for (AccessibilityNodeInfo finalMatchInfo: candidateNodes.values()) {
+//                //Find the string for this node -- text + child text -- sorted and separated by spaces
+//                double matchingMetric = getMatchingMetric(keyWords, finalMatchInfo);
+//                int matchingCount  = getMatchingWordCount(keyWords, finalMatchInfo);
+//                if (matchingCount > maxCount) {
+//                    accessibilityNodeInfoToReturn = finalMatchInfo;
+//                    maxCount = matchingCount;
+//                }
+//            }
+//            return accessibilityNodeInfoToReturn;
+//        }
         return null;
     }
 
     private static int getMatchingWordCount(List<String> wordList, AccessibilityNodeInfo nodeInfo) {
         List<String> wordListForNode = getWordsForNodeInfo(nodeInfo);
         return getMatchingWordCount(wordList, wordListForNode);
+    }
+
+    private static double getMatchingMetric(List<String> wordList, AccessibilityNodeInfo nodeInfo) {
+        List<String> wordListForNode = getWordsForNodeInfo(nodeInfo);
+        return getMatchingMetric(wordList, wordListForNode);
     }
 
     private static int getMatchingWordCount(AccessibilityNodeInfo nodeInfo1, AccessibilityNodeInfo nodeInfo2) {
@@ -254,12 +430,25 @@ public class Utils {
         if (accessibilityNodeInfo.getText() != null) {
             wordList.addAll(Arrays.asList(accessibilityNodeInfo.getText().toString().split(" ")));
         }
+        if (accessibilityNodeInfo.getContentDescription() != null) {
+            wordList.addAll(Arrays.asList(accessibilityNodeInfo.getContentDescription().toString().split(" ")));
+        }
         for (int childIndex = 0; childIndex < accessibilityNodeInfo.getChildCount(); childIndex++) {
             AccessibilityNodeInfo childInfo = accessibilityNodeInfo.getChild(childIndex);
             wordList.addAll(getWordsForNodeInfo(childInfo));
         }
         return wordList;
     }
+
+    public static double getMatchingMetric(List<String> inputList1, List<String> inputList2) {
+        if (inputList1 == null || inputList1.isEmpty() || inputList2 == null || inputList2.isEmpty()) {
+            return 0;
+        }
+        //Break input text into words, and see how many words occur in reference text
+        int matchingCount = getMatchingWordCount(inputList1, inputList2);
+        return (double)matchingCount / (inputList1.size() + inputList2.size());
+    }
+
 
     private static int getMatchingWordCount(List<String> inputList1, List<String> inputList2) {
         if (inputList1 == null || inputList2 == null) {
@@ -295,6 +484,7 @@ public class Utils {
         return matchingCount;
     }
 
+
     private static AccessibilityNodeInfo getTopLeftNode(AccessibilityNodeInfo nodeInfo1, AccessibilityNodeInfo nodeInfo2) {
         if (nodeInfo1 == null && nodeInfo2 == null) {
             return null;
@@ -303,32 +493,75 @@ public class Utils {
         } else if (nodeInfo2 == null) {
             return nodeInfo1;
         }
-
         Rect bounds1 = new Rect();
         Rect bounds2 = new Rect();
         nodeInfo1.getBoundsInScreen(bounds1);
         nodeInfo2.getBoundsInScreen(bounds2);
-        if (bounds1.top < bounds2.top) {
+        int comparisonResult = compareBounds(bounds1, bounds2);
+        if (comparisonResult < 0) {
             return nodeInfo1;
-        } else if (bounds1.top > bounds2.top) {
-            return nodeInfo2;
-        } else if (bounds1.left < bounds2.left) {
-            return nodeInfo1;
-        } else if (bounds1.left > bounds2.left) {
-            return nodeInfo2;
-        } else if (bounds1.centerY() < bounds2.centerY()) {
-            return nodeInfo1;
-        } else if (bounds1.centerY() > bounds2.centerY()) {
-            return nodeInfo2;
-        } else if (bounds1.centerX() < bounds2.centerX()) {
-            return nodeInfo1;
-        } else if (bounds1.centerX() > bounds2.centerX()) {
+        } else if (comparisonResult > 0) {
             return nodeInfo2;
         } else {
-            //both are equal, return the current best
             return nodeInfo1;
         }
     }
+
+    private static int compareBounds(Rect bounds1, Rect bounds2) {
+        //0 if equal
+        //-1 if bound1 < bound2
+        //1 if bound1 > bound2
+        int bounds1Smaller = -1;
+        int bounds2Smaller = 1;
+        int boundsEqual = 0;
+        if (bounds1.top < bounds2.top) {
+            return bounds1Smaller;
+        } else if (bounds1.top > bounds2.top) {
+            return bounds2Smaller;
+        } else if (bounds1.left < bounds2.left) {
+            return bounds1Smaller;
+        } else if (bounds1.left > bounds2.left) {
+            return bounds2Smaller;
+        } else if (bounds1.centerY() < bounds2.centerY()) {
+            return bounds1Smaller;
+        } else if (bounds1.centerY() > bounds2.centerY()) {
+            return bounds2Smaller;
+        } else if (bounds1.centerX() < bounds2.centerX()) {
+            return bounds1Smaller;
+        } else if (bounds1.centerX() > bounds2.centerX()) {
+            return bounds2Smaller;
+        } else {
+            //both are equal, return the current best
+            return boundsEqual;
+        }
+    }
+
+    private static void findTopNTextView(AccessibilityNodeInfo accessibilityNodeInfo,
+                                         MinMaxPriorityQueue<AccessibilityNodeInfo> bestNodesSoFar) {
+
+
+        if (accessibilityNodeInfo == null) {
+            return;
+        }
+
+        int sizeBestNodes = bestNodesSoFar.size();
+
+        if (accessibilityNodeInfo.getClassName() != null &&
+                accessibilityNodeInfo.getClassName().equals(FlatViewUtils.TEXT_VIEW_CLASSNAME) &&
+                accessibilityNodeInfo.getText() != null &&
+                !accessibilityNodeInfo.getText().toString().equals(Utils.EMPTY_STRING)) {
+            Log.d(TAG, "subsettingXX found textview with bounds: " + accessibilityNodeInfo.toString());
+            bestNodesSoFar.add(accessibilityNodeInfo);
+            if (bestNodesSoFar.size() != sizeBestNodes) {
+                Log.d(TAG, "subsettingXX adding to best node: " + accessibilityNodeInfo.toString());
+            }
+        }
+
+        for (int childIndex=0; childIndex < accessibilityNodeInfo.getChildCount(); childIndex++) {
+           findTopNTextView(accessibilityNodeInfo.getChild(childIndex), bestNodesSoFar);
+        }
+    }
+
     public static AccessibilityNodeInfo findTopMostTextView(AccessibilityNodeInfo accessibilityNodeInfo,
                                                             @Nullable AccessibilityNodeInfo bestNodeSoFar) {
         if (accessibilityNodeInfo == null) {
@@ -387,12 +620,12 @@ public class Utils {
                         FlatViewUtils.CHECKED_TEXT_VIEW_CLASS_NAME), false);
         if (switchNodeInfo != null) {
             //Found switch element. //Check its state based on input textToMatch
-            if (textToMatch.equalsIgnoreCase(FlatViewUtils.ON_TEXT)) {
-                return switchNodeInfo.isEnabled() && switchNodeInfo.isChecked();
-            } else {
+            if (textToMatch.equalsIgnoreCase(FlatViewUtils.OFF_TEXT)) {
                 return !switchNodeInfo.isChecked();
+            } else {
+                return switchNodeInfo.isEnabled() && switchNodeInfo.isChecked();
             }
-        }
+       }
         //Non switch nodes -- TODO handle non switch elements like SEEK, EDIT TEXT etc.
         return false;
     }
@@ -464,6 +697,21 @@ public class Utils {
         return phoneInfo;
     }
 
+    public static String findPackageNameForApp(Context context, String appName) {
+        final PackageManager pm = context.getPackageManager();
+        List<ApplicationInfo> packages = pm.getInstalledApplications(PackageManager.GET_META_DATA);
+        for (ApplicationInfo packageInfo : packages) {
+            Log.d(TAG, "Installed package :" + packageInfo.packageName);
+            Log.d(TAG, "Source dir : " + packageInfo.sourceDir);
+            Log.d(TAG, "Launch Activity :" + pm.getLaunchIntentForPackage(packageInfo.packageName));
+            if (packageInfo.packageName.toLowerCase().contains(appName.toLowerCase())) {
+                //Found the app
+                return packageInfo.packageName;
+            }
+        }
+        return Utils.EMPTY_STRING;
+    }
+
     public static boolean searchAndLaunchApp(Context context, String appName) {
         final PackageManager pm = context.getPackageManager();
         List<ApplicationInfo> packages = pm.getInstalledApplications(PackageManager.GET_META_DATA);
@@ -486,11 +734,13 @@ public class Utils {
         context.startActivity(launchIntentForPackage);
     }
 
-    public static void launchAppIfInstalled(Context context, String packageName) {
+    public static boolean launchAppIfInstalled(Context context, String packageName) {
         boolean isInstalled = isAppInstalled(context, packageName);
         if (isInstalled) {
            launchApp(context, packageName);
+            return true;
         }
+        return false;
     }
 
     private static boolean isAppInstalled(Context context, String packageName) {
@@ -500,6 +750,28 @@ public class Utils {
         }
         catch (PackageManager.NameNotFoundException e) {
             return false;
+        }
+    }
+
+    public static class AccessibilityNodeBoundsComparator implements Comparator<AccessibilityNodeInfo> {
+        @Override
+        public int compare(AccessibilityNodeInfo nodeInfo1, AccessibilityNodeInfo nodeInfo2) {
+            //0 if equal
+            //-1 if nodeInfo1 is smaller
+            //1 if nodeInfo2 is smaller
+            if (nodeInfo1 == null && nodeInfo2 == null) {
+                return 0;
+            } else if (nodeInfo1 == null) {
+                return 1;
+            } else if (nodeInfo2 == null) {
+                return -1;
+            } else {
+                Rect bounds1 = new Rect();
+                Rect bounds2 = new Rect();
+                nodeInfo1.getBoundsInScreen(bounds1);
+                nodeInfo2.getBoundsInScreen(bounds2);
+                return compareBounds(bounds1, bounds2);
+            }
         }
     }
 

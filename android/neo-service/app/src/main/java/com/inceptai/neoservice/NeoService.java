@@ -94,9 +94,9 @@ public class NeoService implements NeoUiActionsService.UiActionsServiceCallback 
         return isNeoUiActionsServiceAvailable() && neoUiActionsServiceWeakReference.get().isServiceRunning();
     }
 
-    public void fetchUIActions(String query) {
+    public void fetchUIActions(String query, String appName) {
         if(isNeoUiActionsServiceAvailable()) {
-            neoUiActionsServiceWeakReference.get().fetchUIActions(query);
+            neoUiActionsServiceWeakReference.get().fetchUIActions(query, appName);
         }
     }
 

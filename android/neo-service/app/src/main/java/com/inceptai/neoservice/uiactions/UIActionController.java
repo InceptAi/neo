@@ -56,7 +56,40 @@ public class UIActionController implements Callback<ActionResponse> {
         uiActionsAPI = retrofit.create(UIActionsAPI.class);
     }
 
-    public void fetchUIActions(String query) {
+    public void fetchUIActionsForSettings(String query) {
+        if (requestInFlight) {
+            return;
+        }
+        Call<ActionResponse> call;
+        if (!Utils.nullOrEmpty(query)) {
+            if (deviceInfo != null && !Utils.nullOrEmpty(deviceInfo.toString())) {
+                call = uiActionsAPI.getUIActionsForDeviceAndQuery(deviceInfo.toString(), query);
+            } else {
+                call = uiActionsAPI.getUIActionsForQuery(query);
+            }
+        }  else {
+            call = uiActionsAPI.getAllUIActions();
+        }
+        call.enqueue(this);
+        requestInFlight = true;
+    }
+
+    public void fetchUIActionsForApps(String packageName, String startingScreenTitle, String query) {
+        if (requestInFlight) {
+            return;
+        }
+        Call<ActionResponse> call;
+        if (!Utils.nullOrEmpty(query) && !Utils.nullOrEmpty(startingScreenTitle)) {
+            HashMap<String, String> options  = new HashMap<>();
+            options.put("query", query);
+            options.put("title", startingScreenTitle);
+            call = uiActionsAPI.getUIAppActionsForQuery(packageName, options);
+            call.enqueue(this);
+            requestInFlight = true;
+        }
+    }
+
+    public void fetchUIActions(String query, String packageName, String startingScreenTitle) {
         if (requestInFlight) {
             return;
         }

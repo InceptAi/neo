@@ -8,6 +8,7 @@ import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
 
 import com.inceptai.neoservice.Utils;
+import com.inceptai.neoservice.uiactions.model.ScreenInfo;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -20,6 +21,7 @@ import java.util.Set;
 
 import static android.content.ContentValues.TAG;
 import static com.inceptai.neoservice.Utils.EMPTY_STRING;
+import static com.inceptai.neoservice.uiactions.model.ScreenInfo.UNDEFINED_SCREEN_MODE;
 
 /**
  * Created by arunesh on 6/30/17.
@@ -28,69 +30,24 @@ import static com.inceptai.neoservice.Utils.EMPTY_STRING;
 public class FlatViewHierarchy {
     private static final boolean SHOULD_SEND_LAST_DIFFERENT_SCREEN_TITLE_ALWAYS = false;
 
+
     private AccessibilityNodeInfo rootNode;
     private FlatView rootNodeFlatView;
-    private ScreenTitleAndPackage currentScreenInfo;
-    private ScreenTitleAndPackage lastScreenInfo;
+    private ScreenInfo currentScreenInfo;
+    private ScreenInfo lastScreenInfo;
 
 
     private SparseArray<FlatView> viewDb;
     private DisplayMetrics displayMetrics;
     private SparseArray<FlatView> textViewDb;
     private SparseArray<FlatView> scrollableViews;
-
+    private HashMap<String, ScreenInfo> appPackageNameToLatestScreenInfo;
     private AccessibilityEvent accessibilityEventTrigger;
     private AccessibilityNodeInfo accessibilityEventSourceInfo;
 
-    private class ScreenTitleAndPackage {
-        private String title;
-        private String packageName;
-        ScreenTitleAndPackage(String title, String packageName) {
-            this.title = title;
-            this.packageName = packageName;
-        }
 
-        public String getTitle() {
-            return title;
-        }
 
-        public String getPackageName() {
-            return packageName;
-        }
-
-        public void setTitle(String title) {
-            this.title = title;
-        }
-
-        public void setPackageName(String packageName) {
-            this.packageName = packageName;
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-
-            ScreenTitleAndPackage that = (ScreenTitleAndPackage) o;
-
-            if (!title.equalsIgnoreCase(that.title)) return false;
-            return packageName.equalsIgnoreCase(that.packageName);
-
-        }
-
-        @Override
-        public int hashCode() {
-            int result = title.hashCode();
-            result = 31 * result + packageName.hashCode();
-            return result;
-        }
-
-        public boolean isEmpty() {
-            return title.isEmpty() || packageName.isEmpty();
-        }
-    }
-
-    private SparseArray<ScreenTitleAndPackage> windowIdToScreenInfo;
+    private SparseArray<ScreenInfo> windowIdToScreenInfo;
 
 
     public FlatViewHierarchy(AccessibilityNodeInfo rootNode,
@@ -105,8 +62,9 @@ public class FlatViewHierarchy {
         this.accessibilityEventSourceInfo = accessibilityEventSourceInfo;
         this.displayMetrics = displayMetrics;
         windowIdToScreenInfo = new SparseArray<>();
-        this.currentScreenInfo = new ScreenTitleAndPackage(Utils.EMPTY_STRING, Utils.EMPTY_STRING);
-        this.lastScreenInfo = new ScreenTitleAndPackage(Utils.EMPTY_STRING, Utils.EMPTY_STRING);
+        appPackageNameToLatestScreenInfo = new HashMap<>();
+        this.currentScreenInfo = new ScreenInfo();
+        this.lastScreenInfo = new ScreenInfo();
     }
 
 
@@ -137,6 +95,10 @@ public class FlatViewHierarchy {
         }
     }
 
+    public ScreenInfo findLatestScreenInfoForPackageName(String appPackageName) {
+        return appPackageNameToLatestScreenInfo.get(appPackageName);
+    }
+
     private boolean traverseChildrenFor(FlatView parentFlatView, List<FlatView> queue) {
         AccessibilityNodeInfo nodeInfo = parentFlatView.getNodeInfo();
         //AccessibilityNodeInfo.RangeInfo parentRangeInfo = nodeInfo.getRangeInfo();
@@ -153,6 +115,27 @@ public class FlatViewHierarchy {
             AccessibilityNodeInfo childInfo = nodeInfo.getChild(i);
             //AccessibilityNodeInfo.RangeInfo chileRangeInfo = childInfo.getRangeInfo();
             if (childInfo != null) {
+                //TODO: Remove this hack test
+//                if (childInfo.getClassName() != null && childInfo.getClassName().equals(FlatViewUtils.SWITCH_CLASSNAME)) {
+//                    //We are in a switch, must have test associated with it
+//                    Log.d(TAG, "In class: " + childInfo.getClassName() + " with text: " + (childInfo.getText() != null ?  childInfo.getText().toString() : Utils.EMPTY_STRING));
+//                    List<AccessibilityNodeInfo> matchingChildInfos = childInfo.findAccessibilityNodeInfosByText("OFF");
+//                    if (matchingChildInfos != null && ! matchingChildInfos.isEmpty()) {
+//                        Log.d(TAG, "HACK Found matches of off in switch text");
+//                    }
+//                    matchingChildInfos = childInfo.findAccessibilityNodeInfosByText("ON");
+//                    if (matchingChildInfos != null && ! matchingChildInfos.isEmpty()) {
+//                        Log.d(TAG, "HACK Found matches of on in switch text");
+//                    }
+//                }
+//                if (childInfo.getClassName() != null && childInfo.getClassName().equals(FlatViewUtils.IMAGE_CLASSNAME)) {
+//                    //We are in a switch, must have test associated with it
+//                    Log.d(TAG, "In class: " + childInfo.getClassName() + " with text: " + (childInfo.getText() != null ?  childInfo.getText().toString() : Utils.EMPTY_STRING));
+//                    List<AccessibilityNodeInfo> matchingChildInfos = childInfo.findAccessibilityNodeInfosByText("more options");
+//                    if (matchingChildInfos != null && ! matchingChildInfos.isEmpty()) {
+//                        Log.d(TAG, "HACK Found matches of off in switch text");
+//                    }
+//                }
                 FlatView childFlatView = new FlatView(childInfo);
                 queue.add(childFlatView);
                 parentFlatView.addChild(childFlatView.getHashKey());
@@ -166,19 +149,17 @@ public class FlatViewHierarchy {
         return isParentOfTextViewChild;
     }
 
-    private ScreenTitleAndPackage findAndUpdateScreenInfoFromRootNode(AccessibilityNodeInfo rootNodeInfo) {
-        ScreenTitleAndPackage screenTitleAndPackage = null;
+    private ScreenInfo findAndUpdateScreenInfoFromRootNode(AccessibilityNodeInfo rootNodeInfo) {
+        ScreenInfo screenInfo = null;
         if (rootNodeInfo != null) {
-            screenTitleAndPackage = windowIdToScreenInfo.get(rootNodeInfo.getWindowId());
-            if (screenTitleAndPackage == null) {
+            screenInfo = windowIdToScreenInfo.get(rootNodeInfo.getWindowId());
+            if (screenInfo == null) {
                 //Not found, find it using traversal and update
-                String currentTitle = Utils.findScreenTitleForNode(rootNodeInfo);
-                String currentPackageName = rootNodeInfo.getPackageName() != null ? rootNodeInfo.getPackageName().toString() : Utils.EMPTY_STRING;
-                screenTitleAndPackage = new ScreenTitleAndPackage(currentTitle, currentPackageName);
-                windowIdToScreenInfo.append(rootNodeInfo.getWindowId(), screenTitleAndPackage);
+                screenInfo = Utils.findScreenInfoForNode(rootNodeInfo, displayMetrics);
+                windowIdToScreenInfo.append(rootNodeInfo.getWindowId(), screenInfo);
             }
         }
-        return screenTitleAndPackage;
+        return screenInfo;
     }
 
     public String toJson() {
@@ -207,7 +188,8 @@ public class FlatViewHierarchy {
     public String toRenderingJson() {
         int numViews = viewDb.size();
         RenderingViewHierarchySnapshot renderingViewHierarchySnapshot =
-                new RenderingViewHierarchySnapshot(Utils.convertPixelsToDp(displayMetrics.widthPixels, displayMetrics),
+                new RenderingViewHierarchySnapshot(
+                        Utils.convertPixelsToDp(displayMetrics.widthPixels, displayMetrics),
                         Utils.convertPixelsToDp(displayMetrics.heightPixels, displayMetrics));
         for (int i = 0; i < numViews; i ++) {
             FlatView flatView = viewDb.valueAt(i);
@@ -223,7 +205,10 @@ public class FlatViewHierarchy {
         }
         //Set the title of the screen
         renderingViewHierarchySnapshot.setRootTitle(currentScreenInfo.getTitle());
+        renderingViewHierarchySnapshot.setRootSubTitle(currentScreenInfo.getSubTitle());
         renderingViewHierarchySnapshot.setRootPackageName(currentScreenInfo.getPackageName());
+        renderingViewHierarchySnapshot.setCurrentScreenType(currentScreenInfo.getScreenType());
+
 
         //Set the event which triggered it
         if (accessibilityEventTrigger != null) {
@@ -234,28 +219,37 @@ public class FlatViewHierarchy {
             //Update last screen info
             //Put a hack that puts in lastScreenInfo instead of event screen info for more options
             //Use either packageName or
-            ScreenTitleAndPackage eventScreenInfo;
-            if (SHOULD_SEND_LAST_DIFFERENT_SCREEN_TITLE_ALWAYS || isSubSettingAndWindowStateChangedHack(accessibilityEventTrigger)) {
-                eventScreenInfo = lastScreenInfo;
+            ScreenInfo eventScreenInfo;
+            if (SHOULD_SEND_LAST_DIFFERENT_SCREEN_TITLE_ALWAYS || isWindowStateChangedHack(accessibilityEventTrigger)) {
+            //if (SHOULD_SEND_LAST_DIFFERENT_SCREEN_TITLE_ALWAYS || isSubSettingAndWindowStateChangedHack(accessibilityEventTrigger)) {
+                    eventScreenInfo = lastScreenInfo;
             } else {
                 eventScreenInfo = windowIdToScreenInfo.get(accessibilityEventTrigger.getWindowId());
-
             }
-            if (eventScreenInfo != null) {
-                renderingViewHierarchySnapshot.setLastScreenTitle(eventScreenInfo.getTitle());
-                renderingViewHierarchySnapshot.setLastScreenPackageName(eventScreenInfo.getPackageName());
-            } else {
-                renderingViewHierarchySnapshot.setLastScreenTitle(Utils.EMPTY_STRING);
-                renderingViewHierarchySnapshot.setLastScreenPackageName(Utils.EMPTY_STRING);
+            if (eventScreenInfo == null) {
+                eventScreenInfo = new ScreenInfo();
             }
+            renderingViewHierarchySnapshot.setLastScreenTitle(eventScreenInfo.getTitle());
+            renderingViewHierarchySnapshot.setLastScreenSubTitle(eventScreenInfo.getSubTitle());
+            renderingViewHierarchySnapshot.setLastScreenPackageName(eventScreenInfo.getPackageName());
+            renderingViewHierarchySnapshot.setLastScreenType(eventScreenInfo.getScreenType());
         }
+
         String clickedText = renderingViewHierarchySnapshot.lastViewClicked != null &&
                 renderingViewHierarchySnapshot.lastViewClicked.getText() != null ?
                 renderingViewHierarchySnapshot.lastViewClicked.getText() : Utils.EMPTY_STRING;
         Log.d(TAG, "JSONXX Sending to server, currentTitle: " +
                 renderingViewHierarchySnapshot.rootTitle +
+                " current subTitle:" +
+                renderingViewHierarchySnapshot.rootSubTitle +
+                " current screenType:" +
+                renderingViewHierarchySnapshot.currentScreenType +
                 " lastTitle: " +
                 renderingViewHierarchySnapshot.lastScreenTitle +
+                " last subTitle:" +
+                renderingViewHierarchySnapshot.lastScreenSubTitle +
+                " last screenType:" +
+                renderingViewHierarchySnapshot.lastScreenType +
                 " action:" +
                 renderingViewHierarchySnapshot.lastUIAction +
                 " eventText" +
@@ -270,6 +264,17 @@ public class FlatViewHierarchy {
         }
         if (accessibilityEvent.getClassName() != null &&
                 accessibilityEvent.getClassName().toString().equalsIgnoreCase(ANDROID_SUB_SETTING_CLASS) &&
+                accessibilityEvent.getEventType() == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
+            return true;
+        }
+        return false;
+    }
+
+    private boolean isWindowStateChangedHack(AccessibilityEvent accessibilityEvent) {
+        if (accessibilityEvent == null) {
+            return false;
+        }
+        if (accessibilityEvent.getClassName() != null &&
                 accessibilityEvent.getEventType() == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
             return true;
         }
@@ -343,11 +348,12 @@ public class FlatViewHierarchy {
                        AccessibilityEvent accessibilityEvent,
                        AccessibilityNodeInfo accessibilityEventSourceInfo) {
         if (newRootNode != null && rootNode != null && newRootNode.getWindowId() != rootNode.getWindowId()) {
-            ScreenTitleAndPackage newScreenInfo = findAndUpdateScreenInfoFromRootNode(newRootNode);
+            //TODO update current screen info here to prevent two traversals
+            ScreenInfo newScreenInfo = findAndUpdateScreenInfoFromRootNode(newRootNode);
             if (!newScreenInfo.isEmpty() && !newScreenInfo.equals(currentScreenInfo)) {
+                Log.d("FVH", "JSONXX updating last node since title changed from " + currentScreenInfo.toString() + " -> " + newScreenInfo.toString());
                 lastScreenInfo = currentScreenInfo;
-                Log.d("FVH", "updating last node since title changed from " + currentScreenInfo.toString() + " -> " + newScreenInfo.toString());
-                lastScreenInfo = currentScreenInfo;
+                appPackageNameToLatestScreenInfo.put(newScreenInfo.getPackageName(), newScreenInfo);
             }
         }
         viewDb.clear();
@@ -358,62 +364,6 @@ public class FlatViewHierarchy {
         this.accessibilityEventSourceInfo = accessibilityEventSourceInfo;
     }
 
-    /*
-    public boolean updateNew(AccessibilityNodeInfo newRootNode,
-                          AccessibilityEvent accessibilityEvent,
-                          AccessibilityNodeInfo accessibilityEventSourceInfo) {
-        if (accessibilityEvent == null || newRootNode == null || rootNode == null) {
-            return false;
-        }
-
-        int accessibilityEventType = accessibilityEvent.getEventType();
-        String newScreenTitle = Utils.findScreenTitleForNode(newRootNode);
-        String newPackageName = newRootNode.getPackageName() != null ? newRootNode.getPackageName().toString() : Utils.EMPTY_STRING;
-        switch (accessibilityEventType) {
-            case AccessibilityEvent.TYPE_VIEW_CLICKED:
-            case AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED:
-            case AccessibilityEvent.TYPE_VIEW_LONG_CLICKED:
-            case AccessibilityEvent.TYPE_VIEW_CONTEXT_CLICKED:
-                //TODO: Check if this event has any text, if not bail
-                //screen change triggers
-                //Update screen info
-                if ((!Utils.nullOrEmpty(newScreenTitle) && !newScreenTitle.equals(currentTitle)) ||
-                        (!Utils.nullOrEmpty(newPackageName) && !newPackageName.equals(currentPackageName))) {
-                    Log.d("FVH", "updating last node since title changed from " + currentTitle + " -> " +
-                            newScreenTitle + " or pkg from " + currentPackageName + " -> " + newPackageName);
-                    lastRootNodeId = rootNode.hashCode();
-                    lastViewIdsDb = getViewIdsFromDb(viewDb);
-                    lastScreenTitle = currentTitle;
-                    lastPackageName = currentPackageName;
-                }
-                break;
-            case AccessibilityEvent.TYPE_VIEW_SELECTED:
-                //Seek bar triggers
-                //Not handling seek bar for now
-                break;
-            case AccessibilityEvent.TYPE_VIEW_SCROLLED:
-                //Handle scrolling related triggers here
-                //Scrolling triggers
-                break;
-            case AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED:
-                //Edit text triggers
-                //Not handling edit text for now
-                break;
-            default:
-                //Ignore all other cases for now
-                break;
-        }
-        viewDb.clear();
-        textViewDb.clear();
-        scrollableViews.clear();
-        currentTitle = Utils.EMPTY_STRING;
-        currentPackageName = Utils.EMPTY_STRING;
-        rootNode = newRootNode;
-        accessibilityEventTrigger = accessibilityEvent;
-        this.accessibilityEventSourceInfo = accessibilityEventSourceInfo;
-        return true;
-    }
-    */
 
     public FlatView getFlatViewFor(String viewId) {
         return viewDb.get(Integer.valueOf(viewId));
@@ -458,6 +408,7 @@ public class FlatViewHierarchy {
     private void addNode(FlatView flatView) {
         viewDb.append(flatView.getHashKey(), flatView);
     }
+
 
     private boolean isLayoutWithTextViewChild(FlatView flatView) {
         if (flatView == null || flatView.getChildren() == null || !FlatViewUtils.isLinearRelativeOrFrameLayout(flatView)) {
@@ -507,7 +458,11 @@ public class FlatViewHierarchy {
         int rootWidth;
         int rootHeight;
         int numViews;
+        String currentScreenType;
+        String rootSubTitle;
+        String lastScreenType;
         String rootTitle;
+        String lastScreenSubTitle;
         String lastScreenTitle;
         String lastScreenPackageName;
         String lastUIAction;
@@ -527,11 +482,28 @@ public class FlatViewHierarchy {
             this.lastScreenPackageName = Utils.EMPTY_STRING;
             this.rootPackageName = Utils.EMPTY_STRING;
             this.deviceInfo = Utils.getDeviceDetails();
+            this.lastScreenType = UNDEFINED_SCREEN_MODE;
+            this.rootSubTitle = Utils.EMPTY_STRING;
+            this.lastScreenSubTitle = Utils.EMPTY_STRING;
         }
 
         public void addView(String viewId, RenderingView renderingView) {
             viewMap.put(viewId, renderingView);
             numViews ++;
+        }
+
+        public void setCurrentScreenType(String currentScreenType) {
+            this.currentScreenType = currentScreenType;
+        }
+
+
+        public void setCurrentScreenType(boolean isFullScreen) {
+            this.currentScreenType = ScreenInfo.getScreenType(isFullScreen);
+        }
+
+
+        public void setLastScreenType(String lastScreenType) {
+            this.lastScreenType = lastScreenType;
         }
 
         public void setRootPackageName(String rootPackageName) {
@@ -557,5 +529,16 @@ public class FlatViewHierarchy {
         public void setLastScreenPackageName(String lastScreenPackageName) {
             this.lastScreenPackageName = lastScreenPackageName;
         }
+
+        public void setRootSubTitle(String rootSubTitle) {
+            this.rootSubTitle = rootSubTitle;
+        }
+
+        public void setLastScreenSubTitle(String lastScreenSubTitle) {
+            this.lastScreenSubTitle = lastScreenSubTitle;
+        }
+
+
+
     }
 }

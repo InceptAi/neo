@@ -22,15 +22,19 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.common.util.concurrent.ListenableFuture;
 import com.inceptai.neoservice.expert.ExpertChannel;
 import com.inceptai.neoservice.flatten.FlatViewHierarchy;
 import com.inceptai.neoservice.flatten.UiManager;
 import com.inceptai.neoservice.uiactions.UIActionController;
+import com.inceptai.neoservice.uiactions.model.ScreenInfo;
 import com.inceptai.neoservice.uiactions.views.ActionDetails;
 
 import org.json.JSONObject;
 
 import java.util.List;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.ExecutionException;
 
 import static android.view.View.GONE;
 
@@ -77,7 +81,8 @@ public class NeoUiActionsService extends AccessibilityService implements
     private Handler handler;
     private boolean overlayPermissionGranted;
     private boolean serviceRunning = false;
-
+    private ListenableFuture<ScreenInfo> screenTransitionFuture;
+    private String lastPackageNameForTransition;
 
     public interface UiActionsServiceCallback {
         void onServiceReady();
@@ -226,9 +231,7 @@ public class NeoUiActionsService extends AccessibilityService implements
     }
 
     private void sendViewSnapshot(FlatViewHierarchy flatViewHierarchy) {
-        // expertChannel.sendViewHierarchy(flatViewHierarchy.toJson());
         if (expertChannel != null) {
-            //expertChannel.sendViewHierarchy(flatViewHierarchy.toSimpleJson());
             expertChannel.sendViewHierarchy(flatViewHierarchy.toRenderingJson());
         }
     }
@@ -260,7 +263,7 @@ public class NeoUiActionsService extends AccessibilityService implements
         }
         //TODO -- remove the hack for only settings action
         if (actionDetailsList != null && !actionDetailsList.isEmpty()) {
-            uiManager.takeSettingsAction(actionDetailsList.get(0));
+            uiManager.takeUIAction(actionDetailsList.get(0));
         }
     }
 
@@ -371,13 +374,68 @@ public class NeoUiActionsService extends AccessibilityService implements
             if (viewHierarchy != null) {
                 sendViewSnapshot(viewHierarchy);
             }
+            //TODO -- remove
+//            if (Build.VERSION.SDK_INT > LOLLIPOP) {
+//                AccessibilityNodeInfo rootNode = getRootInActiveWindow();
+//                AccessibilityWindowInfo accessibilityWindowInfo = rootNode.getWindow();
+//                if (accessibilityWindowInfo != null) {
+//                    Log.d("updateViewHierarchy", "window for root " +  accessibilityWindowInfo);
+//                }
+//                rootNode.recycle();
+//            }
+
         }
     }
 
 
     //Public functions for uiActions callback from the app
-    public void fetchUIActions(String query) {
-        uiActionController.fetchUIActions(query);
+    public boolean fetchUIActions(final String query, final String appName) {
+
+        if (appName.equalsIgnoreCase(Utils.SETTINGS_APP_NAME)) {
+            uiActionController.fetchUIActionsForSettings(query);
+            return true;
+        }
+
+        final String packageName = Utils.findPackageNameForApp(getApplicationContext(), appName);
+        if (Utils.nullOrEmpty(packageName)) {
+            //Didn't find the application
+            Log.e(TAG, "In fetchUIActions, can't find package for app: " + appName);
+            return false;
+        }
+
+        //Launch the application with packageName
+        //TODO -- launch from recents or home screen
+        if (!Utils.nullOrEmpty(lastPackageNameForTransition) &&
+                !packageName.equalsIgnoreCase(lastPackageNameForTransition)) {
+            return false; //already waiting for transition to another screen, can't process this request
+        }
+
+        if (screenTransitionFuture != null && !screenTransitionFuture.isDone()) {
+            return true; //already in progress for the right screen transition, return true since already enqueued.
+        }
+
+        if (uiManager != null) {
+            lastPackageNameForTransition = packageName;
+            screenTransitionFuture = uiManager.launchAppAndReturnScreenTitle(getApplicationContext(), packageName);
+            screenTransitionFuture.addListener(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        lastPackageNameForTransition = Utils.EMPTY_STRING;
+                        ScreenInfo latestScreenInfo = screenTransitionFuture.get();
+                        if (latestScreenInfo != null && !latestScreenInfo.isEmpty()) {
+                            uiActionController.fetchUIActionsForApps(packageName.toLowerCase(), latestScreenInfo.getTitle(), query);
+                        }
+                    } catch (InterruptedException | ExecutionException | CancellationException e) {
+                        e.printStackTrace(System.out);
+                        Log.e(TAG, "Exception while waiting for screen future" + e.toString());
+                    }
+                }
+            }, neoThreadpool.getExecutor());
+            return true;
+        }
+
+        return false; //can't transition since uimanager is null
     }
 
 
