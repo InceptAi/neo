@@ -429,10 +429,12 @@ public class Utils {
             return wordList;
         }
         if (accessibilityNodeInfo.getText() != null) {
-            wordList.addAll(Arrays.asList(accessibilityNodeInfo.getText().toString().split(" ")));
+            String nodeText = Utils.sanitizeText(accessibilityNodeInfo.getText().toString());
+            wordList.addAll(Arrays.asList(nodeText.split(" ")));
         }
         if (accessibilityNodeInfo.getContentDescription() != null) {
-            wordList.addAll(Arrays.asList(accessibilityNodeInfo.getContentDescription().toString().split(" ")));
+            String contentDescriptionText = Utils.sanitizeText(accessibilityNodeInfo.getContentDescription().toString());
+            wordList.addAll(Arrays.asList(contentDescriptionText.split(" ")));
         }
         for (int childIndex = 0; childIndex < accessibilityNodeInfo.getChildCount(); childIndex++) {
             AccessibilityNodeInfo childInfo = accessibilityNodeInfo.getChild(childIndex);
@@ -471,11 +473,13 @@ public class Utils {
 
         HashMap<String, Boolean> wordHashMap = new HashMap<>();
         for (String word: shorterList) {
-            wordHashMap.put(word.trim().toLowerCase(), false);
+            //wordHashMap.put(word.trim().toLowerCase(), false);
+            wordHashMap.put(Utils.sanitizeText(word), false);
         }
 
         for (String word: longerList) {
-            word = word.trim().toLowerCase();
+            word = Utils.sanitizeText(word);
+            //word = word.trim().toLowerCase();
             Boolean alreadyCounted = wordHashMap.get(word);
             if (alreadyCounted != null && !alreadyCounted) {
                 matchingCount++;
