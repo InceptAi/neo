@@ -370,6 +370,9 @@ public class NeoUiActionsService extends AccessibilityService implements
 
     public void refreshFullUi(@Nullable AccessibilityEvent accessibilityEvent, @Nullable AccessibilityNodeInfo eventSourceInfo) {
         if (uiManager != null) {
+            if (accessibilityEvent != null) {
+                Log.d(TAG, "In RefreshFullUI, processing event: "  + accessibilityEvent);
+            }
             FlatViewHierarchy viewHierarchy = uiManager.updateViewHierarchy(getRootInActiveWindow(), accessibilityEvent, eventSourceInfo);
             if (viewHierarchy != null) {
                 sendViewSnapshot(viewHierarchy);

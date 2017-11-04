@@ -27,6 +27,8 @@ import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 
+import static com.inceptai.neoservice.Utils.TAG;
+
 /**
  * Created by arunesh on 7/13/17.
  */
@@ -63,18 +65,18 @@ public class UiManager {
 
     public void processClick(String viewId) {
         if (flatViewHierarchy == null) {
-            Log.e(Utils.TAG, "Unable to process click event, NULL view hierarchy.");
+            Log.e(TAG, "Unable to process click event, NULL view hierarchy.");
             return;
         }
         FlatView flatView = flatViewHierarchy.getFlatViewFor(viewId);
         AccessibilityNodeInfo nodeInfo = flatView.getNodeInfo();
         if (nodeInfo == null) {
-            Log.e(Utils.TAG, "Null NodeInfo for click event.");
+            Log.e(TAG, "Null NodeInfo for click event.");
             return;
         }
-        Log.i(Utils.TAG, "Sending CLICK event for view: " + flatView.getText() + " class: " + flatView.getClassName());
+        Log.i(TAG, "Sending CLICK event for view: " + flatView.getText() + " class: " + flatView.getClassName());
         if (!performHierarchicalClick(nodeInfo)) {
-            Log.e(Utils.TAG, "Unable to perform action for some reason.");
+            Log.e(TAG, "Unable to perform action for some reason.");
         }
     }
 
@@ -96,19 +98,19 @@ public class UiManager {
     }
 
     private boolean performScroll(boolean forward) {
-        Log.i(Utils.TAG, "Attempting scroll: " + (forward ? "UP" : "DOWN"));
+        Log.i(TAG, "Attempting scroll: " + (forward ? "UP" : "DOWN"));
         AccessibilityNodeInfo nodeInfo = flatViewHierarchy.findScrollableFlatView();
         if (nodeInfo == null) {
-            Log.e(Utils.TAG, "Could not find scrollable view.");
+            Log.e(TAG, "Could not find scrollable view.");
             return false;
         }
         boolean result = false;
         if (nodeInfo.isScrollable()) {
-            Log.i(Utils.TAG, "Trying scroll for: " + nodeInfo.toString());
+            Log.i(TAG, "Trying scroll for: " + nodeInfo.toString());
             result = nodeInfo.performAction(forward ? AccessibilityNodeInfo.ACTION_SCROLL_FORWARD : AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD);
         }
         if (!result) {
-            Log.i(Utils.TAG, "Scroll failed.");
+            Log.i(TAG, "Scroll failed.");
         }
         return result;
     }
@@ -116,9 +118,11 @@ public class UiManager {
     public FlatViewHierarchy updateViewHierarchy(AccessibilityNodeInfo rootNode,
                                                  AccessibilityEvent accessibilityEvent,
                                                  AccessibilityNodeInfo eventSourceInfo) {
-        if (rootNode == null) {
-            return null;
+        if (accessibilityEvent != null) {
+            Log.d(TAG, "In updateViewHierarchy, processing event: "  + accessibilityEvent);
         }
+
+
 
         if (flatViewHierarchy == null) {
             flatViewHierarchy = new FlatViewHierarchy(
@@ -126,9 +130,17 @@ public class UiManager {
                     accessibilityEvent,
                     eventSourceInfo,
                     primaryDisplayMetrics);
+            Log.d(TAG, "In updateViewHierarchy, initializing new FVH");
         } else {
+            Log.d(TAG, "In updateViewHierarchy, Calling update on FVH");
             flatViewHierarchy.update(rootNode, accessibilityEvent, eventSourceInfo);
         }
+
+        if (rootNode == null) {
+            Log.d(TAG, "In updateViewHierarchy, returning because rootNode is null");
+            return null;
+        }
+
         flatViewHierarchy.flatten();
         return flatViewHierarchy;
     }
@@ -342,7 +354,7 @@ public class UiManager {
         try {
             action = actionJson.getString(GLOBAL_ACTION_KEY);
         } catch (JSONException e) {
-            Log.e(Utils.TAG, "Json error: " + e);
+            Log.e(TAG, "Json error: " + e);
             return;
         }
         if (!Utils.nullOrEmpty(action)) {

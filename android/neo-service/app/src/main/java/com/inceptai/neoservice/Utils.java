@@ -555,10 +555,10 @@ public class Utils {
                 accessibilityNodeInfo.getClassName().equals(FlatViewUtils.TEXT_VIEW_CLASSNAME) &&
                 accessibilityNodeInfo.getText() != null &&
                 !accessibilityNodeInfo.getText().toString().equals(Utils.EMPTY_STRING)) {
-            Log.d(TAG, "subsettingXX found textview with bounds: " + accessibilityNodeInfo.toString());
+            //Log.d(TAG, "subsettingXX found textview with bounds: " + accessibilityNodeInfo.toString());
             bestNodesSoFar.add(accessibilityNodeInfo);
             if (bestNodesSoFar.size() != sizeBestNodes) {
-                Log.d(TAG, "subsettingXX adding to best node: " + accessibilityNodeInfo.toString());
+                //Log.d(TAG, "subsettingXX adding to best node: " + accessibilityNodeInfo.toString());
             }
         }
 
@@ -579,10 +579,10 @@ public class Utils {
                     accessibilityNodeInfo.getClassName().equals(FlatViewUtils.TEXT_VIEW_CLASSNAME) &&
                 accessibilityNodeInfo.getText() != null &&
                 !accessibilityNodeInfo.getText().toString().equals(Utils.EMPTY_STRING)) {
-            Log.d(TAG, "subsettingXX found textview with bounds: " + accessibilityNodeInfo.toString());
+            //Log.d(TAG, "subsettingXX found textview with bounds: " + accessibilityNodeInfo.toString());
             bestNodeSoFar = getTopLeftNode(bestNodeSoFar, accessibilityNodeInfo);
             if (bestNodeSoFar != oldBestNode) {
-                Log.d(TAG, "subsettingXX updating best node to " + bestNodeSoFar.toString());
+                //Log.d(TAG, "subsettingXX updating best node to " + bestNodeSoFar.toString());
             }
         }
 
