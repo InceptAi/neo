@@ -23,6 +23,7 @@ const ROLE_CHECKED_TEXT_VIEW = "android.widget.CheckedTextView";
 const ROLE_CHECK_BOX = "android.widget.CheckBox";
 const ROLE_SEEK_BAR = "android.widget.SeekBar";
 const ROLE_EDIT_TEXT = "android.widget.EditText";
+const ROLE_RADIO_BUTTON = "android.widget.RadioButton";
 
 //Different text types
 const ON_TEXT = "ON";
@@ -177,6 +178,13 @@ function drawWithText(context, x, y, width, height, text, className, shouldDrawB
 	}
 
 	if (className === ROLE_SWITCH || className === ROLE_TOGGLE) {
+		if (text == "") {
+			if (isCheckable) {
+				text = isChecked ? ON_TEXT : OFF_TEXT;
+			} else {
+				text = "Disabled";
+			}
+		}
 		if (text.toLowerCase() === ON_TEXT.toLowerCase()) {
 			context.fillStyle = COLOR_BUTTON_ON;
 		} else {
@@ -192,7 +200,10 @@ function drawWithText(context, x, y, width, height, text, className, shouldDrawB
 		drawCheckBox(context, x + width - WIDTH_CHECK_BOX, y + yOffset, isChecked);
 	} else if (className === ROLE_CHECK_BOX) {
 		drawCheckBox(context, x, y, isChecked);
+	} else if (className === ROLE_RADIO_BUTTON) {
+		drawCheckBox(context, x, y, isChecked);
 	}
+
 
 
 	if (text !== "") {

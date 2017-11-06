@@ -166,7 +166,9 @@ public class FlatViewHierarchy {
             if (screenInfo == null) {
                 //Not found, find it using traversal and update
                 screenInfo = Utils.findScreenInfoForNode(rootNodeInfo, displayMetrics);
-                windowIdToScreenInfo.append(rootNodeInfo.getWindowId(), screenInfo);
+                if (!screenInfo.isTransitionScreen()) {
+                    windowIdToScreenInfo.append(rootNodeInfo.getWindowId(), screenInfo);
+                }
                 Log.d(TAG, "JSONXX CREATED screen info in windowToScreenInfo for window ID: " + rootNodeInfo.getWindowId() + " , " + screenInfo.toString());
             } else {
                 Log.d(TAG, "JSONXX FOUND screen info in windowToScreenInfo for window ID: " + rootNodeInfo.getWindowId() + " , " + screenInfo.toString());
@@ -382,19 +384,20 @@ public class FlatViewHierarchy {
     public void update(AccessibilityNodeInfo newRootNode,
                        AccessibilityEvent accessibilityEvent,
                        AccessibilityNodeInfo accessibilityEventSourceInfo) {
+        ScreenInfo newScreenInfo = new ScreenInfo();
         if (newRootNode != null) {
             //TODO remove this hack
-            ScreenInfo newScreenInfo1 = findAndUpdateScreenInfoFromRootNode(newRootNode);
-            Log.d(TAG, "In update, newRoot ID is " + newRootNode.getWindowId() + " , new screen info is " +  newScreenInfo1.toString());
+            newScreenInfo = findAndUpdateScreenInfoFromRootNode(newRootNode);
+            Log.d(TAG, "In update, newRoot ID is " + newRootNode.getWindowId() + " , new screen info is " +  newScreenInfo.toString());
             if (accessibilityEvent != null) {
                 Log.d(TAG, "In update, accessibility event is " + accessibilityEvent);
             }
         }
         if (newRootNode != null && rootNode != null && newRootNode.getWindowId() != rootNode.getWindowId()) {
             //TODO update current screen info here to prevent two traversals
-            ScreenInfo newScreenInfo = findAndUpdateScreenInfoFromRootNode(newRootNode);
+            //ScreenInfo newScreenInfo = findAndUpdateScreenInfoFromRootNode(newRootNode);
             Log.d(TAG, "In update, new screen info is " + newScreenInfo.toString());
-            if (!newScreenInfo.isEmpty() && !newScreenInfo.equals(currentScreenInfo)) {
+            if (!newScreenInfo.isEmpty() && !newScreenInfo.isTransitionScreen() && !newScreenInfo.equals(currentScreenInfo)) {
                 Log.d("FVH", "JSONXX updating last node since title changed from " + currentScreenInfo.toString() + " -> " + newScreenInfo.toString());
                 lastScreenInfo = currentScreenInfo;
                 appPackageNameToLatestScreenInfo.put(newScreenInfo.getPackageName(), newScreenInfo);
@@ -424,6 +427,12 @@ public class FlatViewHierarchy {
             Log.d("FVH", "JSONXX rootNode is null, so returning");
             return;
         }
+
+        if (newScreenInfo.isTransitionScreen()) {
+            Log.d("FVH", "In update, JSONXX new screen info title is loading..., so returning null ");
+            return;
+        }
+
 
         viewDb.clear();
         textViewDb.clear();
