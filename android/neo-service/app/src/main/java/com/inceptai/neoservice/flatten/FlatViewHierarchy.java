@@ -1,5 +1,6 @@
 package com.inceptai.neoservice.flatten;
 
+import android.graphics.Rect;
 import android.support.annotation.Nullable;
 import android.util.DisplayMetrics;
 import android.util.Log;
@@ -7,6 +8,8 @@ import android.util.SparseArray;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
 
+import com.inceptai.neopojos.CrawlingInput;
+import com.inceptai.neopojos.RenderingView;
 import com.inceptai.neoservice.Utils;
 import com.inceptai.neoservice.uiactions.model.ScreenInfo;
 
@@ -22,7 +25,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import static android.content.ContentValues.TAG;
 import static com.inceptai.neoservice.Utils.EMPTY_STRING;
-import static com.inceptai.neoservice.uiactions.model.ScreenInfo.UNDEFINED_SCREEN_MODE;
 
 /**
  * Created by arunesh on 6/30/17.
@@ -202,18 +204,18 @@ public class FlatViewHierarchy {
 
     public String toRenderingJson() {
         int numViews = viewDb.size();
-        RenderingViewHierarchySnapshot renderingViewHierarchySnapshot =
-                new RenderingViewHierarchySnapshot(
+        CrawlingInput renderingViewHierarchySnapshot =
+                new CrawlingInput(
                         Utils.convertPixelsToDp(displayMetrics.widthPixels, displayMetrics),
-                        Utils.convertPixelsToDp(displayMetrics.heightPixels, displayMetrics));
+                        Utils.convertPixelsToDp(displayMetrics.heightPixels, displayMetrics),
+                        Utils.getDeviceDetails());
         for (int i = 0; i < numViews; i ++) {
             FlatView flatView = viewDb.valueAt(i);
             if (flatView.getClassName() != null && flatView.getText() != null) {
                 //Adding views with text.
                 boolean isLLWithTVChild = isLayoutWithTextViewChild(flatView);
                 if (FlatViewUtils.shouldSendViewToServer(flatView) || isLLWithTVChild) {
-                    RenderingView renderingView = new RenderingView(flatView, displayMetrics);
-                    renderingView.setParentOfClickableView(isLLWithTVChild);
+                    RenderingView renderingView = createRenderingView(flatView, displayMetrics, isLLWithTVChild);
                     renderingViewHierarchySnapshot.addView(String.valueOf(flatView.getHashKey()), renderingView);
                 }
             }
@@ -259,23 +261,23 @@ public class FlatViewHierarchy {
             renderingViewHierarchySnapshot.setLastScreenType(eventScreenInfo.getScreenType());
         }
 
-        String clickedText = renderingViewHierarchySnapshot.lastViewClicked != null &&
-                renderingViewHierarchySnapshot.lastViewClicked.getText() != null ?
-                renderingViewHierarchySnapshot.lastViewClicked.getText() : Utils.EMPTY_STRING;
+        String clickedText = renderingViewHierarchySnapshot.getLastViewClicked() != null &&
+                renderingViewHierarchySnapshot.getLastViewClicked().getText() != null ?
+                renderingViewHierarchySnapshot.getLastViewClicked().getText() : Utils.EMPTY_STRING;
         Log.d(TAG, "JSONXX Sending to server, currentTitle: " +
-                renderingViewHierarchySnapshot.rootTitle +
+                renderingViewHierarchySnapshot.getRootTitle() +
                 " current subTitle:" +
-                renderingViewHierarchySnapshot.rootSubTitle +
+                renderingViewHierarchySnapshot.getRootSubTitle() +
                 " current screenType:" +
-                renderingViewHierarchySnapshot.currentScreenType +
+                renderingViewHierarchySnapshot.getCurrentScreenType() +
                 " lastTitle: " +
-                renderingViewHierarchySnapshot.lastScreenTitle +
+                renderingViewHierarchySnapshot.getLastScreenTitle() +
                 " last subTitle:" +
-                renderingViewHierarchySnapshot.lastScreenSubTitle +
+                renderingViewHierarchySnapshot.getLastScreenSubTitle() +
                 " last screenType:" +
-                renderingViewHierarchySnapshot.lastScreenType +
+                renderingViewHierarchySnapshot.getLastScreenType() +
                 " action:" +
-                renderingViewHierarchySnapshot.lastUIAction +
+                renderingViewHierarchySnapshot.getLastUIAction() +
                 " eventText" +
                 clickedText);
         return Utils.gson.toJson(renderingViewHierarchySnapshot);
@@ -532,90 +534,90 @@ public class FlatViewHierarchy {
         }
     }
 
-    private static class RenderingViewHierarchySnapshot {
-        int rootWidth;
-        int rootHeight;
-        int numViews;
-        String currentScreenType;
-        String rootSubTitle;
-        String lastScreenType;
-        String rootTitle;
-        String lastScreenSubTitle;
-        String lastScreenTitle;
-        String lastScreenPackageName;
-        String lastUIAction;
-        RenderingView lastViewClicked;
-        String rootPackageName;
-        Map<String, String> deviceInfo = new HashMap<>();
-        Map<String, RenderingView> viewMap = new HashMap<>();
-
-        RenderingViewHierarchySnapshot(int rootWidth, int rootHeight) {
-            numViews = 0;
-            this.rootWidth = rootWidth;
-            this.rootHeight = rootHeight;
-            this.rootTitle = Utils.EMPTY_STRING;
-            this.lastScreenTitle = Utils.EMPTY_STRING;
-            this.lastViewClicked = null;
-            this.lastUIAction = Utils.EMPTY_STRING;
-            this.lastScreenPackageName = Utils.EMPTY_STRING;
-            this.rootPackageName = Utils.EMPTY_STRING;
-            this.deviceInfo = Utils.getDeviceDetails();
-            this.lastScreenType = UNDEFINED_SCREEN_MODE;
-            this.rootSubTitle = Utils.EMPTY_STRING;
-            this.lastScreenSubTitle = Utils.EMPTY_STRING;
-        }
-
-        public void addView(String viewId, RenderingView renderingView) {
-            viewMap.put(viewId, renderingView);
-            numViews ++;
-        }
-
-        public void setCurrentScreenType(String currentScreenType) {
-            this.currentScreenType = currentScreenType;
-        }
-
-
-        public void setCurrentScreenType(boolean isFullScreen) {
-            this.currentScreenType = ScreenInfo.getScreenType(isFullScreen);
-        }
-
-
-        public void setLastScreenType(String lastScreenType) {
-            this.lastScreenType = lastScreenType;
-        }
-
-        public void setRootPackageName(String rootPackageName) {
-            this.rootPackageName = rootPackageName;
-        }
-
-        public void setRootTitle(String rootTitle) {
-            this.rootTitle = rootTitle;
-        }
-
-        public void setLastScreenTitle(String lastScreenTitle) {
-            this.lastScreenTitle = lastScreenTitle;
-        }
-
-        public void setLastUIAction(String lastUIAction) {
-            this.lastUIAction = lastUIAction;
-        }
-
-        public void setLastViewClicked(RenderingView lastViewClicked) {
-            this.lastViewClicked = lastViewClicked;
-        }
-
-        public void setLastScreenPackageName(String lastScreenPackageName) {
-            this.lastScreenPackageName = lastScreenPackageName;
-        }
-
-        public void setRootSubTitle(String rootSubTitle) {
-            this.rootSubTitle = rootSubTitle;
-        }
-
-        public void setLastScreenSubTitle(String lastScreenSubTitle) {
-            this.lastScreenSubTitle = lastScreenSubTitle;
-        }
-    }
+//    private static class RenderingViewHierarchySnapshot {
+//        int rootWidth;
+//        int rootHeight;
+//        int numViews;
+//        String currentScreenType;
+//        String rootSubTitle;
+//        String lastScreenType;
+//        String rootTitle;
+//        String lastScreenSubTitle;
+//        String lastScreenTitle;
+//        String lastScreenPackageName;
+//        String lastUIAction;
+//        RenderingView lastViewClicked;
+//        String rootPackageName;
+//        Map<String, String> deviceInfo = new HashMap<>();
+//        Map<String, RenderingView> viewMap = new HashMap<>();
+//
+//        RenderingViewHierarchySnapshot(int rootWidth, int rootHeight) {
+//            numViews = 0;
+//            this.rootWidth = rootWidth;
+//            this.rootHeight = rootHeight;
+//            this.rootTitle = Utils.EMPTY_STRING;
+//            this.lastScreenTitle = Utils.EMPTY_STRING;
+//            this.lastViewClicked = null;
+//            this.lastUIAction = Utils.EMPTY_STRING;
+//            this.lastScreenPackageName = Utils.EMPTY_STRING;
+//            this.rootPackageName = Utils.EMPTY_STRING;
+//            this.deviceInfo = Utils.getDeviceDetails();
+//            this.lastScreenType = UNDEFINED_SCREEN_MODE;
+//            this.rootSubTitle = Utils.EMPTY_STRING;
+//            this.lastScreenSubTitle = Utils.EMPTY_STRING;
+//        }
+//
+//        public void addView(String viewId, RenderingView renderingView) {
+//            viewMap.put(viewId, renderingView);
+//            numViews ++;
+//        }
+//
+//        public void setCurrentScreenType(String currentScreenType) {
+//            this.currentScreenType = currentScreenType;
+//        }
+//
+//
+//        public void setCurrentScreenType(boolean isFullScreen) {
+//            this.currentScreenType = ScreenInfo.getScreenType(isFullScreen);
+//        }
+//
+//
+//        public void setLastScreenType(String lastScreenType) {
+//            this.lastScreenType = lastScreenType;
+//        }
+//
+//        public void setRootPackageName(String rootPackageName) {
+//            this.rootPackageName = rootPackageName;
+//        }
+//
+//        public void setRootTitle(String rootTitle) {
+//            this.rootTitle = rootTitle;
+//        }
+//
+//        public void setLastScreenTitle(String lastScreenTitle) {
+//            this.lastScreenTitle = lastScreenTitle;
+//        }
+//
+//        public void setLastUIAction(String lastUIAction) {
+//            this.lastUIAction = lastUIAction;
+//        }
+//
+//        public void setLastViewClicked(RenderingView lastViewClicked) {
+//            this.lastViewClicked = lastViewClicked;
+//        }
+//
+//        public void setLastScreenPackageName(String lastScreenPackageName) {
+//            this.lastScreenPackageName = lastScreenPackageName;
+//        }
+//
+//        public void setRootSubTitle(String rootSubTitle) {
+//            this.rootSubTitle = rootSubTitle;
+//        }
+//
+//        public void setLastScreenSubTitle(String lastScreenSubTitle) {
+//            this.lastScreenSubTitle = lastScreenSubTitle;
+//        }
+//    }
 
     private static String getKeyForEventHashMap(int eventType, int windowId) {
         return AccessibilityEvent.eventTypeToString(eventType) + ":" + String.valueOf(windowId);
@@ -632,6 +634,36 @@ public class FlatViewHierarchy {
             return true;
         }
         return false;
+    }
+
+    private static RenderingView createRenderingView(FlatView flatView, DisplayMetrics displayMetrics, boolean isParentOfClickableView) {
+        Rect bounds = flatView.getBoundsInScreen();
+        int leftX = 0, topY = 0, bottomY = 0, rightX = 0;
+        if (bounds != null) {
+            topY = Utils.convertPixelsToDp(bounds.top, displayMetrics);
+            bottomY = Utils.convertPixelsToDp(bounds.bottom, displayMetrics);
+            leftX = Utils.convertPixelsToDp(bounds.left, displayMetrics);
+            rightX = Utils.convertPixelsToDp(bounds.right, displayMetrics);
+        }
+
+        return new RenderingView(
+                String.valueOf(flatView.getParentViewId()), //Parent view Id
+                String.valueOf(flatView.getHashKey()),     //flat view Id
+                flatView.getPackageName(), //pkgname
+                flatView.getClassName(),
+                flatView.getContentDescription(),
+                flatView.getText(),
+                flatView.getViewIdResourceName(),
+                leftX,
+                rightX,
+                topY,
+                bottomY,
+                isParentOfClickableView,
+                flatView.isChecked(),
+                flatView.isClickable(),
+                flatView.isCheckable(),
+                flatView.isScrollable(),
+                flatView.isSelected());
     }
 
 }

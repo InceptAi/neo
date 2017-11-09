@@ -11,14 +11,14 @@ import android.view.accessibility.AccessibilityNodeInfo;
 
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
+import com.inceptai.neopojos.ActionDetails;
+import com.inceptai.neopojos.ElementIdentifier;
+import com.inceptai.neopojos.NavigationIdentifier;
+import com.inceptai.neopojos.ScreenIdentifier;
 import com.inceptai.neoservice.NeoThreadpool;
 import com.inceptai.neoservice.NeoUiActionsService;
 import com.inceptai.neoservice.Utils;
 import com.inceptai.neoservice.uiactions.model.ScreenInfo;
-import com.inceptai.neoservice.uiactions.views.ActionDetails;
-import com.inceptai.neoservice.uiactions.views.ElementIdentifier;
-import com.inceptai.neoservice.uiactions.views.NavigationIdentifier;
-import com.inceptai.neoservice.uiactions.views.ScreenIdentifier;
 
 import org.json.JSONException;
 import org.json.JSONObject;

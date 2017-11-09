@@ -23,12 +23,12 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.common.util.concurrent.ListenableFuture;
+import com.inceptai.neopojos.ActionDetails;
 import com.inceptai.neoservice.expert.ExpertChannel;
 import com.inceptai.neoservice.flatten.FlatViewHierarchy;
 import com.inceptai.neoservice.flatten.UiManager;
 import com.inceptai.neoservice.uiactions.UIActionController;
 import com.inceptai.neoservice.uiactions.model.ScreenInfo;
-import com.inceptai.neoservice.uiactions.views.ActionDetails;
 
 import org.json.JSONObject;
 

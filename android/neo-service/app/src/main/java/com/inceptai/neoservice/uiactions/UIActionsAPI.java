@@ -1,6 +1,7 @@
 package com.inceptai.neoservice.uiactions;
 
-import com.inceptai.neoservice.uiactions.views.ActionResponse;
+
+import com.inceptai.neopojos.ActionResponse;
 
 import java.util.Map;
 

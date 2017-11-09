@@ -5,9 +5,9 @@ import android.util.Log;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.inceptai.neopojos.ActionDetails;
+import com.inceptai.neopojos.ActionResponse;
 import com.inceptai.neoservice.Utils;
-import com.inceptai.neoservice.uiactions.views.ActionDetails;
-import com.inceptai.neoservice.uiactions.views.ActionResponse;
 
 import java.util.ArrayList;
 import java.util.HashMap;
