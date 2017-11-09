@@ -20,7 +20,7 @@ import okhttp3.WebSocketListener;
  * Created by arunesh on 7/1/17.
  */
 
-public class ServerConnection extends WebSocketListener {
+public class WebSocketConnection extends WebSocketListener {
     public static final int STATUS_CONNECTED = 1001;
     public static final int STATUS_CLOSED = 1002;
     private static final int RECONNECT_DELAY_MS = 3000;
@@ -38,7 +38,7 @@ public class ServerConnection extends WebSocketListener {
         void onMessage(String message);
     }
 
-    public ServerConnection(String url, Callback callback, ScheduledExecutorService executorService, String userUuid, int numAttempts) {
+    public WebSocketConnection(String url, Callback callback, ScheduledExecutorService executorService, String userUuid, int numAttempts) {
         this.serverUrl = url;
         this.callback = callback;
         this.executorService = executorService;

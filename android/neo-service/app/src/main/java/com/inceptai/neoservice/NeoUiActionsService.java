@@ -9,6 +9,7 @@ import android.graphics.PixelFormat;
 import android.os.Build;
 import android.os.Handler;
 import android.provider.Settings;
+import android.support.annotation.Nullable;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.Gravity;
@@ -16,15 +17,24 @@ import android.view.View;
 import android.view.WindowManager;
 import android.view.WindowManager.LayoutParams;
 import android.view.accessibility.AccessibilityEvent;
+import android.view.accessibility.AccessibilityNodeInfo;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.common.util.concurrent.ListenableFuture;
 import com.inceptai.neoservice.expert.ExpertChannel;
 import com.inceptai.neoservice.flatten.FlatViewHierarchy;
 import com.inceptai.neoservice.flatten.UiManager;
+import com.inceptai.neoservice.uiactions.UIActionController;
+import com.inceptai.neoservice.uiactions.model.ScreenInfo;
+import com.inceptai.neoservice.uiactions.views.ActionDetails;
 
 import org.json.JSONObject;
+
+import java.util.List;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.ExecutionException;
 
 import static android.view.View.GONE;
 
@@ -32,7 +42,9 @@ import static android.view.View.GONE;
  * Created by arunesh on 6/29/17.
  */
 
-public class NeoUiActionsService extends AccessibilityService implements ExpertChannel.ExpertChannelCallback {
+public class NeoUiActionsService extends AccessibilityService implements
+        ExpertChannel.ExpertChannelCallback,
+        UIActionController.UIActionControllerCallback {
     public static final String UUID_INTENT_PARAM = "UUID";
     public static final String SERVER_ADDRESS = "SERVER_ADDRESS";
 
@@ -42,6 +54,9 @@ public class NeoUiActionsService extends AccessibilityService implements ExpertC
     private static final int USER_STOP_DELAY_MS = 2500;
     private static final String PREF_UI_STREAMING_ENABLED = "NeoStreaming";
     private static final String PREF_ACCESSIBILITY_ENABLED = "NeoAccessibilityEnabled";
+    private static final boolean SUPRESS_SYSTEM_UI_UPDATES = true;
+    private static final String SYSTEM_UI_PACKAGE_NAME = "com.android.systemui";
+
 
     private View overlayView;
     private LayoutParams neoOverlayLayout;
@@ -58,12 +73,16 @@ public class NeoUiActionsService extends AccessibilityService implements ExpertC
     private String serverAddress;
     private UiActionsServiceCallback uiActionsServiceCallback;
 
+    private UIActionController uiActionController;
+
     private Button stopButton;
     private TextView overlayTitleTv;
     private TextView overlayStatusTv;
     private Handler handler;
     private boolean overlayPermissionGranted;
     private boolean serviceRunning = false;
+    private ListenableFuture<ScreenInfo> screenTransitionFuture;
+    private String lastPackageNameForTransition;
 
     public interface UiActionsServiceCallback {
         void onServiceReady();
@@ -71,6 +90,7 @@ public class NeoUiActionsService extends AccessibilityService implements ExpertC
         void onUiStreamingStoppedByExpert();
         void onServiceDestroy();
         void onRequestAccessibiltySettings();
+        void onUIActionsAvailable(List<ActionDetails> actionDetailsList);
     }
 
     @Override
@@ -101,6 +121,9 @@ public class NeoUiActionsService extends AccessibilityService implements ExpertC
         getDisplayDimensions();
         neoThreadpool = new NeoThreadpool();
 
+        //UI Actions
+        uiActionController = new UIActionController(this, neoThreadpool.getExecutor());
+
         handler = new Handler();
         intentReceiver = new NeoCustomIntentReceiver();
         IntentFilter intentFilter = new IntentFilter(NEO_INTENT);
@@ -111,7 +134,16 @@ public class NeoUiActionsService extends AccessibilityService implements ExpertC
     @Override
     public void onAccessibilityEvent(AccessibilityEvent event) {
         Log.i(TAG, "Got event:" + event);
-        refreshFullUi();
+        if (SUPRESS_SYSTEM_UI_UPDATES && event.getPackageName() != null && event.getPackageName().equals(SYSTEM_UI_PACKAGE_NAME)) {
+            return;
+        }
+        AccessibilityNodeInfo nodeInfo = event.getSource();
+        if (nodeInfo != null) {
+            Log.v("NeoUIActionsService", "source of event: " + AccessibilityEvent.eventTypeToString(event.getEventType()) + " nodeInfo: " + nodeInfo.toString());
+        } else {
+            Log.v("NeoUIActionsService", "source of event is null for eventType: "  + AccessibilityEvent.eventTypeToString(event.getEventType()));
+        }
+        refreshFullUi(event, nodeInfo);
     }
 
     @Override
@@ -187,7 +219,7 @@ public class NeoUiActionsService extends AccessibilityService implements ExpertC
             handler.postDelayed(new Runnable() {
                 @Override
                 public void run() {
-                    refreshFullUi();
+                    refreshFullUi(null, null);
                 }
             }, 4000);
         }
@@ -199,9 +231,8 @@ public class NeoUiActionsService extends AccessibilityService implements ExpertC
     }
 
     private void sendViewSnapshot(FlatViewHierarchy flatViewHierarchy) {
-        // expertChannel.sendViewHierarchy(flatViewHierarchy.toJson());
         if (expertChannel != null) {
-            expertChannel.sendViewHierarchy(flatViewHierarchy.toSimpleJson());
+            expertChannel.sendViewHierarchy(flatViewHierarchy.toRenderingJson());
         }
     }
 
@@ -221,6 +252,25 @@ public class NeoUiActionsService extends AccessibilityService implements ExpertC
         public void onReceive(Context context, Intent intent) {
             NeoUiActionsService.this.toggleOverlay();
         }
+    }
+
+
+    //UIActionController callback
+    @Override
+    public void onUIActionDetails(List<ActionDetails> actionDetailsList) {
+        Log.d(TAG, "In NeoUIActionsService, onUIActionDetails -- got actions");
+        if (uiActionsServiceCallback != null) {
+            uiActionsServiceCallback.onUIActionsAvailable(actionDetailsList);
+        }
+        //TODO -- remove the hack for only settings action
+        if (actionDetailsList != null && !actionDetailsList.isEmpty()) {
+            uiManager.takeUIAction(actionDetailsList.get(0));
+        }
+    }
+
+    @Override
+    public void onUIActionError(String error) {
+        Log.d("UIAction", "Error in fetching actions : " + error);
     }
 
     private void showOverlay() {
@@ -319,12 +369,79 @@ public class NeoUiActionsService extends AccessibilityService implements ExpertC
         }, USER_STOP_DELAY_MS);
     }
 
-    public void refreshFullUi() {
+    public void refreshFullUi(@Nullable AccessibilityEvent accessibilityEvent, @Nullable AccessibilityNodeInfo eventSourceInfo) {
         if (uiManager != null) {
-            FlatViewHierarchy viewHierarchy = uiManager.updateViewHierarchy(getRootInActiveWindow());
-            sendViewSnapshot(viewHierarchy);
+            if (accessibilityEvent != null) {
+                Log.d(TAG, "In RefreshFullUI, processing event: "  + accessibilityEvent);
+            }
+            FlatViewHierarchy viewHierarchy = uiManager.updateViewHierarchy(getRootInActiveWindow(), accessibilityEvent, eventSourceInfo);
+            if (viewHierarchy != null) {
+                sendViewSnapshot(viewHierarchy);
+            }
+            //TODO -- remove
+//            if (Build.VERSION.SDK_INT > LOLLIPOP) {
+//                AccessibilityNodeInfo rootNode = getRootInActiveWindow();
+//                AccessibilityWindowInfo accessibilityWindowInfo = rootNode.getWindow();
+//                if (accessibilityWindowInfo != null) {
+//                    Log.d("updateViewHierarchy", "window for root " +  accessibilityWindowInfo);
+//                }
+//                rootNode.recycle();
+//            }
+
         }
     }
+
+
+    //Public functions for uiActions callback from the app
+    public boolean fetchUIActions(final String query, final String appName) {
+
+        if (appName.equalsIgnoreCase(Utils.SETTINGS_APP_NAME)) {
+            uiActionController.fetchUIActionsForSettings(query);
+            return true;
+        }
+
+        final String packageName = Utils.findPackageNameForApp(getApplicationContext(), appName);
+        if (Utils.nullOrEmpty(packageName)) {
+            //Didn't find the application
+            Log.e(TAG, "In fetchUIActions, can't find package for app: " + appName);
+            return false;
+        }
+
+        //Launch the application with packageName
+        //TODO -- launch from recents or home screen
+        if (!Utils.nullOrEmpty(lastPackageNameForTransition) &&
+                !packageName.equalsIgnoreCase(lastPackageNameForTransition)) {
+            return false; //already waiting for transition to another screen, can't process this request
+        }
+
+        if (screenTransitionFuture != null && !screenTransitionFuture.isDone()) {
+            return true; //already in progress for the right screen transition, return true since already enqueued.
+        }
+
+        if (uiManager != null) {
+            lastPackageNameForTransition = packageName;
+            screenTransitionFuture = uiManager.launchAppAndReturnScreenTitle(getApplicationContext(), packageName);
+            screenTransitionFuture.addListener(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        lastPackageNameForTransition = Utils.EMPTY_STRING;
+                        ScreenInfo latestScreenInfo = screenTransitionFuture.get();
+                        if (latestScreenInfo != null && !latestScreenInfo.isEmpty()) {
+                            uiActionController.fetchUIActionsForApps(packageName.toLowerCase(), latestScreenInfo.getTitle(), query);
+                        }
+                    } catch (InterruptedException | ExecutionException | CancellationException e) {
+                        e.printStackTrace(System.out);
+                        Log.e(TAG, "Exception while waiting for screen future" + e.toString());
+                    }
+                }
+            }, neoThreadpool.getExecutor());
+            return true;
+        }
+
+        return false; //can't transition since uimanager is null
+    }
+
 
     private String getServerAddress() {
         if (serverAddress == null) {
@@ -386,7 +503,8 @@ public class NeoUiActionsService extends AccessibilityService implements ExpertC
     }
 
     private boolean isUiStreamingEnabled() {
-        return Utils.readSharedSetting(this, PREF_UI_STREAMING_ENABLED, true);
+        //By default UI streaming is disabled
+        return Utils.readSharedSetting(this, PREF_UI_STREAMING_ENABLED, false);
     }
 
     private boolean isAccessibilityPermissionGranted() {
@@ -412,4 +530,5 @@ public class NeoUiActionsService extends AccessibilityService implements ExpertC
         }
         return false;
     }
+
 }

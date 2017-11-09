@@ -58,14 +58,24 @@ public class FlatView {
 
     private int connectionId = UNDEFINED_CONNECTION_ID;
 
+
+
     private AccessibilityNodeInfo.RangeInfo rangeInfo;
     private AccessibilityNodeInfo.CollectionInfo collectionInfo;
     private AccessibilityNodeInfo.CollectionItemInfo collectionItemInfo;
+
     private int childCount;
     private long sourceNodeId = INVALID_NODE_ID;
     private static Method sGetSourceNodeIdMethod;
 
     private ArrayList<Integer> children;
+
+    private boolean isChecked = false;
+    private boolean isCheckable = false;
+    private boolean isClickable = false;
+    private boolean isScrollable = false;
+    private boolean isEnabled = false;
+    private boolean isSelected = false;
 
     // We use "transient" so that this field does not get processed by gson.
     private transient AccessibilityNodeInfo sourceNodeInfo;
@@ -103,7 +113,12 @@ public class FlatView {
         this.collectionInfo = nodeInfo.getCollectionInfo();
         this.collectionItemInfo = nodeInfo.getCollectionItemInfo();
         this.childCount = nodeInfo.getChildCount();
-
+        this.isCheckable = nodeInfo.isCheckable();
+        this.isChecked = nodeInfo.isChecked();
+        this.isClickable = nodeInfo.isClickable();
+        this.isEnabled = nodeInfo.isEnabled();
+        this.isScrollable = nodeInfo.isScrollable();
+        this.isSelected = nodeInfo.isSelected();
         try {
             this.sourceNodeId = (long) (sGetSourceNodeIdMethod != null ? sGetSourceNodeIdMethod.invoke(nodeInfo) : UNABLE_TO_FETCH_SOURCE_NODE_ID);
         } catch (Exception e) {
@@ -157,5 +172,49 @@ public class FlatView {
 
     public String getContentDescription() {
         return contentDescription;
+    }
+
+    public long getParentViewId() {
+        return parentViewId;
+    }
+
+    public Rect getBoundsInScreen() {
+        return boundsInScreen;
+    }
+
+    public int getFlatViewId() {
+        return flatViewId;
+    }
+
+    public String getPackageName() {
+        return packageName;
+    }
+
+    public ArrayList<Integer> getChildren() {
+        return children;
+    }
+
+    public boolean isChecked() {
+        return isChecked;
+    }
+
+    public boolean isCheckable() {
+        return isCheckable;
+    }
+
+    public boolean isClickable() {
+        return isClickable;
+    }
+
+    public boolean isScrollable() {
+        return isScrollable;
+    }
+
+    public boolean isEnabled() {
+        return isEnabled;
+    }
+
+    public boolean isSelected() {
+        return isSelected;
     }
 }

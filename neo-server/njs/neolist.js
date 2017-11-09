@@ -11,16 +11,71 @@ const EXPERT_SPECIAL_ACTION_REFRESH = "refresh";
 const EXPERT_SPECIAL_ACTION_SCROLL_UP = "scrollup";
 const EXPERT_SPECIAL_ACTION_SCROLL_DOWN = "scrolldown";
 const SERVER_ADDRESS = "dobby1743.duckdns.org";
+//Crawling stuff
+const CRAWLING_SERVER_ADDRESS = "dobby1743.duckdns.org";
+const CRAWLING_SOCKET_PORT = 9000;
 
+//Different class names
+const ROLE_SWITCH = "android.widget.Switch";
+const ROLE_TOGGLE = "android.widget.ToggleButton";
+const ROLE_TEXT_VIEW = "android.widget.TextView";
+const ROLE_CHECKED_TEXT_VIEW = "android.widget.CheckedTextView";
+const ROLE_CHECK_BOX = "android.widget.CheckBox";
+const ROLE_SEEK_BAR = "android.widget.SeekBar";
+const ROLE_EDIT_TEXT = "android.widget.EditText";
+const ROLE_RADIO_BUTTON = "android.widget.RadioButton";
+
+//Different text types
+const ON_TEXT = "ON";
+const OFF_TEXT = "OFF";
+
+//Colors
+const COLOR_BUTTON_ON = "#66c2ff"; 
+const COLOR_BUTTON_OFF = "#b6afaf";
+const COLOR_BLACK = "#000000";
+
+//static dimensions
+const HEIGHT_CHECK_BOX = 30;
+const WIDTH_CHECK_BOX = 30;
+ 
 let webSocket;
 var lastSelectedUUID;
+let supportsPassiveListener = false;
+
+function detectIfPassiveListenerIsSupported() {
+	// Test via a getter in the options object to see if the passive property is accessed
+	var supportsPassive = false;
+	try {
+  		var opts = Object.defineProperty({}, 'passive', {
+    		get: function() {
+      			supportsPassive = true;
+    		}
+  		});
+  		window.addEventListener("test", null, opts);
+	} catch (e) {}
+	return supportsPassive;
+	// Use our detect's results. passive applied if supported, capture will be false either way.
+	//elem.addEventListener('touchstart', fn, supportsPassive ? { passive: true } : false); 
+}
 
 function handleSocketOpen() {
-	alert("Socket is open");
+	//alert("Socket is open");
 }
 
 function handleSocketClose() {
 	alert("Socket is closed");
+}
+
+function sendMessageToCrawlingBackend(jsonMessage) {
+	let xhr = new XMLHttpRequest();
+	let url = "http://" + CRAWLING_SERVER_ADDRESS + ":" + CRAWLING_SOCKET_PORT; 
+	xhr.open("POST", url, true);
+	xhr.setRequestHeader('Content-Type', 'application/json');
+	xhr.send(jsonMessage);
+	//xhr.send(JSON.stringify({
+    //	value: value
+	//}));
+
 }
 
 function processMessageReceivedFromClient(eventInfo) {
@@ -36,14 +91,15 @@ function processMessageReceivedFromClient(eventInfo) {
 			return;
 		}
 		if (actionList !== undefined) {
-			updateActionList(actionList);
+			updateView(actionList);
+			//updateActionList(actionList);
 			if (actionList.viewMap !== undefined) {
 				console.log(Object.values(actionList.viewMap));
 			}
 		}
 	}
-	//console.log(Object.values(actionList.viewMap));
-	//console.log(actionList);
+	//Send data to crawling backend
+	sendMessageToCrawlingBackend(mesgRecv);
 }
 
 function sendMessageToClient(viewId, actionName) {
@@ -58,6 +114,15 @@ function sendMessageToClient(viewId, actionName) {
 }
 
 function handleClickEvent(action) {
+}
+
+function deleteList(listName) {
+  	let currentList = document.getElementById(listName); //create 'li' element
+  	if (currentList != null) {
+		while (currentList.firstChild) {
+    		currentList.removeChild(currentList.firstChild);
+		}
+  	}
 }
 
 function deleteCurrentActionList() {
@@ -80,6 +145,206 @@ function deleteCurrentUUIDList() {
 
 function getInnerHtmlItem(name) {
 	return `<a href="#">` + name + `</a>`;
+}
+
+function drawCheckBox(context, x, y, isChecked) {
+    //draw outer boxi
+	context.save();
+    context.lineWidth = "2";
+	context.strokeRect(x, y, WIDTH_CHECK_BOX, HEIGHT_CHECK_BOX);
+ 
+    //draw check or x
+    if (isChecked) {
+		context.font="40px Arial";
+        context.fillStyle = COLOR_BUTTON_ON;
+        context.fillText("\u2713", x, y + (HEIGHT_CHECK_BOX * 0.8));
+        context.fillStyle = COLOR_BLACK;
+    }
+	context.restore(); 
+}
+
+
+
+function drawWithText(context, x, y, width, height, text, className, shouldDrawBoundary, isCheckable, isChecked) {
+	if (x < 0 || y < 0 || width < 0 || height < 0) {
+		return;
+	}
+
+	if (shouldDrawBoundary !== undefined && shouldDrawBoundary) {
+		context.lineWidth = "1";
+		context.beginPath();
+		context.rect(x, y, width, height);
+		context.stroke();
+	}
+
+	if (className === ROLE_SWITCH || className === ROLE_TOGGLE) {
+		if (text == "") {
+			if (isCheckable) {
+				text = isChecked ? ON_TEXT : OFF_TEXT;
+			} else {
+				text = "Disabled";
+			}
+		}
+		if (text.toLowerCase() === ON_TEXT.toLowerCase()) {
+			context.fillStyle = COLOR_BUTTON_ON;
+		} else {
+			context.fillStyle = COLOR_BUTTON_OFF;
+		}
+		context.fillRect(x, y, width, height);
+		context.fillStyle = COLOR_BLACK;	
+	} else if (className === ROLE_CHECKED_TEXT_VIEW) {
+		let yOffset = (height - HEIGHT_CHECK_BOX)/2;
+		if (yOffset < 0) {
+			yOffset = 0;
+		}
+		drawCheckBox(context, x + width - WIDTH_CHECK_BOX, y + yOffset, isChecked);
+	} else if (className === ROLE_CHECK_BOX) {
+		drawCheckBox(context, x, y, isChecked);
+	} else if (className === ROLE_RADIO_BUTTON) {
+		drawCheckBox(context, x, y, isChecked);
+	}
+
+
+
+	if (text !== "") {
+		//context.font="30px Georgia";
+		//context.fillText(text, x + 50, y + 50, width);
+		context.fillText(text, x + 10, y + (height/2), width);
+	}
+	
+}
+
+function findViewIdOfClickedView(viewList, xClick, yClick) {
+	for (let key in viewList.viewMap) {
+		let leftX = viewList.viewMap[key].leftX;
+		let rightX = viewList.viewMap[key].rightX;
+		let bottomY = viewList.viewMap[key].bottomY;
+		let topY = viewList.viewMap[key].topY;
+		if (viewList.viewMap[key].isParentOfClickableView !== undefined &&
+			viewList.viewMap[key].isParentOfClickableView == true) {
+			//Don't count clicks on stuff which is just a parent of clickable stuff
+			continue;
+		}
+		if (leftX == undefined || rightX == undefined || 
+			bottomY == undefined || topY == undefined) {
+			console.log("undefined coordinates, bailing");
+			continue;		
+		}
+		if (yClick > topY && yClick < bottomY && xClick > leftX && xClick < rightX) {
+			return key;
+        }
+	}
+	return "";
+}
+
+function recreateNode(el, withChildren) {
+  if (withChildren) {
+    el.parentNode.replaceChild(el.cloneNode(true), el);
+  }
+  else {
+    var newEl = el.cloneNode(false);
+    while (el.hasChildNodes()) newEl.appendChild(el.firstChild);
+    el.parentNode.replaceChild(newEl, el);
+  }
+}
+
+function getCursorPosition(canvas, event) {
+    var rect = canvas.getBoundingClientRect();
+    var x = event.clientX - rect.left;
+    var y = event.clientY - rect.top;
+    console.log("x: " + x + " y: " + y);
+}
+
+function handleMouseClickOnCanvas(evt) {
+	//let xMouseCoordinate = evt.pageX - evt.target.canvasLeft;
+	//let yMouseCoordinate = evt.pageY - evt.target.canvasTop;
+	let rect = evt.target.getBoundingClientRect();
+	let xMouseCoordinate = evt.clientX - rect.left;
+	let yMouseCoordinate = evt.clientY - rect.top;
+	console.log(xMouseCoordinate, yMouseCoordinate, evt.clientX, evt.clientY, rect.left, rect.top);
+	//alert(xMouseCoordinate + " , " + yMouseCoordinate + " -- " +  evt.clientX + " , " + evt.clientY + " -- " + rect.left + " , "  + rect.top);
+	//find view Id of clicked event
+	let clickedViewId = findViewIdOfClickedView(evt.target.viewList, xMouseCoordinate, yMouseCoordinate);
+	if (clickedViewId !== "") {
+		//alert("sending message to client");
+		console.log("Sending message to client for viewId", clickedViewId);
+		sendMessageToClient(clickedViewId, evt.target.viewList.viewMap[clickedViewId].finalText);
+		}
+}
+
+function handleMouseScrollOnCanvas(evt) {
+	// cross-browser wheel delta
+	//var evt = window.event || evt; // old IE support
+	var delta = Math.max(-1, Math.min(1, (evt.wheelDelta || -evt.detail)));
+	if (delta > 0) {
+		//scroll up
+		sendScrollUpCommand();
+	} else if (delta < 0) {
+		//scroll down
+		sendScrollDownCommand();
+	}
+	return false;
+}
+
+function updateView(viewList) {
+	//JSON object here -- display a list
+	//get 'ul' element from the DOM
+	let remoteViewCanvas = document.getElementById("remoteView");
+	// Remove event listener for `click` events.
+	//recreateNode(remoteViewCanvas);
+
+	let canvasLeft = remoteViewCanvas.offsetLeft;
+    let canvasTop = remoteViewCanvas.offsetTop;
+	let ctx = remoteViewCanvas.getContext("2d");
+	console.log(viewList.viewMap);
+
+	//Delete the existing view
+	ctx.clearRect(0, 0, remoteViewCanvas.width, remoteViewCanvas.height);
+	ctx.canvas.width = viewList.rootWidth;
+	ctx.canvas.height = viewList.rootHeight;
+	//https://stackoverflow.com/questions/1664785/resize-html5-canvas-to-fit-window
+
+	// Add event listener for `click` events.
+	remoteViewCanvas.removeEventListener('click', handleMouseClickOnCanvas);
+	remoteViewCanvas.addEventListener('click', handleMouseClickOnCanvas);
+	
+	//Listener for scroll
+	remoteViewCanvas.removeEventListener('mousewheel', handleMouseScrollOnCanvas);
+	remoteViewCanvas.removeEventListener("DOMMouseScroll", handleMouseScrollOnCanvas);
+	remoteViewCanvas.addEventListener('mousewheel', handleMouseScrollOnCanvas, supportsPassiveListener ? { passive: true } : false);
+	remoteViewCanvas.addEventListener("DOMMouseScroll", handleMouseScrollOnCanvas, supportsPassiveListener ? { passive: true } : false);
+	remoteViewCanvas.viewList = viewList;
+	remoteViewCanvas.canvasLeft = canvasLeft;
+	remoteViewCanvas.canvasTop = canvasTop;
+
+	//Iterate over all the views and draw rect with text
+	for (let key in viewList.viewMap) {
+		processView(ctx, viewList.viewMap[key]);
+	}
+}
+
+
+function processView(ctx, viewInfo) {
+	let leftX = viewInfo.leftX;
+	let rightX = viewInfo.rightX;
+	let bottomY = viewInfo.bottomY;
+	let topY = viewInfo.topY;
+
+	if (leftX == undefined || rightX == undefined || 
+		bottomY == undefined || topY == undefined) {
+		console.log("undefined coordinates, bailing");
+		return;		
+	}
+
+	let text = "";
+	if (viewInfo.text !== "null") {
+		text = viewInfo.text;
+	} else if (viewInfo.contentDescription !== "null") {
+		text = viewInfo.contentDescription;
+	}
+	
+	let shouldDrawBoundary = viewInfo.isParentOfClickableView === undefined ? false : viewInfo.isParentOfClickableView;
+	drawWithText(ctx, leftX, topY, rightX - leftX, bottomY - topY, text, viewInfo.className, shouldDrawBoundary, viewInfo.isCheckable, viewInfo.isChecked);
 }
 
 function updateActionList(actionList) {
@@ -126,7 +391,7 @@ function updateActionList(actionList) {
 
 function initializeWebSocket() {
 	if ("WebSocket" in window) {
-		alert("WebSocket is supported by your Browser!, initializing webSocket");
+		//alert("WebSocket is supported by your Browser!, initializing webSocket");
 		// Let us open a web socket
 		if (webSocket != undefined) {
 			return;
@@ -139,6 +404,7 @@ function initializeWebSocket() {
  		// The browser doesn't support WebSocket
 		alert("WebSocket NOT supported by your Browser!");
 	}
+	supportsPassiveListener = detectIfPassiveListenerIsSupported();
 }
 
 function processMessage(eventInfo) {

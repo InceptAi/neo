@@ -17,9 +17,9 @@ import org.json.JSONObject;
 /**
  * Represents two-way communication with an expert system (a human or a bot expert).
  */
-public class ExpertChannel implements  ServerConnection.Callback {
+public class ExpertChannel implements  WebSocketConnection.Callback {
     private static final String VIEW_CLICKED_KEY = "viewId";
-    private ServerConnection serverConnection;
+    private WebSocketConnection webSocketConnection;
 
     private String serverUrl;
     private ExpertChannelCallback expertChannelCallback;
@@ -41,13 +41,13 @@ public class ExpertChannel implements  ServerConnection.Callback {
     }
 
     public void connect() {
-        serverConnection = new ServerConnection(serverUrl, this, neoThreadpool.getScheduledExecutorService(), userUuid, 10 /* num attempts */);
-        serverConnection.connect();
+        webSocketConnection = new WebSocketConnection(serverUrl, this, neoThreadpool.getScheduledExecutorService(), userUuid, 10 /* num attempts */);
+        webSocketConnection.connect();
     }
 
     public void sendViewHierarchy(String jsonHierarchy) {
-        if (serverConnection != null) {
-            serverConnection.sendMessage(jsonHierarchy);
+        if (webSocketConnection != null) {
+            webSocketConnection.sendMessage(jsonHierarchy);
         }
     }
 
@@ -69,9 +69,9 @@ public class ExpertChannel implements  ServerConnection.Callback {
     }
 
     public void cleanup() {
-        if (serverConnection != null) {
-            serverConnection.disconnect();
-            serverConnection = null;
+        if (webSocketConnection != null) {
+            webSocketConnection.disconnect();
+            webSocketConnection = null;
         }
         expertChannelCallback = null;
         neoService = null;
