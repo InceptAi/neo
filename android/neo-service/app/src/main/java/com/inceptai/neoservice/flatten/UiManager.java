@@ -107,7 +107,7 @@ public class UiManager {
         Log.i(TAG, "SCROLLNEO Attempting scroll: " + (forward ? "UP" : "DOWN"));
         AccessibilityNodeInfo nodeInfo = flatViewHierarchy.findScrollableFlatView();
         if (nodeInfo == null) {
-            Log.e(TAG, "Could not find scrollable view.");
+            Log.e(TAG, "SCROLLNEO Could not find scrollable view.");
             return false;
         }
         boolean result = false;
@@ -193,6 +193,7 @@ public class UiManager {
     }
 
     public boolean takeUIAction(ActionDetails actionDetails) {
+        Log.d(TAG, "SCROLLNEO In UIManager, takeActions");
         if (actionDetails == null || actionDetails.getActionIdentifier() == null) {
             return false;
         }
@@ -213,9 +214,12 @@ public class UiManager {
 
         if (packageNameForAction.equalsIgnoreCase(Utils.SETTINGS_PACKAGE_NAME)) {
             //Navigate to settings
+            Log.d(TAG, "SCROLLNEO In UIManager, takeActions, transitioning to settings");
             showSettings();
             //Need delay here before we proceed
+            Log.d(TAG, "SCROLLNEO In UIManager, takeActions, waiting for screen transition");
             waitForScreenTransition();
+            Log.d(TAG, "SCROLLNEO In UIManager, takeActions, done waiting");
         }
 
         //Perform navigation

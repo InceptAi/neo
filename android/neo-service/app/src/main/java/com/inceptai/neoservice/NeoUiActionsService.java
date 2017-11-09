@@ -258,6 +258,7 @@ public class NeoUiActionsService extends AccessibilityService implements
     //UIActionController callback
     @Override
     public void onUIActionDetails(List<ActionDetails> actionDetailsList) {
+        Log.d(TAG, "In NeoUIActionsService, onUIActionDetails -- got actions");
         if (uiActionsServiceCallback != null) {
             uiActionsServiceCallback.onUIActionsAvailable(actionDetailsList);
         }

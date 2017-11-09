@@ -117,7 +117,7 @@ public class FlatViewHierarchy {
             } else if (flatView.getNodeInfo() != null && flatView.getNodeInfo().isScrollable()) {
                 Log.i(Utils.TAG, "Potential scrollable view: " + flatView.getNodeInfo().toString());
                 if (FlatViewUtils.isScrollableView(flatView)) {
-                    Log.i(Utils.TAG, "Adding view.");
+                    Log.i(Utils.TAG, "SCROLLNEO Adding scrollable view .");
                     scrollableViews.append(flatView.getHashKey(), flatView);
                 }
             } else {
