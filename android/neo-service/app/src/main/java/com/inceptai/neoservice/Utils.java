@@ -735,6 +735,16 @@ public class Utils {
         return phoneInfo;
     }
 
+    public static String getOrDefaultFromStringHashMap(HashMap<String, String> stringHashMap, String key) {
+        if (key == null || stringHashMap == null) {
+            return Utils.EMPTY_STRING;
+        }
+        if (stringHashMap.get(key) == null) {
+            return Utils.EMPTY_STRING;
+        }
+        return stringHashMap.get(key);
+    }
+
     public static String findPackageNameForApp(Context context, String appName) {
         final PackageManager pm = context.getPackageManager();
         List<ApplicationInfo> packages = pm.getInstalledApplications(PackageManager.GET_META_DATA);

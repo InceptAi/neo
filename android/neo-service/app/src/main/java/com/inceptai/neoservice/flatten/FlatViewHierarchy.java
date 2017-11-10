@@ -9,6 +9,7 @@ import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
 
 import com.inceptai.neopojos.CrawlingInput;
+import com.inceptai.neopojos.DeviceInfo;
 import com.inceptai.neopojos.RenderingView;
 import com.inceptai.neoservice.Utils;
 import com.inceptai.neoservice.uiactions.model.ScreenInfo;
@@ -208,7 +209,7 @@ public class FlatViewHierarchy {
                 new CrawlingInput(
                         Utils.convertPixelsToDp(displayMetrics.widthPixels, displayMetrics),
                         Utils.convertPixelsToDp(displayMetrics.heightPixels, displayMetrics),
-                        Utils.getDeviceDetails());
+                        createDeviceInfo(Utils.getDeviceDetails()));
         for (int i = 0; i < numViews; i ++) {
             FlatView flatView = viewDb.valueAt(i);
             if (flatView.getClassName() != null && flatView.getText() != null) {
@@ -534,90 +535,6 @@ public class FlatViewHierarchy {
         }
     }
 
-//    private static class RenderingViewHierarchySnapshot {
-//        int rootWidth;
-//        int rootHeight;
-//        int numViews;
-//        String currentScreenType;
-//        String rootSubTitle;
-//        String lastScreenType;
-//        String rootTitle;
-//        String lastScreenSubTitle;
-//        String lastScreenTitle;
-//        String lastScreenPackageName;
-//        String lastUIAction;
-//        RenderingView lastViewClicked;
-//        String rootPackageName;
-//        Map<String, String> deviceInfo = new HashMap<>();
-//        Map<String, RenderingView> viewMap = new HashMap<>();
-//
-//        RenderingViewHierarchySnapshot(int rootWidth, int rootHeight) {
-//            numViews = 0;
-//            this.rootWidth = rootWidth;
-//            this.rootHeight = rootHeight;
-//            this.rootTitle = Utils.EMPTY_STRING;
-//            this.lastScreenTitle = Utils.EMPTY_STRING;
-//            this.lastViewClicked = null;
-//            this.lastUIAction = Utils.EMPTY_STRING;
-//            this.lastScreenPackageName = Utils.EMPTY_STRING;
-//            this.rootPackageName = Utils.EMPTY_STRING;
-//            this.deviceInfo = Utils.getDeviceDetails();
-//            this.lastScreenType = UNDEFINED_SCREEN_MODE;
-//            this.rootSubTitle = Utils.EMPTY_STRING;
-//            this.lastScreenSubTitle = Utils.EMPTY_STRING;
-//        }
-//
-//        public void addView(String viewId, RenderingView renderingView) {
-//            viewMap.put(viewId, renderingView);
-//            numViews ++;
-//        }
-//
-//        public void setCurrentScreenType(String currentScreenType) {
-//            this.currentScreenType = currentScreenType;
-//        }
-//
-//
-//        public void setCurrentScreenType(boolean isFullScreen) {
-//            this.currentScreenType = ScreenInfo.getScreenType(isFullScreen);
-//        }
-//
-//
-//        public void setLastScreenType(String lastScreenType) {
-//            this.lastScreenType = lastScreenType;
-//        }
-//
-//        public void setRootPackageName(String rootPackageName) {
-//            this.rootPackageName = rootPackageName;
-//        }
-//
-//        public void setRootTitle(String rootTitle) {
-//            this.rootTitle = rootTitle;
-//        }
-//
-//        public void setLastScreenTitle(String lastScreenTitle) {
-//            this.lastScreenTitle = lastScreenTitle;
-//        }
-//
-//        public void setLastUIAction(String lastUIAction) {
-//            this.lastUIAction = lastUIAction;
-//        }
-//
-//        public void setLastViewClicked(RenderingView lastViewClicked) {
-//            this.lastViewClicked = lastViewClicked;
-//        }
-//
-//        public void setLastScreenPackageName(String lastScreenPackageName) {
-//            this.lastScreenPackageName = lastScreenPackageName;
-//        }
-//
-//        public void setRootSubTitle(String rootSubTitle) {
-//            this.rootSubTitle = rootSubTitle;
-//        }
-//
-//        public void setLastScreenSubTitle(String lastScreenSubTitle) {
-//            this.lastScreenSubTitle = lastScreenSubTitle;
-//        }
-//    }
 
     private static String getKeyForEventHashMap(int eventType, int windowId) {
         return AccessibilityEvent.eventTypeToString(eventType) + ":" + String.valueOf(windowId);
@@ -664,6 +581,16 @@ public class FlatViewHierarchy {
                 flatView.isCheckable(),
                 flatView.isScrollable(),
                 flatView.isSelected());
+    }
+
+    private static DeviceInfo createDeviceInfo(HashMap<String, String> deviceInfoMap) {
+        String manufacturer = Utils.getOrDefaultFromStringHashMap(deviceInfoMap, "manufacturer");
+        String model = Utils.getOrDefaultFromStringHashMap(deviceInfoMap, "model");
+        String release = Utils.getOrDefaultFromStringHashMap(deviceInfoMap, "release");
+        String sdk = Utils.getOrDefaultFromStringHashMap(deviceInfoMap, "sdk");
+        String hardware = Utils.getOrDefaultFromStringHashMap(deviceInfoMap, "hardware");
+        String product = Utils.getOrDefaultFromStringHashMap(deviceInfoMap, "product");
+        return new DeviceInfo(manufacturer, model, release, sdk, hardware, product);
     }
 
 }
