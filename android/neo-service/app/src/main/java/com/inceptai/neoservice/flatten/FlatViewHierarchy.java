@@ -136,6 +136,17 @@ public class FlatViewHierarchy {
         return appPackageNameToLatestScreenInfo.get(appPackageName);
     }
 
+    public ScreenInfo findCurrentScreenInfo() {
+        return currentScreenInfo;
+    }
+
+    public boolean checkIfCurrentScreenBelongsToPackage(String packageName) {
+        if (Utils.nullOrEmpty(packageName) || Utils.nullOrEmpty(currentScreenInfo.getPackageName())) {
+            return false;
+        }
+        return currentScreenInfo.getPackageName().equalsIgnoreCase(packageName);
+    }
+
     private boolean traverseChildrenFor(FlatView parentFlatView, List<FlatView> queue) {
         AccessibilityNodeInfo nodeInfo = parentFlatView.getNodeInfo();
         //AccessibilityNodeInfo.RangeInfo parentRangeInfo = nodeInfo.getRangeInfo();

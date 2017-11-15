@@ -163,18 +163,25 @@ public class UiManager {
             return screenTitleFuture;
         }
         screenTitleFuture = SettableFuture.create();
-        boolean launched = Utils.launchAppIfInstalled(context, appPackageName);
-        if (!launched) {
-            screenTitleFuture.set(new ScreenInfo());
+        boolean isCurrentScreenForTargetPackage =
+                flatViewHierarchy.checkIfCurrentScreenBelongsToPackage(appPackageName);
+        if (isCurrentScreenForTargetPackage) {
+            //already on target screen, set the future here.
+            screenTitleFuture.set(flatViewHierarchy.findCurrentScreenInfo());
         } else {
-            //Wait for screen delay transition and check
-            new Timer().schedule(new TimerTask() {
-                @Override
-                public void run() {
-                    // this code will be executed after 2 seconds
-                    checkScreenTransitionState(appPackageName);
-                }
-            }, SCREEN_TRANSITION_DELAY_MS);
+            boolean launched = Utils.launchAppIfInstalled(context, appPackageName);
+            if (!launched) {
+                screenTitleFuture.set(new ScreenInfo());
+            } else {
+                //Wait for screen delay transition and check
+                new Timer().schedule(new TimerTask() {
+                    @Override
+                    public void run() {
+                        // this code will be executed after 2 seconds
+                        checkScreenTransitionState(appPackageName);
+                    }
+                }, SCREEN_TRANSITION_DELAY_MS);
+            }
         }
         return screenTitleFuture;
     }
