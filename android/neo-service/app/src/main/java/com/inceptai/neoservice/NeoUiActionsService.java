@@ -394,12 +394,6 @@ public class NeoUiActionsService extends AccessibilityService implements
 
     //Public functions for uiActions callback from the app
     public boolean fetchUIActions(final String query, final String appName) {
-
-//        if (appName.equalsIgnoreCase(Utils.SETTINGS_APP_NAME)) {
-//            uiActionController.fetchUIActionsForSettings(query);
-//            return true;
-//        }
-
         final String packageName = Utils.findPackageNameForApp(getApplicationContext(), appName);
         if (Utils.nullOrEmpty(packageName)) {
             //Didn't find the application
@@ -443,7 +437,7 @@ public class NeoUiActionsService extends AccessibilityService implements
             return true;
         }
 
-        return false; //can't transition since uimanager is null
+        return false;
     }
 
 
