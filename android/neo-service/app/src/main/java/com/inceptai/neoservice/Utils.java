@@ -4,9 +4,11 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.graphics.Rect;
 import android.os.Build;
+import android.provider.Settings;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.util.DisplayMetrics;
@@ -15,6 +17,7 @@ import android.view.accessibility.AccessibilityNodeInfo;
 
 import com.google.common.collect.MinMaxPriorityQueue;
 import com.google.gson.Gson;
+import com.inceptai.neopojos.DeviceInfo;
 import com.inceptai.neoservice.flatten.FlatViewUtils;
 import com.inceptai.neoservice.uiactions.model.ScreenInfo;
 
@@ -136,7 +139,8 @@ public class Utils {
         return screenTitleNodeInfo.getText().toString();
     }
 
-    public static ScreenInfo findScreenInfoForNode(AccessibilityNodeInfo nodeInfo, DisplayMetrics displayMetrics) {
+    public static ScreenInfo findScreenInfoForNode(AccessibilityNodeInfo nodeInfo, String appVersion,
+                                                   String versionCode, DisplayMetrics displayMetrics) {
         final int MAX_VIEWS_FOR_SCREEN_INFO = 2;
         MinMaxPriorityQueue<AccessibilityNodeInfo> bestNodesSoFar = MinMaxPriorityQueue.orderedBy(new AccessibilityNodeBoundsComparator())
                 .maximumSize(MAX_VIEWS_FOR_SCREEN_INFO)
@@ -177,6 +181,8 @@ public class Utils {
         }
 
         screenInfo.setScreenType(isFullScreenNode(rootNodeInfo, displayMetrics));
+        screenInfo.setAppVersion(appVersion);
+        screenInfo.setVersionCode(versionCode);
         return screenInfo;
     }
 
@@ -735,7 +741,20 @@ public class Utils {
         return phoneInfo;
     }
 
+    public static String getOrDefaultFromStringHashMap(HashMap<String, String> stringHashMap, String key) {
+        if (key == null || stringHashMap == null) {
+            return Utils.EMPTY_STRING;
+        }
+        if (stringHashMap.get(key) == null) {
+            return Utils.EMPTY_STRING;
+        }
+        return stringHashMap.get(key);
+    }
+
     public static String findPackageNameForApp(Context context, String appName) {
+        if (appName.equalsIgnoreCase(SETTINGS_APP_NAME)) {
+            return SETTINGS_PACKAGE_NAME;
+        }
         final PackageManager pm = context.getPackageManager();
         List<ApplicationInfo> packages = pm.getInstalledApplications(PackageManager.GET_META_DATA);
         for (ApplicationInfo packageInfo : packages) {
@@ -766,9 +785,45 @@ public class Utils {
         return false;
     }
 
+    public static String findAppVersionForPackageName(Context context, String packageName) {
+        String appVersion = Utils.EMPTY_STRING;
+        if (packageName.equalsIgnoreCase(SETTINGS_PACKAGE_NAME)) {
+            return Utils.createDeviceInfo().getRelease();
+        }
+        final PackageManager pm = context.getPackageManager();
+        try {
+            PackageInfo packageInfo = pm.getPackageInfo(packageName, 0);
+            appVersion = packageInfo != null ? packageInfo.versionName : Utils.EMPTY_STRING;
+        } catch (PackageManager.NameNotFoundException e) {
+            Log.d(TAG, "Exception while getting app version for package " + e.toString());
+        }
+        return appVersion;
+    }
+
+    public static String findVersionCodeForPackageName(Context context, String packageName) {
+        if (packageName.equalsIgnoreCase(SETTINGS_PACKAGE_NAME)) {
+            return Utils.createDeviceInfo().getSdk();
+        }
+        int versionCode = 0;
+        final PackageManager pm = context.getPackageManager();
+        try {
+            PackageInfo packageInfo = pm.getPackageInfo(packageName, 0);
+            versionCode = packageInfo != null ? packageInfo.versionCode : 0;
+        } catch (PackageManager.NameNotFoundException e) {
+            Log.d(TAG, "Exception while getting app version for package " + e.toString());
+        }
+        return String.valueOf(versionCode);
+    }
+
     private static void launchApp(Context context, String packageName) {
-        Intent launchIntentForPackage = context.getPackageManager()
-                .getLaunchIntentForPackage(packageName);
+        Intent launchIntentForPackage;
+        if (packageName.equalsIgnoreCase(SETTINGS_PACKAGE_NAME)) {
+            launchIntentForPackage = new Intent(Settings.ACTION_SETTINGS);
+            launchIntentForPackage.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        } else {
+            launchIntentForPackage = context.getPackageManager()
+                    .getLaunchIntentForPackage(packageName);
+        }
         context.startActivity(launchIntentForPackage);
     }
 
@@ -782,6 +837,9 @@ public class Utils {
     }
 
     private static boolean isAppInstalled(Context context, String packageName) {
+        if (packageName.equalsIgnoreCase(SETTINGS_PACKAGE_NAME)) {
+            return true;
+        }
         try {
             context.getPackageManager().getApplicationInfo(packageName, 0);
             return true;
@@ -811,6 +869,18 @@ public class Utils {
                 return compareBounds(bounds1, bounds2);
             }
         }
+    }
+
+
+    public static DeviceInfo createDeviceInfo() {
+        HashMap<String, String> deviceInfoMap = Utils.getDeviceDetails();
+        String manufacturer = Utils.getOrDefaultFromStringHashMap(deviceInfoMap, "manufacturer");
+        String model = Utils.getOrDefaultFromStringHashMap(deviceInfoMap, "model");
+        String release = Utils.getOrDefaultFromStringHashMap(deviceInfoMap, "release");
+        String sdk = Utils.getOrDefaultFromStringHashMap(deviceInfoMap, "sdk");
+        String hardware = Utils.getOrDefaultFromStringHashMap(deviceInfoMap, "hardware");
+        String product = Utils.getOrDefaultFromStringHashMap(deviceInfoMap, "product");
+        return new DeviceInfo(manufacturer, model, release, sdk, hardware, product);
     }
 
 

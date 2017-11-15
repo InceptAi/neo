@@ -6,7 +6,7 @@ import android.content.Intent;
 import android.provider.Settings;
 import android.util.Log;
 
-import com.inceptai.neoservice.uiactions.views.ActionDetails;
+import com.inceptai.neopojos.ActionDetails;
 
 import java.lang.ref.WeakReference;
 import java.util.List;

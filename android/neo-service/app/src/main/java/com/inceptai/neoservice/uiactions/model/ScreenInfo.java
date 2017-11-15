@@ -18,12 +18,17 @@ public class ScreenInfo {
     private String packageName;
     private String screenType;
     private String subTitle;
+    private String appVersion;
+    private String versionCode;
 
-    public ScreenInfo(String title, String subTitle, String packageName, boolean isFullScreen) {
+    public ScreenInfo(String title, String subTitle, String packageName,
+                      boolean isFullScreen, String appVersion, String versionCode) {
         this.title = title;
         this.subTitle = subTitle;
         this.packageName = packageName;
         this.screenType = isFullScreen ? FULL_SCREEN_MODE : PARTIAL_SCREEN_MODE;
+        this.appVersion = appVersion;
+        this.versionCode = versionCode;
     }
 
     public ScreenInfo() {
@@ -31,6 +36,24 @@ public class ScreenInfo {
         this.subTitle = Utils.EMPTY_STRING;
         this.packageName = Utils.EMPTY_STRING;
         this.screenType = UNDEFINED_SCREEN_MODE;
+        this.appVersion = Utils.EMPTY_STRING;
+        this.versionCode = Utils.EMPTY_STRING;
+    }
+
+    public String getAppVersion() {
+        return appVersion;
+    }
+
+    public void setAppVersion(String appVersion) {
+        this.appVersion = appVersion;
+    }
+
+    public String getVersionCode() {
+        return versionCode;
+    }
+
+    public void setVersionCode(String versionCode) {
+        this.versionCode = versionCode;
     }
 
     public String getSubTitle() {

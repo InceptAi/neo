@@ -11,14 +11,14 @@ import android.view.accessibility.AccessibilityNodeInfo;
 
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
+import com.inceptai.neopojos.ActionDetails;
+import com.inceptai.neopojos.ElementIdentifier;
+import com.inceptai.neopojos.NavigationIdentifier;
+import com.inceptai.neopojos.ScreenIdentifier;
 import com.inceptai.neoservice.NeoThreadpool;
 import com.inceptai.neoservice.NeoUiActionsService;
 import com.inceptai.neoservice.Utils;
 import com.inceptai.neoservice.uiactions.model.ScreenInfo;
-import com.inceptai.neoservice.uiactions.views.ActionDetails;
-import com.inceptai.neoservice.uiactions.views.ElementIdentifier;
-import com.inceptai.neoservice.uiactions.views.NavigationIdentifier;
-import com.inceptai.neoservice.uiactions.views.ScreenIdentifier;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -129,17 +129,23 @@ public class UiManager {
         }
 
 
+        String rootPackageName = rootNode != null && rootNode.getPackageName() != null ?
+                rootNode.getPackageName().toString() : Utils.EMPTY_STRING;
+        String appVersion = Utils.findAppVersionForPackageName(neoService.getApplicationContext(), rootPackageName);
+        String versionCode = Utils.findVersionCodeForPackageName(neoService.getApplicationContext(), rootPackageName);
 
         if (flatViewHierarchy == null) {
             flatViewHierarchy = new FlatViewHierarchy(
                     rootNode,
                     accessibilityEvent,
                     eventSourceInfo,
+                    appVersion,
+                    versionCode,
                     primaryDisplayMetrics);
             Log.d(TAG, "In updateViewHierarchy, initializing new FVH");
         } else {
             Log.d(TAG, "In updateViewHierarchy, Calling update on FVH");
-            flatViewHierarchy.update(rootNode, accessibilityEvent, eventSourceInfo);
+            flatViewHierarchy.update(rootNode, accessibilityEvent, eventSourceInfo, appVersion, versionCode);
         }
 
         if (rootNode == null) {
@@ -163,12 +169,12 @@ public class UiManager {
         } else {
             //Wait for screen delay transition and check
             new Timer().schedule(new TimerTask() {
-            @Override
-            public void run() {
-                // this code will be executed after 2 seconds
-                checkScreenTransitionState(appPackageName);
-            }
-        }, SCREEN_TRANSITION_DELAY_MS);
+                @Override
+                public void run() {
+                    // this code will be executed after 2 seconds
+                    checkScreenTransitionState(appPackageName);
+                }
+            }, SCREEN_TRANSITION_DELAY_MS);
         }
         return screenTitleFuture;
     }
@@ -212,15 +218,15 @@ public class UiManager {
             return false;
         }
 
-        if (packageNameForAction.equalsIgnoreCase(Utils.SETTINGS_PACKAGE_NAME)) {
-            //Navigate to settings
-            Log.d(TAG, "SCROLLNEO In UIManager, takeActions, transitioning to settings");
-            showSettings();
-            //Need delay here before we proceed
-            Log.d(TAG, "SCROLLNEO In UIManager, takeActions, waiting for screen transition");
-            waitForScreenTransition();
-            Log.d(TAG, "SCROLLNEO In UIManager, takeActions, done waiting");
-        }
+//        if (packageNameForAction.equalsIgnoreCase(Utils.SETTINGS_PACKAGE_NAME)) {
+//            //Navigate to settings
+//            Log.d(TAG, "SCROLLNEO In UIManager, takeActions, transitioning to settings");
+//            showSettings();
+//            //Need delay here before we proceed
+//            Log.d(TAG, "SCROLLNEO In UIManager, takeActions, waiting for screen transition");
+//            waitForScreenTransition();
+//            Log.d(TAG, "SCROLLNEO In UIManager, takeActions, done waiting");
+//        }
 
         //Perform navigation
         boolean navigationResult = navigateToScreen(actionDetails.getNavigationIdentifierList());
