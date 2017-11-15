@@ -9,7 +9,6 @@ import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
 
 import com.inceptai.neopojos.CrawlingInput;
-import com.inceptai.neopojos.DeviceInfo;
 import com.inceptai.neopojos.RenderingView;
 import com.inceptai.neoservice.Utils;
 import com.inceptai.neoservice.uiactions.model.ScreenInfo;
@@ -39,7 +38,8 @@ public class FlatViewHierarchy {
     private FlatView rootNodeFlatView;
     private ScreenInfo currentScreenInfo;
     private ScreenInfo lastScreenInfo;
-
+    private String appVersion;
+    private String versionCode;
 
     private SparseArray<FlatView> viewDb;
     private DisplayMetrics displayMetrics;
@@ -84,6 +84,7 @@ public class FlatViewHierarchy {
     public FlatViewHierarchy(AccessibilityNodeInfo rootNode,
                              @Nullable AccessibilityEvent accessibilityEvent,
                              @Nullable AccessibilityNodeInfo accessibilityEventSourceInfo,
+                             String appVersion, String versionCode,
                              DisplayMetrics displayMetrics) {
         this.rootNode = rootNode;
         this.viewDb = new SparseArray<>();
@@ -99,6 +100,8 @@ public class FlatViewHierarchy {
         this.accessibilityEventInfoMap = new SparseArray<>();
         this.rootWindowChanged = new AtomicBoolean(false);
         this.lastRootWindowId = -1;
+        this.appVersion = appVersion;
+        this.versionCode = versionCode;
     }
 
     public void flatten() {
@@ -110,7 +113,7 @@ public class FlatViewHierarchy {
         List<FlatView> nodeQueue = new LinkedList<>();
         nodeQueue.add(rootNodeFlatView);
         Log.d(TAG, "In flatten with root node with window id: " + rootNode.getWindowId());
-        currentScreenInfo = findAndUpdateScreenInfoFromRootNode(rootNode);
+        currentScreenInfo = findAndUpdateScreenInfoFromRootNode(rootNode, appVersion, versionCode);
         while (!nodeQueue.isEmpty()) {
             FlatView flatView = nodeQueue.remove(0);
             addNode(flatView);
@@ -162,13 +165,14 @@ public class FlatViewHierarchy {
         return isParentOfTextViewChild;
     }
 
-    private ScreenInfo findAndUpdateScreenInfoFromRootNode(AccessibilityNodeInfo rootNodeInfo) {
+    private ScreenInfo findAndUpdateScreenInfoFromRootNode(AccessibilityNodeInfo rootNodeInfo,
+                                                           String appVersion, String versionCode) {
         ScreenInfo screenInfo = null;
         if (rootNodeInfo != null) {
             screenInfo = windowIdToScreenInfo.get(rootNodeInfo.getWindowId());
             if (screenInfo == null) {
                 //Not found, find it using traversal and update
-                screenInfo = Utils.findScreenInfoForNode(rootNodeInfo, displayMetrics);
+                screenInfo = Utils.findScreenInfoForNode(rootNodeInfo, appVersion, versionCode, displayMetrics);
                 if (!screenInfo.isTransitionScreen()) {
                     windowIdToScreenInfo.append(rootNodeInfo.getWindowId(), screenInfo);
                 }
@@ -209,7 +213,7 @@ public class FlatViewHierarchy {
                 new CrawlingInput(
                         Utils.convertPixelsToDp(displayMetrics.widthPixels, displayMetrics),
                         Utils.convertPixelsToDp(displayMetrics.heightPixels, displayMetrics),
-                        createDeviceInfo(Utils.getDeviceDetails()));
+                        Utils.createDeviceInfo());
         for (int i = 0; i < numViews; i ++) {
             FlatView flatView = viewDb.valueAt(i);
             if (flatView.getClassName() != null && flatView.getText() != null) {
@@ -221,11 +225,13 @@ public class FlatViewHierarchy {
                 }
             }
         }
-        //Set the title of the screen
+        //Set the crawling input properties
         renderingViewHierarchySnapshot.setRootTitle(currentScreenInfo.getTitle());
         renderingViewHierarchySnapshot.setRootSubTitle(currentScreenInfo.getSubTitle());
         renderingViewHierarchySnapshot.setRootPackageName(currentScreenInfo.getPackageName());
         renderingViewHierarchySnapshot.setCurrentScreenType(currentScreenInfo.getScreenType());
+        renderingViewHierarchySnapshot.setAppVersion(currentScreenInfo.getAppVersion());
+        renderingViewHierarchySnapshot.setVersionCode(currentScreenInfo.getVersionCode());
 
 
         //Set the event which triggered it
@@ -386,11 +392,13 @@ public class FlatViewHierarchy {
 
     public void update(AccessibilityNodeInfo newRootNode,
                        AccessibilityEvent accessibilityEvent,
-                       AccessibilityNodeInfo accessibilityEventSourceInfo) {
+                       AccessibilityNodeInfo accessibilityEventSourceInfo,
+                       String appVersion,
+                       String versionCode) {
         ScreenInfo newScreenInfo = new ScreenInfo();
         if (newRootNode != null) {
             //TODO remove this hack
-            newScreenInfo = findAndUpdateScreenInfoFromRootNode(newRootNode);
+            newScreenInfo = findAndUpdateScreenInfoFromRootNode(newRootNode, appVersion, versionCode);
             Log.d(TAG, "In update, newRoot ID is " + newRootNode.getWindowId() + " , new screen info is " +  newScreenInfo.toString());
             if (accessibilityEvent != null) {
                 Log.d(TAG, "In update, accessibility event is " + accessibilityEvent);
@@ -442,6 +450,8 @@ public class FlatViewHierarchy {
         scrollableViews.clear();
         rootNode = newRootNode;
         accessibilityEventTrigger = accessibilityEvent;
+        this.appVersion = appVersion;
+        this.versionCode = versionCode;
         this.accessibilityEventSourceInfo = accessibilityEventSourceInfo;
     }
 
@@ -581,16 +591,6 @@ public class FlatViewHierarchy {
                 flatView.isCheckable(),
                 flatView.isScrollable(),
                 flatView.isSelected());
-    }
-
-    private static DeviceInfo createDeviceInfo(HashMap<String, String> deviceInfoMap) {
-        String manufacturer = Utils.getOrDefaultFromStringHashMap(deviceInfoMap, "manufacturer");
-        String model = Utils.getOrDefaultFromStringHashMap(deviceInfoMap, "model");
-        String release = Utils.getOrDefaultFromStringHashMap(deviceInfoMap, "release");
-        String sdk = Utils.getOrDefaultFromStringHashMap(deviceInfoMap, "sdk");
-        String hardware = Utils.getOrDefaultFromStringHashMap(deviceInfoMap, "hardware");
-        String product = Utils.getOrDefaultFromStringHashMap(deviceInfoMap, "product");
-        return new DeviceInfo(manufacturer, model, release, sdk, hardware, product);
     }
 
 }

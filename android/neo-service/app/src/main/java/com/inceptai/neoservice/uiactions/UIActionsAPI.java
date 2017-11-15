@@ -28,4 +28,11 @@ public interface UIActionsAPI {
 
     @GET("actions/pkg/{pkgName}")
     Call<ActionResponse> getUIAppActionsForQuery(@Path("pkgName") String pkgName, @QueryMap Map<String, String> options);
+
+    @GET("actions/pkg/{pkgName}/device/{deviceInfo}")
+    Call<ActionResponse> getUIActions(@Path("pkgName") String pkgName, @Path("deviceInfo") String deviceInfo, @QueryMap Map<String, String> options);
+
+    @GET("actions/pkg/{pkgName}/device/{deviceInfo}/version/{versionName}/code/{versionCode}")
+    Call<ActionResponse> getUIActions(@Path("pkgName") String pkgName, @Path("deviceInfo") String deviceInfo, @Path("versionName") String versionName, @Path("versionCode") String versionCode, @QueryMap Map<String, String> options);
+
 }

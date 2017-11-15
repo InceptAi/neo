@@ -395,10 +395,10 @@ public class NeoUiActionsService extends AccessibilityService implements
     //Public functions for uiActions callback from the app
     public boolean fetchUIActions(final String query, final String appName) {
 
-        if (appName.equalsIgnoreCase(Utils.SETTINGS_APP_NAME)) {
-            uiActionController.fetchUIActionsForSettings(query);
-            return true;
-        }
+//        if (appName.equalsIgnoreCase(Utils.SETTINGS_APP_NAME)) {
+//            uiActionController.fetchUIActionsForSettings(query);
+//            return true;
+//        }
 
         final String packageName = Utils.findPackageNameForApp(getApplicationContext(), appName);
         if (Utils.nullOrEmpty(packageName)) {
@@ -406,6 +406,9 @@ public class NeoUiActionsService extends AccessibilityService implements
             Log.e(TAG, "In fetchUIActions, can't find package for app: " + appName);
             return false;
         }
+
+        final String appVersion = Utils.findAppVersionForPackageName(getApplicationContext(), packageName);
+        final String versionCode = Utils.findVersionCodeForPackageName(getApplicationContext(), packageName);
 
         //Launch the application with packageName
         //TODO -- launch from recents or home screen
@@ -428,7 +431,8 @@ public class NeoUiActionsService extends AccessibilityService implements
                         lastPackageNameForTransition = Utils.EMPTY_STRING;
                         ScreenInfo latestScreenInfo = screenTransitionFuture.get();
                         if (latestScreenInfo != null && !latestScreenInfo.isEmpty()) {
-                            uiActionController.fetchUIActionsForApps(packageName.toLowerCase(), latestScreenInfo.getTitle(), query);
+                            //uiActionController.fetchUIActionsForApps(packageName.toLowerCase(), latestScreenInfo.getTitle(), query);
+                            uiActionController.fetchUIActions(packageName.toLowerCase(), latestScreenInfo.getTitle(), appVersion, versionCode, query);
                         }
                     } catch (InterruptedException | ExecutionException | CancellationException e) {
                         e.printStackTrace(System.out);

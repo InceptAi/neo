@@ -7,6 +7,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.inceptai.neopojos.ActionDetails;
 import com.inceptai.neopojos.ActionResponse;
+import com.inceptai.neopojos.DeviceInfo;
 import com.inceptai.neoservice.Utils;
 
 import java.util.ArrayList;
@@ -29,7 +30,7 @@ public class UIActionController implements Callback<ActionResponse> {
     private UIActionsAPI uiActionsAPI;
     private boolean requestInFlight;
     private UIActionControllerCallback uiActionControllerCallback;
-    private HashMap<String, String> deviceInfo;
+    private DeviceInfo deviceInfo;
     private Executor uiActionServerCallExecutor;
 
     public interface UIActionControllerCallback {
@@ -54,6 +55,7 @@ public class UIActionController implements Callback<ActionResponse> {
                 .build();
 
         uiActionsAPI = retrofit.create(UIActionsAPI.class);
+        deviceInfo = Utils.createDeviceInfo();
     }
 
     public void fetchUIActionsForSettings(String query) {
@@ -62,8 +64,8 @@ public class UIActionController implements Callback<ActionResponse> {
         }
         Call<ActionResponse> call;
         if (!Utils.nullOrEmpty(query)) {
-            if (deviceInfo != null && !Utils.nullOrEmpty(deviceInfo.toString())) {
-                call = uiActionsAPI.getUIActionsForDeviceAndQuery(deviceInfo.toString(), query);
+            if (deviceInfo != null && !Utils.nullOrEmpty(Utils.gson.toJson(deviceInfo))) {
+                call = uiActionsAPI.getUIActionsForDeviceAndQuery(Utils.gson.toJson(deviceInfo), query);
             } else {
                 call = uiActionsAPI.getUIActionsForQuery(query);
             }
@@ -89,20 +91,18 @@ public class UIActionController implements Callback<ActionResponse> {
         }
     }
 
-    public void fetchUIActions(String query, String packageName, String startingScreenTitle) {
+    public void fetchUIActions(String packageName, String startingScreenTitle,
+                               String versionName, String versionCode, String query) {
         if (requestInFlight) {
             return;
         }
         Call<ActionResponse> call;
-        if (!Utils.nullOrEmpty(query)) {
-            if (deviceInfo != null && !Utils.nullOrEmpty(deviceInfo.toString())) {
-                call = uiActionsAPI.getUIActionsForDeviceAndQuery(deviceInfo.toString(), query);
-            } else {
-                call = uiActionsAPI.getUIActionsForQuery(query);
-            }
-        }  else {
-            call = uiActionsAPI.getAllUIActions();
+        HashMap<String, String> options  = new HashMap<>();
+        if (!Utils.nullOrEmpty(query) && !Utils.nullOrEmpty(startingScreenTitle)) {
+            options.put("query", query);
+            options.put("title", startingScreenTitle);
         }
+        call = uiActionsAPI.getUIActions(packageName, Utils.gson.toJson(deviceInfo), versionName, versionCode,  options);
         call.enqueue(this);
         requestInFlight = true;
     }
