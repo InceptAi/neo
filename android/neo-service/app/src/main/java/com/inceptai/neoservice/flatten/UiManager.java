@@ -18,6 +18,7 @@ import com.inceptai.neopojos.ScreenIdentifier;
 import com.inceptai.neoservice.NeoThreadpool;
 import com.inceptai.neoservice.NeoUiActionsService;
 import com.inceptai.neoservice.Utils;
+import com.inceptai.neoservice.uiactions.UIActionResult;
 import com.inceptai.neoservice.uiactions.model.ScreenInfo;
 
 import org.json.JSONException;
@@ -196,19 +197,12 @@ public class UiManager {
         }
     }
 
-    public boolean takeSettingsAction(final ActionDetails actionDetails) {
-        //Navigate to settings
-        showSettings();
-        //Need delay here before we proceed
-        waitForScreenTransition();
-        takeUIAction(actionDetails);
-        return true;
-    }
-
-    public boolean takeUIAction(ActionDetails actionDetails) {
+    public UIActionResult takeUIAction(ActionDetails actionDetails, String query, String packageName) {
+        UIActionResult uiActionResult = new UIActionResult(query, packageName);
         Log.d(TAG, "SCROLLNEO In UIManager, takeActions");
         if (actionDetails == null || actionDetails.getActionIdentifier() == null) {
-            return false;
+            uiActionResult.setStatus(UIActionResult.UIActionResultCodes.NO_ACTIONS_AVAILABLE);
+            return uiActionResult;
         }
 
         String packageNameForAction = Utils.EMPTY_STRING;
@@ -222,23 +216,15 @@ public class UiManager {
         }
 
         if (Utils.nullOrEmpty(packageNameForAction)) {
-            return false;
+            uiActionResult.setStatus(UIActionResult.UIActionResultCodes.INVALID_ACTION_DETAIL);
+            return uiActionResult;
         }
-
-//        if (packageNameForAction.equalsIgnoreCase(Utils.SETTINGS_PACKAGE_NAME)) {
-//            //Navigate to settings
-//            Log.d(TAG, "SCROLLNEO In UIManager, takeActions, transitioning to settings");
-//            showSettings();
-//            //Need delay here before we proceed
-//            Log.d(TAG, "SCROLLNEO In UIManager, takeActions, waiting for screen transition");
-//            waitForScreenTransition();
-//            Log.d(TAG, "SCROLLNEO In UIManager, takeActions, done waiting");
-//        }
 
         //Perform navigation
         boolean navigationResult = navigateToScreen(actionDetails.getNavigationIdentifierList());
         if (!navigationResult) {
-            return false;
+            uiActionResult.setStatus(UIActionResult.UIActionResultCodes.NAVIGATION_FAILURE);
+            return uiActionResult;
         }
 
         //Navigation went fine -- now execute the UI Action
@@ -255,7 +241,9 @@ public class UiManager {
                 elementIdentifier.getPackageName(),
                 elementIdentifier.getKeywordList(),
                 actionToTake,
-                successConditionText);
+                successConditionText,
+                query,
+                packageName);
     }
 
     public boolean matchScreenWithScrolling(String screenTitle,
@@ -296,14 +284,16 @@ public class UiManager {
                 checkSubtitle);
     }
 
-    private boolean executeUIAction(String screenTitle, String screenSubTitle,
+    private UIActionResult executeUIAction(String screenTitle, String screenSubTitle,
                                     String screenPackageName, String elementClassName,
                                     String elementPackageName, List<String> keyWordList,
-                                    String actionName, String textAfterSuccessfulAction) {
-
+                                    String actionName, String textAfterSuccessfulAction,
+                                    String originalQuery, String packageName) {
+        UIActionResult uiActionResult = new UIActionResult(originalQuery, packageName);
         AccessibilityNodeInfo currentNodeInfo = neoService.getRootInActiveWindow();
         if (currentNodeInfo == null) {
-            return false;
+            uiActionResult.setStatus(UIActionResult.UIActionResultCodes.ROOT_WINDOW_IS_NULL);
+            return uiActionResult;
         }
         //Check if we are on the right screen
         if (!matchScreenWithScrolling(
@@ -312,21 +302,14 @@ public class UiManager {
                 screenPackageName,
                 currentNodeInfo,
                 false)) {
-            return false;
+            uiActionResult.setStatus(UIActionResult.UIActionResultCodes.FINAL_ACTION_SCREEN_MATCH_FAILED);
+            return uiActionResult;
         }
-
-//        if (!Utils.matchScreenWithRootNode(
-//                screenTitle,
-//                screenSubTitle,
-//                screenPackageName,
-//                currentNodeInfo,
-//                false)) {
-//            return false;
-//        }
 
         //TODO: Handle all types of UIActions
         if (!actionName.equalsIgnoreCase(TOGGLE_ACTION)) {
-            return false;
+            uiActionResult.setStatus(UIActionResult.UIActionResultCodes.NON_TOGGLE_ACTION);
+            return uiActionResult;
         }
 
         //Find the clickable element info for action
@@ -340,12 +323,14 @@ public class UiManager {
 //        AccessibilityNodeInfo elementInfo = findUIElement(elementClassName,
 //                elementPackageName, keyWordList, currentNodeInfo, true);
         if (elementInfo == null) {
-            return false;
+            uiActionResult.setStatus(UIActionResult.UIActionResultCodes.FINAL_ACTION_ELEMENT_NOT_FOUND);
+            return uiActionResult;
         }
 
         //Check success condition to see if we even need to take an action
         if (Utils.checkCondition(textAfterSuccessfulAction, elementInfo)) {
-            return true;
+            uiActionResult.setStatus(UIActionResult.UIActionResultCodes.SUCCESS);
+            return uiActionResult;
         }
 
         performHierarchicalClick(elementInfo);
@@ -356,7 +341,8 @@ public class UiManager {
         currentNodeInfo.recycle();
         currentNodeInfo = neoService.getRootInActiveWindow();
         if (currentNodeInfo == null) {
-            return false;
+            uiActionResult.setStatus(UIActionResult.UIActionResultCodes.ROOT_WINDOW_IS_NULL);
+            return uiActionResult;
         }
         //elementInfo = findUIElement(elementClassName, elementPackageName, keyWordList, currentNodeInfo, true);
         elementInfo = findUIElementWithScrolling(
@@ -369,13 +355,16 @@ public class UiManager {
 
         //Check condition again to see if it worked
         // TODO make sure the element info is still relevant -- do we need to get another one ?
-        if (Utils.checkCondition(textAfterSuccessfulAction, elementInfo)) {
-            return true;
+        //Unable to get success condition even after taking the action -- mark as failure\
+        if (!Utils.checkCondition(textAfterSuccessfulAction, elementInfo)) {
+            uiActionResult.setStatus(UIActionResult.UIActionResultCodes.FINAL_ACTION_SUCCESS_CONDITION_NOT_MET);
+            return uiActionResult;
         }
 
         currentNodeInfo.recycle();
-        //Unable to get success condition even after taking the action -- mark as failure
-        return false;
+
+        uiActionResult.setStatus(UIActionResult.UIActionResultCodes.SUCCESS);
+        return uiActionResult;
     }
 
     private AccessibilityNodeInfo performScrollAndElementSearch(List<String> elementClassNames,

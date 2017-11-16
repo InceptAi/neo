@@ -23,11 +23,13 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.SettableFuture;
 import com.inceptai.neopojos.ActionDetails;
 import com.inceptai.neoservice.expert.ExpertChannel;
 import com.inceptai.neoservice.flatten.FlatViewHierarchy;
 import com.inceptai.neoservice.flatten.UiManager;
 import com.inceptai.neoservice.uiactions.UIActionController;
+import com.inceptai.neoservice.uiactions.UIActionResult;
 import com.inceptai.neoservice.uiactions.model.ScreenInfo;
 
 import org.json.JSONObject;
@@ -64,6 +66,7 @@ public class NeoUiActionsService extends AccessibilityService implements
     private DisplayMetrics primaryDisplayMetrics;
     private ExpertChannel expertChannel;
     private NeoThreadpool neoThreadpool;
+    private SettableFuture<UIActionResult> uiActionResultSettableFuture;
 
     private UiManager uiManager;
 
@@ -90,6 +93,8 @@ public class NeoUiActionsService extends AccessibilityService implements
         void onUiStreamingStoppedByExpert();
         void onServiceDestroy();
         void onRequestAccessibiltySettings();
+        void onUIActionStarted(String query, String appName);
+        void onUIActionFinished(String query, String appName, UIActionResult uiActionResult);
         void onUIActionsAvailable(List<ActionDetails> actionDetailsList);
     }
 
@@ -257,20 +262,23 @@ public class NeoUiActionsService extends AccessibilityService implements
 
     //UIActionController callback
     @Override
-    public void onUIActionDetails(List<ActionDetails> actionDetailsList) {
+    public void onUIActionDetails(List<ActionDetails> actionDetailsList, String query, String packageName) {
         Log.d(TAG, "In NeoUIActionsService, onUIActionDetails -- got actions");
         if (uiActionsServiceCallback != null) {
             uiActionsServiceCallback.onUIActionsAvailable(actionDetailsList);
         }
         //TODO -- remove the hack for only settings action
         if (actionDetailsList != null && !actionDetailsList.isEmpty()) {
-            uiManager.takeUIAction(actionDetailsList.get(0));
+            uiActionResultSettableFuture.set(uiManager.takeUIAction(actionDetailsList.get(0), query, packageName));
+        } else {
+            uiActionResultSettableFuture.set(new UIActionResult(UIActionResult.UIActionResultCodes.NO_ACTIONS_AVAILABLE, query, packageName));
         }
     }
 
     @Override
-    public void onUIActionError(String error) {
-        Log.d("UIAction", "Error in fetching actions : " + error);
+    public void onUIActionError(int errorCode, String query, String packageName) {
+        Log.d("UIAction", "Error in fetching actions : " + UIActionResult.actionResultCodeToString(errorCode));
+        uiActionResultSettableFuture.set(new UIActionResult(errorCode, query, packageName));
     }
 
     private void showOverlay() {
@@ -391,53 +399,70 @@ public class NeoUiActionsService extends AccessibilityService implements
         }
     }
 
-
     //Public functions for uiActions callback from the app
-    public boolean fetchUIActions(final String query, final String appName) {
+    public SettableFuture fetchUIActions(final String query, final String appName) {
         final String packageName = Utils.findPackageNameForApp(getApplicationContext(), appName);
+        UIActionResult uiActionResult = new UIActionResult(query, packageName);
+
+        if (uiActionResultSettableFuture != null && !uiActionResultSettableFuture.isDone()) {
+            if (!Utils.nullOrEmpty(lastPackageNameForTransition) && !packageName.equalsIgnoreCase(lastPackageNameForTransition)) {
+                SettableFuture<UIActionResult> settableFutureToReturn = SettableFuture.create();
+                uiActionResult.setStatus(UIActionResult.UIActionResultCodes.WAITING_FOR_PREVIOUS_UIACTION_TO_FINISH);
+                settableFutureToReturn.set(uiActionResult);
+                return settableFutureToReturn;
+            } else {
+                return uiActionResultSettableFuture;
+            }
+        }
+
+        uiActionResultSettableFuture = SettableFuture.create();
+
         if (Utils.nullOrEmpty(packageName)) {
             //Didn't find the application
             Log.e(TAG, "In fetchUIActions, can't find package for app: " + appName);
-            return false;
+            uiActionResult.setStatus(UIActionResult.UIActionResultCodes.INVALID_APP_NAME);
+            uiActionResultSettableFuture.set(uiActionResult);
+            return uiActionResultSettableFuture;
         }
+
 
         final String appVersion = Utils.findAppVersionForPackageName(getApplicationContext(), packageName);
         final String versionCode = Utils.findVersionCodeForPackageName(getApplicationContext(), packageName);
 
         //Launch the application with packageName
         //TODO -- launch from recents or home screen
-        if (!Utils.nullOrEmpty(lastPackageNameForTransition) &&
-                !packageName.equalsIgnoreCase(lastPackageNameForTransition)) {
-            return false; //already waiting for transition to another screen, can't process this request
-        }
-
+        //TODO make sure we never come here
         if (screenTransitionFuture != null && !screenTransitionFuture.isDone()) {
-            return true; //already in progress for the right screen transition, return true since already enqueued.
+            Log.d(TAG, "In fetchUIActions, should never come here");
+            return uiActionResultSettableFuture; //already in progress for the right screen transition, return true since already enqueued.
         }
 
-        if (uiManager != null) {
-            lastPackageNameForTransition = packageName;
-            screenTransitionFuture = uiManager.launchAppAndReturnScreenTitle(getApplicationContext(), packageName);
-            screenTransitionFuture.addListener(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        lastPackageNameForTransition = Utils.EMPTY_STRING;
-                        ScreenInfo latestScreenInfo = screenTransitionFuture.get();
-                        if (latestScreenInfo != null && !latestScreenInfo.isEmpty()) {
-                            //uiActionController.fetchUIActionsForApps(packageName.toLowerCase(), latestScreenInfo.getTitle(), query);
-                            uiActionController.fetchUIActions(packageName.toLowerCase(), latestScreenInfo.getTitle(), appVersion, versionCode, query);
-                        }
-                    } catch (InterruptedException | ExecutionException | CancellationException e) {
-                        e.printStackTrace(System.out);
-                        Log.e(TAG, "Exception while waiting for screen future" + e.toString());
+        if (uiManager == null) {
+            uiActionResult.setStatus(UIActionResult.UIActionResultCodes.UI_MANAGER_UNINITIALIZED);
+            uiActionResultSettableFuture.set(uiActionResult);
+            return uiActionResultSettableFuture;
+        }
+
+
+        lastPackageNameForTransition = packageName;
+        screenTransitionFuture = uiManager.launchAppAndReturnScreenTitle(getApplicationContext(), packageName);
+        screenTransitionFuture.addListener(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    lastPackageNameForTransition = Utils.EMPTY_STRING;
+                    ScreenInfo latestScreenInfo = screenTransitionFuture.get();
+                    if (latestScreenInfo != null && !latestScreenInfo.isEmpty()) {
+                        uiActionController.fetchUIActions(packageName.toLowerCase(), latestScreenInfo.getTitle(), appVersion, versionCode, query);
                     }
+                } catch (InterruptedException | ExecutionException | CancellationException e) {
+                    e.printStackTrace(System.out);
+                    Log.e(TAG, "Exception while waiting for screen future" + e.toString());
+                    uiActionResultSettableFuture.set(new UIActionResult(UIActionResult.UIActionResultCodes.EXCEPTION_WHILE_WAITING_FOR_SCREEN_TRANSITION, query, packageName));
                 }
-            }, neoThreadpool.getExecutor());
-            return true;
-        }
-
-        return false;
+            }
+        }, neoThreadpool.getExecutor());
+        return uiActionResultSettableFuture;
     }
 
 

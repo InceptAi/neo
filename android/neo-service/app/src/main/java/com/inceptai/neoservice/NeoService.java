@@ -6,7 +6,9 @@ import android.content.Intent;
 import android.provider.Settings;
 import android.util.Log;
 
+import com.google.common.util.concurrent.SettableFuture;
 import com.inceptai.neopojos.ActionDetails;
+import com.inceptai.neoservice.uiactions.UIActionResult;
 
 import java.lang.ref.WeakReference;
 import java.util.List;
@@ -31,6 +33,8 @@ public class NeoService implements NeoUiActionsService.UiActionsServiceCallback 
         void onUiStreamingStoppedByExpert();
         void onRequestAccessibilitySettings();
         void onUIActionsAvailable(List<ActionDetails> actionDetailsList);
+        void onUIActionStarted(String query, String appName);
+        void onUIActionFinished(String query, String appName, UIActionResult uiActionResult);
     }
 
     public NeoService(String neoServerAddress, String userUuid, Context context, Callback serviceCallback) {
@@ -94,11 +98,13 @@ public class NeoService implements NeoUiActionsService.UiActionsServiceCallback 
         return isNeoUiActionsServiceAvailable() && neoUiActionsServiceWeakReference.get().isServiceRunning();
     }
 
-    public void fetchUIActions(String query, String appName) {
+    public SettableFuture fetchUIActions(String query, String appName) {
         if(isNeoUiActionsServiceAvailable()) {
-            neoUiActionsServiceWeakReference.get().fetchUIActions(query, appName);
+            return neoUiActionsServiceWeakReference.get().fetchUIActions(query, appName);
         }
+        return null;
     }
+
 
     @Override
     public void onServiceReady() {
@@ -125,6 +131,20 @@ public class NeoService implements NeoUiActionsService.UiActionsServiceCallback 
     public void onUIActionsAvailable(List<ActionDetails> actionDetailsList) {
         if (serviceCallback != null) {
             serviceCallback.onUIActionsAvailable(actionDetailsList);
+        }
+    }
+
+    @Override
+    public void onUIActionStarted(String query, String appName) {
+        if (serviceCallback != null) {
+            serviceCallback.onUIActionStarted(query, appName);
+        }
+    }
+
+    @Override
+    public void onUIActionFinished(String query, String appName, UIActionResult uiActionResult) {
+        if (serviceCallback != null) {
+            serviceCallback.onUIActionFinished(query, appName, uiActionResult);
         }
     }
 
