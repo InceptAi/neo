@@ -2,6 +2,7 @@ const WEB_SOCKET_PORT = 7070;
 const SOURCE_RELAY = "RELAY";
 const LIST_ACTION = "LIST";
 const CONNECT_ACTION = "CONNECT";
+const CONNECT_TO_ALL_ACTION = "CONNECT_ALL";
 const SOURCE_EXPERT = "EXPERT";
 const EXPERT_SPECIAL_ACTION_HOME = "home";
 const EXPERT_SPECIAL_ACTION_END_SESSION = "end";
@@ -59,7 +60,8 @@ function detectIfPassiveListenerIsSupported() {
 }
 
 function handleSocketOpen() {
-	//alert("Socket is open");
+	alert("Socket is open, subscribing to all clients");
+	subscribeToAllUUIDs();
 }
 
 function handleSocketClose() {
@@ -512,6 +514,11 @@ function fetchUuidList() {
 function connectToUuid(uuid) {
    sendMessageToRelay(webSocket, {serverAction: CONNECT_ACTION, uuid: uuid});
 }
+
+function subscribeToAllUUIDs() {
+   sendMessageToRelay(webSocket, {serverAction: CONNECT_TO_ALL_ACTION});
+}
+
 
 function sendMessageToRelay(webSocket, message) {
    message.source = SOURCE_EXPERT;

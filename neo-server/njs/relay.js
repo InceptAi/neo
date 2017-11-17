@@ -2,6 +2,7 @@
 
 const LIST_ALL_UUIDS_EXPERT_ACTION = "LIST";
 const CONNECT_TO_UUID_EXPERT_ACTION = "CONNECT";
+const CONNECT_TO_ALL_UUIDS_EXPERT_ACTION = "CONNECT_ALL";
 
 const CLIENT_WEBSOCKET_PORT = 8080;
 const EXPERT_WEBSOCKET_PORT = 7070;
@@ -11,6 +12,7 @@ const CLIENT_WEBSOCKET_TIMEOUT_MS = 40000;
 const SOURCE_RELAY = "RELAY";
 
 var activeSessionsMap = new Map();
+var activeBackendSubscribers = new Array();
 
 const WebSocket = require('ws');
 const Delayed = require('delayed');
@@ -97,6 +99,9 @@ function createActiveSession(uuid) {
 		userWebSocket: undefined,
 		expertWebSocketList: [],
 	};
+	for (var subscriberIndex = 0; subscriberIndex < activeBackendSubscribers.length; subscriberIndex++) {
+    	activeSession.expertWebSocketList.push(activeBackendSubscribers[subscriberIndex]);
+	}
 	return activeSession;
 }
 
@@ -179,6 +184,16 @@ function addExpertToBroadcastList(expertWebSocket, uuid) {
 	return { response: "SUCCESS: connected to uuid: " + uuid, code : SUCCESS_CODE };
 }
 
+function addExpertToAllClientsBroadcastList(expertWebSocket) {
+	var numUUIDsActive = 0;
+	for(var uuid in activeSessionsMap) {
+		numUUIDsActive = numUUIDsActive + 1;
+		addExpertToBroadcastList(expertWebSocket, uuid);
+	}
+	activeBackendSubscribers.push(expertWebSocket);	
+	return { response: "SUCCESS: connected to num UUIDs: " + numUUIDsActive, code : SUCCESS_CODE };
+}
+
 function processExpertAction(webSocket, parsedMessage) {
 	var messageResponse = undefined;
 	if (parsedMessage.serverAction == LIST_ALL_UUIDS_EXPERT_ACTION) {
@@ -188,6 +203,9 @@ function processExpertAction(webSocket, parsedMessage) {
 	} else if (parsedMessage.serverAction == CONNECT_TO_UUID_EXPERT_ACTION) {
 		//Connect to a client and set it for this expert
 		messageResponse = addExpertToBroadcastList(webSocket, parsedMessage.uuid);
+	} else if (parsedMessage.serverAction == CONNECT_TO_ALL_UUIDS_EXPERT_ACTION) {
+		//Connect to a client and set it for this expert
+		messageResponse = addExpertToAllClientsBroadcastList(webSocket);
 	} else {
 		messageResponse = { response : "ERROR: Invalid action", code : ERROR_CODE }; 
         neoLog('invalid action, expert message:' + message);
