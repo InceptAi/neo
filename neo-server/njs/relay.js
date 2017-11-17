@@ -11,6 +11,12 @@ const ERROR_CODE = 1;
 const CLIENT_WEBSOCKET_TIMEOUT_MS = 40000;
 const SOURCE_RELAY = "RELAY";
 
+//Crawling stuff
+const CRAWLING_SERVER_ADDRESS = "dobby1743.duckdns.org";
+const CRAWLING_SOCKET_PORT = 9000;
+
+
+var XMLHttpRequest = require("xmlhttprequest").XMLHttpRequest;
 var activeSessionsMap = new Map();
 var activeBackendSubscribers = new Array();
 
@@ -145,8 +151,21 @@ function onClientIncomingMessage(message) {
             client.send(message);
         }
     });
-
+	//Send this message to crawling backend
+	sendMessageToCrawlingBackend(message);
     // NOT DOING 4. Start a thread to serve this request. Use clusters library.
+}
+
+
+function sendMessageToCrawlingBackend(jsonMessage) {
+    let xhr = new XMLHttpRequest();
+    let url = "http://" + CRAWLING_SERVER_ADDRESS + ":" + CRAWLING_SOCKET_PORT;
+    xhr.open("POST", url, true);
+    xhr.setRequestHeader('Content-Type', 'application/json');
+    xhr.send(jsonMessage);
+    //xhr.send(JSON.stringify({
+    //  value: value
+    //}));
 }
 
 

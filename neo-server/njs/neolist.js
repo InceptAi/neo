@@ -101,7 +101,7 @@ function processMessageReceivedFromClient(eventInfo) {
 		}
 	}
 	//Send data to crawling backend
-	sendMessageToCrawlingBackend(mesgRecv);
+	//sendMessageToCrawlingBackend(mesgRecv);
 }
 
 function sendMessageToClient(viewId, actionName) {
