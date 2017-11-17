@@ -98,9 +98,9 @@ public class NeoService implements NeoUiActionsService.UiActionsServiceCallback 
         return isNeoUiActionsServiceAvailable() && neoUiActionsServiceWeakReference.get().isServiceRunning();
     }
 
-    public SettableFuture fetchUIActions(String query, String appName) {
+    public SettableFuture fetchUIActions(String query, String appName, boolean forceAppRelaunch) {
         if(isNeoUiActionsServiceAvailable()) {
-            return neoUiActionsServiceWeakReference.get().fetchUIActions(query, appName);
+            return neoUiActionsServiceWeakReference.get().fetchUIActions(query, appName, forceAppRelaunch);
         }
         return null;
     }

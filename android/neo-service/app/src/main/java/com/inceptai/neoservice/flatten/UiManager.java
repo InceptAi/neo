@@ -158,7 +158,10 @@ public class UiManager {
         return flatViewHierarchy;
     }
 
-    public ListenableFuture<ScreenInfo> launchAppAndReturnScreenTitle(Context context, final String appPackageName) {
+    public ListenableFuture<ScreenInfo> launchAppAndReturnScreenTitle(
+            Context context,
+            final String appPackageName,
+            boolean forceAppRelaunch) {
         //Navigate to the app
         if (screenTitleFuture != null && !screenTitleFuture.isDone()) {
             return screenTitleFuture;
@@ -166,7 +169,7 @@ public class UiManager {
         screenTitleFuture = SettableFuture.create();
         boolean isCurrentScreenForTargetPackage =
                 flatViewHierarchy.checkIfCurrentScreenBelongsToPackage(appPackageName);
-        if (isCurrentScreenForTargetPackage) {
+        if (isCurrentScreenForTargetPackage && !forceAppRelaunch) {
             //already on target screen, set the future here.
             screenTitleFuture.set(flatViewHierarchy.findCurrentScreenInfo());
         } else {

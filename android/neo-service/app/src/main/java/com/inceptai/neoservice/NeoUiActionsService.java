@@ -271,6 +271,7 @@ public class NeoUiActionsService extends AccessibilityService implements
         if (actionDetailsList != null && !actionDetailsList.isEmpty()) {
             uiActionResultSettableFuture.set(uiManager.takeUIAction(actionDetailsList.get(0), query, packageName));
         } else {
+            //No actions available -- now launch the app and try again.
             uiActionResultSettableFuture.set(new UIActionResult(UIActionResult.UIActionResultCodes.NO_ACTIONS_AVAILABLE, query, packageName));
         }
     }
@@ -400,7 +401,7 @@ public class NeoUiActionsService extends AccessibilityService implements
     }
 
     //Public functions for uiActions callback from the app
-    public SettableFuture fetchUIActions(final String query, final String appName) {
+    public SettableFuture fetchUIActions(final String query, final String appName, final boolean forceAppRelaunch) {
         final String packageName = Utils.findPackageNameForApp(getApplicationContext(), appName);
         UIActionResult uiActionResult = new UIActionResult(query, packageName);
 
@@ -445,7 +446,7 @@ public class NeoUiActionsService extends AccessibilityService implements
 
 
         lastPackageNameForTransition = packageName;
-        screenTransitionFuture = uiManager.launchAppAndReturnScreenTitle(getApplicationContext(), packageName);
+        screenTransitionFuture = uiManager.launchAppAndReturnScreenTitle(getApplicationContext(), packageName, forceAppRelaunch);
         screenTransitionFuture.addListener(new Runnable() {
             @Override
             public void run() {
@@ -453,7 +454,11 @@ public class NeoUiActionsService extends AccessibilityService implements
                     lastPackageNameForTransition = Utils.EMPTY_STRING;
                     ScreenInfo latestScreenInfo = screenTransitionFuture.get();
                     if (latestScreenInfo != null && !latestScreenInfo.isEmpty()) {
-                        uiActionController.fetchUIActions(packageName.toLowerCase(), latestScreenInfo.getTitle(), appVersion, versionCode, query);
+                        uiActionController.fetchUIActions(
+                                packageName.toLowerCase(),
+                                latestScreenInfo.getTitle(),
+                                latestScreenInfo.getScreenType(),
+                                appVersion, versionCode, query);
                     }
                 } catch (InterruptedException | ExecutionException | CancellationException e) {
                     e.printStackTrace(System.out);

@@ -97,7 +97,8 @@ public class UIActionController implements Callback<ActionResponse> {
 //    }
 
     public void fetchUIActions(String packageName, String startingScreenTitle,
-                               String versionName, String versionCode, String query) {
+                               String startingScreenType, String versionName,
+                               String versionCode, String query) {
         //TODO: Check if this works.
         if (!requestInFlight.compareAndSet(false, true)) {
             if (uiActionControllerCallback != null) {
@@ -111,6 +112,7 @@ public class UIActionController implements Callback<ActionResponse> {
         if (!Utils.nullOrEmpty(query) && !Utils.nullOrEmpty(startingScreenTitle)) {
             options.put("query", query);
             options.put("title", startingScreenTitle);
+            options.put("type", startingScreenType);
         }
         call = uiActionsAPI.getUIActions(packageName, Utils.gson.toJson(deviceInfo), versionName, versionCode,  options);
         packageNameForRequest = packageName;
