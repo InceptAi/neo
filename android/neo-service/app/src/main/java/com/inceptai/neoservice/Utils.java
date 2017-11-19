@@ -311,6 +311,29 @@ public class Utils {
         return input.replaceAll("[^\\w\\s]","").trim().toLowerCase();
     }
 
+    private static List<AccessibilityNodeInfo> searchAccessibilityNodeInfoByTextAggressive(String inputText,
+                                                                                           AccessibilityNodeInfo accessibilityNodeInfo,
+                                                                                           boolean includeParent) {
+        if (accessibilityNodeInfo == null) {
+            return new ArrayList<>();
+        }
+
+        List<AccessibilityNodeInfo> accessibilityNodeInfoListToReturn = new ArrayList<>();
+        accessibilityNodeInfoListToReturn = searchAccessibilityNodeInfoByText(inputText, accessibilityNodeInfo);
+
+        if (accessibilityNodeInfoListToReturn != null && !accessibilityNodeInfoListToReturn.isEmpty()) {
+            return accessibilityNodeInfoListToReturn;
+        }
+
+        if (includeParent &&
+                accessibilityNodeInfo.getParent() != null &&
+                accessibilityNodeInfo.getParent().getClassName() != null &&
+                FlatViewUtils.isLinearRelativeOrFrameLayout(accessibilityNodeInfo.getParent().getClassName().toString())) {
+            accessibilityNodeInfoListToReturn = searchAccessibilityNodeInfoByText(inputText, accessibilityNodeInfo.getParent());
+        }
+        return accessibilityNodeInfoListToReturn;
+    }
+
     private static List<AccessibilityNodeInfo> searchAccessibilityNodeInfoByText(String inputText, AccessibilityNodeInfo accessibilityNodeInfo) {
         if (accessibilityNodeInfo == null) {
             return new ArrayList<>();
@@ -375,17 +398,22 @@ public class Utils {
         return nodesWithKeyWord;
     }
 
-    private static List<AccessibilityNodeInfo> searchForKeywordAndClassName(String keyWord,
-                                                                            AccessibilityNodeInfo rootNodeInfo) {
+    private static HashMap<String, AccessibilityNodeInfo> searchForKeyword(String keyWord,
+                                                                           List<AccessibilityNodeInfo> accessibilityNodeInfoList) {
 
-        List<AccessibilityNodeInfo> matchingNodes = new ArrayList<>();
+        HashMap<String, AccessibilityNodeInfo> matchingNodes = new HashMap<>();
         List<String> wordsToMatch = Arrays.asList(keyWord.split(MULTIPLE_WORD_MATCH_DELIMITER));
-        for (String word: wordsToMatch) {
-            List<String> translatedWords = Utils.getWordsForAccessibilitySearch(word);
-            //For matching both Wi-Fi and WiFi
-            for (String translatedWord: translatedWords) {
-                matchingNodes.addAll(searchAccessibilityNodeInfoByText(translatedWord, rootNodeInfo));
-                //matchingNodes.addAll(rootNodeInfo.findAccessibilityNodeInfosByText(translatedWord));
+        for (AccessibilityNodeInfo accessibilityNodeInfo: accessibilityNodeInfoList) {
+            for (String word: wordsToMatch) {
+                List<String> translatedWords = Utils.getWordsForAccessibilitySearch(word);
+                //For matching both Wi-Fi and WiFi
+                for (String translatedWord: translatedWords) {
+                    List<AccessibilityNodeInfo> matchingList = searchAccessibilityNodeInfoByTextAggressive(translatedWord, accessibilityNodeInfo, true);
+                    for (AccessibilityNodeInfo matchingNode: matchingList) {
+                        matchingNodes.put(String.valueOf(matchingNode.hashCode()), matchingNode);
+                    }
+                    //matchingNodes.addAll(rootNodeInfo.findAccessibilityNodeInfosByText(translatedWord));
+                }
             }
         }
         return matchingNodes;
@@ -431,7 +459,7 @@ public class Utils {
 
     }
 
-    public static AccessibilityNodeInfo findUIElement(List<String> elementClassNames,
+    public static AccessibilityNodeInfo findUIElementOld(List<String> elementClassNames,
                                                       String elementPackageName,
                                                       List<String> keyWords,
                                                       AccessibilityNodeInfo nodeInfo,
@@ -453,6 +481,60 @@ public class Utils {
                 break;
             }
             accessibilityNodeInfoListToSearch = new ArrayList<>(candidateNodes.values());
+        }
+
+        if(candidateNodes.size() == 1) {
+            List<AccessibilityNodeInfo> finalMatchingInfo = new ArrayList<>(candidateNodes.values());
+            AccessibilityNodeInfo finalMatch = finalMatchingInfo.get(0);
+            if (finalMatch.getPackageName().equals(elementPackageName)) {
+                return finalMatch;
+            }
+        } else if (candidateNodes.size() > 1) {
+            //Find the best matching one, match the keywords string sorted with the node string
+            double bestMatchingMetric = 0;
+            AccessibilityNodeInfo accessibilityNodeInfoToReturn = null;
+            for (AccessibilityNodeInfo finalMatchInfo: candidateNodes.values()) {
+                //Find the string for this node -- text + child text -- sorted and separated by spaces
+                double matchingMetric = getMatchingMetricForKeywordsWithRegex(keyWords, finalMatchInfo);
+                if (matchingMetric > bestMatchingMetric) {
+                    accessibilityNodeInfoToReturn = finalMatchInfo;
+                    bestMatchingMetric = matchingMetric;
+                }
+            }
+            return accessibilityNodeInfoToReturn;
+        }
+        return null;
+    }
+
+    public static AccessibilityNodeInfo findUIElement(List<String> elementClassNames,
+                                                      String elementPackageName,
+                                                      List<String> keyWords,
+                                                      AccessibilityNodeInfo nodeInfo,
+                                                      boolean isClickable) {
+        if (keyWords == null || nodeInfo == null) {
+            return null;
+        }
+        //TODO: FIX this -- search should begin at root node
+        HashMap<String, AccessibilityNodeInfo> candidateNodes = new HashMap<>();
+        List<AccessibilityNodeInfo> accessibilityNodeInfoListToSearch = new ArrayList<>();
+        accessibilityNodeInfoListToSearch.add(nodeInfo);
+        //First search for all keywords till we hit 1 candidate node.
+        for (String keyWord: keyWords) {
+            //Need to recycle the views
+            if (Utils.nullOrEmpty(keyWord)) {
+                continue;
+            }
+            candidateNodes = searchForKeyword(keyWord, accessibilityNodeInfoListToSearch);
+            //candidateNodes = searchForKeywordAndClassName(keyWord, elementClassNames, accessibilityNodeInfoListToSearch, isClickable);
+            if (candidateNodes.size() <= 1) {
+                break;
+            }
+            accessibilityNodeInfoListToSearch = new ArrayList<>(candidateNodes.values());
+        }
+
+        //Now match the classname to filter
+        if (!candidateNodes.isEmpty()) {
+            candidateNodes = searchForClassNames(new ArrayList<>(candidateNodes.values()), elementClassNames, isClickable);
         }
 
         if(candidateNodes.size() == 1) {

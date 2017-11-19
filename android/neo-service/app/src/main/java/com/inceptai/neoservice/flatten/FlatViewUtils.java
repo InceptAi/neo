@@ -76,7 +76,13 @@ public class FlatViewUtils {
     }
 
     public static boolean isLinearRelativeOrFrameLayout(FlatView flatView) {
-        String className = flatView.getClassName();
+        return isLinearRelativeOrFrameLayout(flatView.getClassName());
+    }
+
+    public static boolean isLinearRelativeOrFrameLayout(String className) {
+        if (Utils.nullOrEmpty(className)) {
+            return false;
+        }
         return LINEAR_LAYOUT_CLASSNAME.equals(className) || RELATIVE_LAYOUT_CLASSNAME.equals(className) || FRAME_LAYOUT_CLASSNAME.equals(className);
     }
 
