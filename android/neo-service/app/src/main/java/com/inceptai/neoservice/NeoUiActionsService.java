@@ -416,13 +416,11 @@ public class NeoUiActionsService extends AccessibilityService implements
         }
 
         if (uiActionResultSettableFuture != null && !uiActionResultSettableFuture.isDone()) {
-            if (!Utils.nullOrEmpty(lastPackageNameForTransition) && !packageName.equalsIgnoreCase(lastPackageNameForTransition)) {
-                SettableFuture<UIActionResult> settableFutureToReturn = SettableFuture.create();
-                uiActionResult.setStatus(UIActionResult.UIActionResultCodes.WAITING_FOR_PREVIOUS_UIACTION_TO_FINISH);
-                settableFutureToReturn.set(uiActionResult);
-                return settableFutureToReturn;
-            } else {
+            if (packageName.equalsIgnoreCase(lastPackageNameForTransition)) {
                 return uiActionResultSettableFuture;
+            } else {
+                //Cancel the last one
+                uiActionResultSettableFuture.cancel(true);
             }
         }
 

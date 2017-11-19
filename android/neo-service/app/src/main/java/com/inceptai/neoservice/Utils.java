@@ -266,13 +266,13 @@ public class Utils {
     }
 
 
-    private static HashMap<String, AccessibilityNodeInfo> searchForKeyword(String keyWord,
-                                                                           List<String> matchingClassNames,
-                                                                           List<AccessibilityNodeInfo> accessibilityNodeInfoList,
-                                                                           boolean isClickable) {
+    private static HashMap<String, AccessibilityNodeInfo> searchForKeywordAndClassName(String keyWord,
+                                                                                       List<String> matchingClassNames,
+                                                                                       List<AccessibilityNodeInfo> accessibilityNodeInfoList,
+                                                                                       boolean isClickable) {
         HashMap<String, AccessibilityNodeInfo> overallCandidates = new HashMap<>();
         for (AccessibilityNodeInfo accessibilityNodeInfo: accessibilityNodeInfoList) {
-            HashMap<String, AccessibilityNodeInfo> candidates = searchForKeyword(keyWord,
+            HashMap<String, AccessibilityNodeInfo> candidates = searchForKeywordAndClassName(keyWord,
                     matchingClassNames, accessibilityNodeInfo, isClickable);
             overallCandidates.putAll(candidates);
         }
@@ -334,10 +334,10 @@ public class Utils {
         return accessibilityNodeInfoList;
     }
 
-    private static HashMap<String, AccessibilityNodeInfo> searchForKeyword(String keyWord,
-                                                                           List<String> matchingClassNames,
-                                                                           AccessibilityNodeInfo rootNodeInfo,
-                                                                           boolean isClickable) {
+    private static HashMap<String, AccessibilityNodeInfo> searchForKeywordAndClassName(String keyWord,
+                                                                                       List<String> matchingClassNames,
+                                                                                       AccessibilityNodeInfo rootNodeInfo,
+                                                                                       boolean isClickable) {
 
         List<AccessibilityNodeInfo> matchingNodes = new ArrayList<>();
         List<String> wordsToMatch = Arrays.asList(keyWord.split(MULTIPLE_WORD_MATCH_DELIMITER));
@@ -348,13 +348,13 @@ public class Utils {
                 matchingNodes.addAll(searchAccessibilityNodeInfoByText(translatedWord, rootNodeInfo));
                 //matchingNodes.addAll(rootNodeInfo.findAccessibilityNodeInfosByText(translatedWord));
             }
-            //matchingNodes.addAll(rootNodeInfo.findAccessibilityNodeInfosByText(translateWordForAccessibilitySearch(word)));
         }
         HashMap<String, AccessibilityNodeInfo> nodesWithKeyWord = new HashMap<>();
         for (AccessibilityNodeInfo currentNode: matchingNodes) {
             if ((!isClickable || currentNode.isClickable()) && matchNodeInfoWithGivenClassNames(currentNode, matchingClassNames)) {
                 nodesWithKeyWord.put(String.valueOf(currentNode.hashCode()),currentNode);
             } else {
+                //Search for parent, child or siblings
                 AccessibilityNodeInfo parentMatch = findFirstParentWithTargetClassNames(currentNode, matchingClassNames, isClickable);
                 if (parentMatch != null) {
                     nodesWithKeyWord.put(String.valueOf(parentMatch.hashCode()), parentMatch);
@@ -363,11 +363,62 @@ public class Utils {
                     AccessibilityNodeInfo childMatch = findFirstChildWithGivenClassNames(currentNode, matchingClassNames, isClickable);
                     if (childMatch != null) {
                         nodesWithKeyWord.put(String.valueOf(childMatch.hashCode()), childMatch);
+                    } else {
+                        AccessibilityNodeInfo siblingMatch = findFirstSiblingWithGivenClassNames(currentNode, matchingClassNames, isClickable);
+                        if (siblingMatch != null) {
+                            nodesWithKeyWord.put(String.valueOf(siblingMatch.hashCode()), siblingMatch);
+                        }
                     }
                 }
             }
         }
         return nodesWithKeyWord;
+    }
+
+    private static List<AccessibilityNodeInfo> searchForKeywordAndClassName(String keyWord,
+                                                                            AccessibilityNodeInfo rootNodeInfo) {
+
+        List<AccessibilityNodeInfo> matchingNodes = new ArrayList<>();
+        List<String> wordsToMatch = Arrays.asList(keyWord.split(MULTIPLE_WORD_MATCH_DELIMITER));
+        for (String word: wordsToMatch) {
+            List<String> translatedWords = Utils.getWordsForAccessibilitySearch(word);
+            //For matching both Wi-Fi and WiFi
+            for (String translatedWord: translatedWords) {
+                matchingNodes.addAll(searchAccessibilityNodeInfoByText(translatedWord, rootNodeInfo));
+                //matchingNodes.addAll(rootNodeInfo.findAccessibilityNodeInfosByText(translatedWord));
+            }
+        }
+        return matchingNodes;
+    }
+
+    private static HashMap<String, AccessibilityNodeInfo> searchForClassNames(List<AccessibilityNodeInfo> matchingNodes,
+                                                                              List<String> matchingClassNames,
+                                                                              boolean isClickable) {
+
+        HashMap<String, AccessibilityNodeInfo> nodesWithMatchingClassNames = new HashMap<>();
+        for (AccessibilityNodeInfo currentNode: matchingNodes) {
+            if ((!isClickable || currentNode.isClickable()) && matchNodeInfoWithGivenClassNames(currentNode, matchingClassNames)) {
+                nodesWithMatchingClassNames.put(String.valueOf(currentNode.hashCode()),currentNode);
+            } else {
+                //Search for parent, child or siblings
+                AccessibilityNodeInfo parentMatch = findFirstParentWithTargetClassNames(currentNode, matchingClassNames, isClickable);
+                if (parentMatch != null) {
+                    nodesWithMatchingClassNames.put(String.valueOf(parentMatch.hashCode()), parentMatch);
+                } else {
+                    //We couldn't find suitable parent, look for suitable child
+                    AccessibilityNodeInfo childMatch = findFirstChildWithGivenClassNames(currentNode, matchingClassNames, isClickable);
+                    if (childMatch != null) {
+                        nodesWithMatchingClassNames.put(String.valueOf(childMatch.hashCode()), childMatch);
+                    } else {
+                        AccessibilityNodeInfo siblingMatch = findFirstSiblingWithGivenClassNames(currentNode, matchingClassNames, isClickable);
+                        if (siblingMatch != null) {
+                            nodesWithMatchingClassNames.put(String.valueOf(siblingMatch.hashCode()), siblingMatch);
+                        }
+                    }
+                }
+            }
+        }
+        return nodesWithMatchingClassNames;
     }
 
     public static AccessibilityNodeInfo findUIElement(String elementClassName,
@@ -397,7 +448,7 @@ public class Utils {
             if (Utils.nullOrEmpty(keyWord)) {
                 continue;
             }
-            candidateNodes = searchForKeyword(keyWord, elementClassNames, accessibilityNodeInfoListToSearch, isClickable);
+            candidateNodes = searchForKeywordAndClassName(keyWord, elementClassNames, accessibilityNodeInfoListToSearch, isClickable);
             if (candidateNodes.size() <= 1) {
                 break;
             }
@@ -638,6 +689,22 @@ public class Utils {
 
         return bestNodeSoFar;
     }
+
+    public static AccessibilityNodeInfo findFirstSiblingWithGivenClassNames(AccessibilityNodeInfo accessibilityNodeInfo,
+                                                                            List<String> classNames,
+                                                                            boolean isClickable) {
+        if (accessibilityNodeInfo == null) {
+            return null;
+        }
+
+        AccessibilityNodeInfo parentInfo = accessibilityNodeInfo.getParent();
+        if (parentInfo == null) {
+            return null;
+        }
+
+        return findFirstChildWithGivenClassNames(parentInfo, classNames, isClickable);
+    }
+
 
     public static AccessibilityNodeInfo findFirstChildWithGivenClassNames(AccessibilityNodeInfo accessibilityNodeInfo,
                                                                           List<String> classNames,

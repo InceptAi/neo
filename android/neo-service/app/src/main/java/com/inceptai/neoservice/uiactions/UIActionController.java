@@ -132,8 +132,8 @@ public class UIActionController implements Callback<ActionResponse> {
             if (uiActionControllerCallback != null) {
                 uiActionControllerCallback.onUIActionDetails(actionDetailsList, queryForRequest, packageNameForRequest);
             }
-        } else if (response.errorBody() != null){
-            Log.e("RETROFIT", response.errorBody().toString());
+        } else {
+                Log.e("RETROFIT", response.errorBody() != null ? response.errorBody().toString() : Utils.EMPTY_STRING );
             if (uiActionControllerCallback != null) {
                 uiActionControllerCallback.onUIActionError(UIActionResult.UIActionResultCodes.SERVER_ERROR, queryForRequest, packageNameForRequest);
             }
