@@ -46,10 +46,11 @@ public class NeoService implements NeoUiActionsService.UiActionsServiceCallback 
         checkInWithNeoUiActionsService();
     }
 
-    public void startService() {
+    public void startService(boolean enableStreaming) {
         Intent intent = new Intent(context, NeoUiActionsService.class);
         intent.putExtra(NeoUiActionsService.UUID_INTENT_PARAM, userUuid);
         intent.putExtra(NeoUiActionsService.SERVER_ADDRESS, neoServerAddress);
+        intent.putExtra(NeoUiActionsService.STREAMING_ENABLED, enableStreaming);
         context.startService(intent);
     }
 
@@ -101,8 +102,14 @@ public class NeoService implements NeoUiActionsService.UiActionsServiceCallback 
     public SettableFuture fetchUIActions(String query, String appName, boolean forceAppRelaunch) {
         if(isNeoUiActionsServiceAvailable()) {
             return neoUiActionsServiceWeakReference.get().fetchUIActions(query, appName, forceAppRelaunch);
+        } else {
+            SettableFuture<UIActionResult> settableFuture = SettableFuture.create();
+            settableFuture.set(new UIActionResult(
+                    UIActionResult.UIActionResultCodes.ACCESSIBILITY_STREAMING_UNAVAILABLE,
+                    query,
+                    appName));
+            return settableFuture;
         }
-        return null;
     }
 
 

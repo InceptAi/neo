@@ -49,6 +49,8 @@ public class NeoUiActionsService extends AccessibilityService implements
         UIActionController.UIActionControllerCallback {
     public static final String UUID_INTENT_PARAM = "UUID";
     public static final String SERVER_ADDRESS = "SERVER_ADDRESS";
+    public static final String STREAMING_ENABLED = "STREAMING_ENABLED";
+
 
     private static final String TAG = Utils.TAG;
     private static final String DEFAULT_SERVER_IP = "dobby1743.duckdns.org";
@@ -163,10 +165,11 @@ public class NeoUiActionsService extends AccessibilityService implements
             // should stream UI events to the server at this point even if its disable.
             userUuid = intent.getExtras().getString(UUID_INTENT_PARAM);
             serverAddress = intent.getExtras().getString(SERVER_ADDRESS);
-            saveUiStreaming(true /* enabled */);
+            boolean enableUIStreaming = intent.getExtras().getBoolean(STREAMING_ENABLED);
+            saveUiStreaming(enableUIStreaming /* enabled */);
         }
 
-        if (!isAccessibilityPermissionGranted()) {
+        if (!isAccessibilityPermissionGranted(this)) {
             if (uiActionsServiceCallback != null) {
                 uiActionsServiceCallback.onRequestAccessibiltySettings();
             } else {
@@ -405,6 +408,13 @@ public class NeoUiActionsService extends AccessibilityService implements
         final String packageName = Utils.findPackageNameForApp(getApplicationContext(), appName);
         UIActionResult uiActionResult = new UIActionResult(query, packageName);
 
+        if (!isAccessibilityPermissionGranted(this)) {
+            SettableFuture<UIActionResult> settableFutureToReturn = SettableFuture.create();
+            uiActionResult.setStatus(UIActionResult.UIActionResultCodes.ACCESSIBILITY_PERMISSION_DENIED);
+            settableFutureToReturn.set(uiActionResult);
+            return settableFutureToReturn;
+        }
+
         if (uiActionResultSettableFuture != null && !uiActionResultSettableFuture.isDone()) {
             if (!Utils.nullOrEmpty(lastPackageNameForTransition) && !packageName.equalsIgnoreCase(lastPackageNameForTransition)) {
                 SettableFuture<UIActionResult> settableFutureToReturn = SettableFuture.create();
@@ -430,13 +440,6 @@ public class NeoUiActionsService extends AccessibilityService implements
         final String appVersion = Utils.findAppVersionForPackageName(getApplicationContext(), packageName);
         final String versionCode = Utils.findVersionCodeForPackageName(getApplicationContext(), packageName);
 
-        //Launch the application with packageName
-        //TODO -- launch from recents or home screen
-        //TODO make sure we never come here
-        if (screenTransitionFuture != null && !screenTransitionFuture.isDone()) {
-            Log.d(TAG, "In fetchUIActions, should never come here");
-            return uiActionResultSettableFuture; //already in progress for the right screen transition, return true since already enqueued.
-        }
 
         if (uiManager == null) {
             uiActionResult.setStatus(UIActionResult.UIActionResultCodes.UI_MANAGER_UNINITIALIZED);
@@ -535,11 +538,11 @@ public class NeoUiActionsService extends AccessibilityService implements
         return Utils.readSharedSetting(this, PREF_UI_STREAMING_ENABLED, false);
     }
 
-    private boolean isAccessibilityPermissionGranted() {
+    public static boolean isAccessibilityPermissionGranted(Context context) {
         int accessibilityEnabled = 0;
         try {
             accessibilityEnabled = Settings.Secure.getInt(
-                    this.getApplicationContext().getContentResolver(),
+                    context.getApplicationContext().getContentResolver(),
                     android.provider.Settings.Secure.ACCESSIBILITY_ENABLED);
         } catch (Settings.SettingNotFoundException e) {
             Log.e(Utils.TAG, "Accessibility settings not found !");
@@ -547,8 +550,8 @@ public class NeoUiActionsService extends AccessibilityService implements
 
         if (accessibilityEnabled != 1) return false;
 
-        String pkgClassName = this.getPackageName() + "/" + NeoUiActionsService.class.getCanonicalName();
-        String enabledServices = Settings.Secure.getString(this.getContentResolver(), Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES);
+        String pkgClassName = context.getPackageName() + "/" + NeoUiActionsService.class.getCanonicalName();
+        String enabledServices = Settings.Secure.getString(context.getContentResolver(), Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES);
         if (!Utils.nullOrEmpty(enabledServices)) {
             for (String value : enabledServices.split(":")) {
                 if (pkgClassName.equals(value)) {

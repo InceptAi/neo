@@ -883,5 +883,4 @@ public class Utils {
         return new DeviceInfo(manufacturer, model, release, sdk, hardware, product);
     }
 
-
 }

@@ -168,7 +168,7 @@ public class UiManager {
         }
         screenTitleFuture = SettableFuture.create();
         boolean isCurrentScreenForTargetPackage =
-                flatViewHierarchy.checkIfCurrentScreenBelongsToPackage(appPackageName);
+                flatViewHierarchy != null && flatViewHierarchy.checkIfCurrentScreenBelongsToPackage(appPackageName);
         if (isCurrentScreenForTargetPackage && !forceAppRelaunch) {
             //already on target screen, set the future here.
             screenTitleFuture.set(flatViewHierarchy.findCurrentScreenInfo());
@@ -194,9 +194,15 @@ public class UiManager {
     private void checkScreenTransitionState(String appPackageName) {
         if (flatViewHierarchy != null) {
             ScreenInfo appScreenInfo = flatViewHierarchy.findLatestScreenInfoForPackageName(appPackageName);
-            if (screenTitleFuture != null && !screenTitleFuture.isDone()) {
-                screenTitleFuture.set(appScreenInfo);
+            if (screenTitleFuture != null) {
+                if (!screenTitleFuture.isDone()) {
+                    screenTitleFuture.set(appScreenInfo);
+                } else {
+                    screenTitleFuture.set(new ScreenInfo());
+                }
             }
+        } else {
+            screenTitleFuture.set(new ScreenInfo());
         }
     }
 

@@ -34,6 +34,8 @@ public class UIActionResult {
             UIActionResultCodes.FINAL_ACTION_SCREEN_MATCH_FAILED,
             UIActionResultCodes.FINAL_ACTION_SUCCESS_CONDITION_NOT_MET,
             UIActionResultCodes.NON_TOGGLE_ACTION,
+            UIActionResultCodes.ACCESSIBILITY_PERMISSION_DENIED,
+            UIActionResultCodes.ACCESSIBILITY_STREAMING_UNAVAILABLE,
             UIActionResultCodes.GENERAL_ERROR,
             UIActionResultCodes.UNKNOWN,})
     public @interface UIActionResultCodes {
@@ -54,6 +56,8 @@ public class UIActionResult {
         int FINAL_ACTION_SCREEN_MATCH_FAILED = 14;
         int FINAL_ACTION_SUCCESS_CONDITION_NOT_MET = 15;
         int NON_TOGGLE_ACTION = 16;
+        int ACCESSIBILITY_PERMISSION_DENIED = 17;
+        int ACCESSIBILITY_STREAMING_UNAVAILABLE = 18;
         int GENERAL_ERROR = 99;
         int UNKNOWN = 100;
     }
@@ -96,6 +100,10 @@ public class UIActionResult {
                 return "FINAL_ACTION_SUCCESS_CONDITION_NOT_MET";
             case UIActionResultCodes.NON_TOGGLE_ACTION:
                 return "NON_TOGGLE_ACTION";
+            case UIActionResultCodes.ACCESSIBILITY_PERMISSION_DENIED:
+                return "ACCESSIBILITY_PERMISSION_DENIED";
+            case UIActionResultCodes.ACCESSIBILITY_STREAMING_UNAVAILABLE:
+                return "ACCESSIBILITY_STREAMING_UNAVAILABLE";
             default:
                 return "UNKNOWN";
         }
@@ -156,6 +164,12 @@ public class UIActionResult {
     }
 
     public static boolean isSuccessful(UIActionResult actionResult) {
-        return  (actionResult != null && actionResult.getStatus() == SUCCESS);
+        return  (actionResult != null && actionResult.getStatus() == UIActionResultCodes.SUCCESS);
+    }
+
+    public static boolean failedDueToAccessibilityIssue(UIActionResult actionResult) {
+        return  (actionResult != null &&
+                (actionResult.getStatus() == UIActionResultCodes.ACCESSIBILITY_PERMISSION_DENIED ||
+                        actionResult.getStatus() == UIActionResultCodes.ACCESSIBILITY_STREAMING_UNAVAILABLE));
     }
 }
