@@ -46,11 +46,11 @@ public class NeoService implements NeoUiActionsService.UiActionsServiceCallback 
         checkInWithNeoUiActionsService();
     }
 
-    public void startService(boolean enableStreaming) {
+    public void startService(boolean enableOverlay) {
         Intent intent = new Intent(context, NeoUiActionsService.class);
         intent.putExtra(NeoUiActionsService.UUID_INTENT_PARAM, userUuid);
         intent.putExtra(NeoUiActionsService.SERVER_ADDRESS, neoServerAddress);
-        intent.putExtra(NeoUiActionsService.STREAMING_ENABLED, enableStreaming);
+        intent.putExtra(NeoUiActionsService.OVERLAY_ENABLED, enableOverlay);
         context.startService(intent);
     }
 
@@ -99,15 +99,46 @@ public class NeoService implements NeoUiActionsService.UiActionsServiceCallback 
         return isNeoUiActionsServiceAvailable() && neoUiActionsServiceWeakReference.get().isServiceRunning();
     }
 
-    public SettableFuture fetchUIActions(String query, String appName, boolean forceAppRelaunch) {
+    public SettableFuture fetchAndPerformTopUIAction(String query, String appName, boolean forceAppRelaunch) {
         if(isNeoUiActionsServiceAvailable()) {
-            return neoUiActionsServiceWeakReference.get().fetchUIActions(query, appName, forceAppRelaunch);
+            return neoUiActionsServiceWeakReference.get().fetchAndPerformTopUIAction(query, appName, forceAppRelaunch);
         } else {
             SettableFuture<UIActionResult> settableFuture = SettableFuture.create();
             settableFuture.set(new UIActionResult(
-                    UIActionResult.UIActionResultCodes.ACCESSIBILITY_STREAMING_UNAVAILABLE,
+                    UIActionResult.UIActionResultCodes.ACCESSIBILITY_SERVICE_UNAVAILABLE,
                     query,
                     appName));
+            return settableFuture;
+        }
+    }
+
+
+    public SettableFuture<UIActionResult> fetchUIActionForSettings(String query) {
+        if(isNeoUiActionsServiceAvailable()) {
+            return neoUiActionsServiceWeakReference.get().fetchUIActionsForSettings(query);
+        } else {
+            SettableFuture<UIActionResult> settableFuture = SettableFuture.create();
+            settableFuture.set(new UIActionResult(
+                    UIActionResult.UIActionResultCodes.ACCESSIBILITY_SERVICE_UNAVAILABLE,
+                    query,
+                    Utils.SETTINGS_PACKAGE_NAME));
+            return settableFuture;
+        }
+    }
+
+    public SettableFuture performUIActionForSettings(ActionDetails actionDetails) {
+        if(isNeoUiActionsServiceAvailable()) {
+            return neoUiActionsServiceWeakReference.get().performUIAction(actionDetails, Utils.SETTINGS_PACKAGE_NAME);
+        } else {
+            SettableFuture<UIActionResult> settableFuture = SettableFuture.create();
+            String query = Utils.EMPTY_STRING;
+            if (actionDetails != null && actionDetails.getActionIdentifier() != null) {
+                query = actionDetails.getActionIdentifier().getActionDescription();
+            }
+            settableFuture.set(new UIActionResult(
+                    UIActionResult.UIActionResultCodes.ACCESSIBILITY_SERVICE_UNAVAILABLE,
+                    query,
+                    Utils.SETTINGS_PACKAGE_NAME));
             return settableFuture;
         }
     }

@@ -1,12 +1,13 @@
 package com.inceptai.neoservice.uiactions;
 
-import android.support.annotation.Nullable;
 import android.util.Log;
 
+import com.google.common.util.concurrent.SettableFuture;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.inceptai.neopojos.ActionDetails;
 import com.inceptai.neopojos.ActionResponse;
+import com.inceptai.neopojos.CrawlingInput;
 import com.inceptai.neopojos.DeviceInfo;
 import com.inceptai.neoservice.Utils;
 
@@ -14,7 +15,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.Executor;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -29,22 +29,13 @@ import retrofit2.converter.gson.GsonConverterFactory;
 public class UIActionController implements Callback<ActionResponse> {
     private static final String BASE_URL = "http://dobby1743.duckdns.org:9000/";
     private UIActionsAPI uiActionsAPI;
-    private AtomicBoolean requestInFlight;
-    private UIActionControllerCallback uiActionControllerCallback;
     private DeviceInfo deviceInfo;
     private Executor uiActionServerCallExecutor;
     private String packageNameForRequest;
     private String queryForRequest;
+    private SettableFuture<UIActionResult> serverCallFuture;
 
-    public interface UIActionControllerCallback {
-        void onUIActionDetails(List<ActionDetails> actionDetailsList, String query, String packageName);
-        void onUIActionError(int errorCode, String query, String packageName);
-    }
-
-    public UIActionController(@Nullable UIActionControllerCallback uiActionControllerCallback,
-                              Executor uiActionServerCallExecutor) {
-        requestInFlight = new AtomicBoolean(false);
-        this.uiActionControllerCallback = uiActionControllerCallback;
+    public UIActionController(Executor uiActionServerCallExecutor) {
         this.uiActionServerCallExecutor = uiActionServerCallExecutor;
 
         Gson gson = new GsonBuilder()
@@ -63,50 +54,26 @@ public class UIActionController implements Callback<ActionResponse> {
         queryForRequest = Utils.EMPTY_STRING;
     }
 
-//    public void fetchUIActionsForSettings(String query) {
-//        if (requestInFlight) {
-//            return;
-//        }
-//        Call<ActionResponse> call;
-//        if (!Utils.nullOrEmpty(query)) {
-//            if (deviceInfo != null && !Utils.nullOrEmpty(Utils.gson.toJson(deviceInfo))) {
-//                call = uiActionsAPI.getUIActionsForDeviceAndQuery(Utils.gson.toJson(deviceInfo), query);
-//            } else {
-//                call = uiActionsAPI.getUIActionsForQuery(query);
-//            }
-//        }  else {
-//            call = uiActionsAPI.getAllUIActions();
-//        }
-//        call.enqueue(this);
-//        requestInFlight = true;
-//    }
-//
-//    public void fetchUIActionsForApps(String packageName, String startingScreenTitle, String query) {
-//        if (requestInFlight) {
-//            return;
-//        }
-//        Call<ActionResponse> call;
-//        if (!Utils.nullOrEmpty(query) && !Utils.nullOrEmpty(startingScreenTitle)) {
-//            HashMap<String, String> options  = new HashMap<>();
-//            options.put("query", query);
-//            options.put("title", startingScreenTitle);
-//            call = uiActionsAPI.getUIAppActionsForQuery(packageName, options);
-//            call.enqueue(this);
-//            requestInFlight = true;
-//        }
-//    }
-
-    public void fetchUIActions(String packageName, String startingScreenTitle,
-                               String startingScreenType, String versionName,
-                               String versionCode, String query) {
+    public SettableFuture<UIActionResult> fetchUIActionsForSettings(String versionName, String versionCode, String query) {
         //TODO: Check if this works.
-        if (!requestInFlight.compareAndSet(false, true)) {
-            if (uiActionControllerCallback != null) {
-                uiActionControllerCallback.onUIActionError(UIActionResult.UIActionResultCodes.ANOTHER_SERVER_REQUEST_IN_FLIGHT, query, packageName);
-            }
-            return;
+        String packageName = Utils.SETTINGS_PACKAGE_NAME;
+        String startingScreenTitle = Utils.SETTINGS_BASE_TITLE;
+        String startingScreenType = CrawlingInput.FULL_SCREEN_MODE;
+        return fetchUIActions(packageName, startingScreenTitle, startingScreenType, versionName, versionCode, query);
+    }
+
+
+    public SettableFuture<UIActionResult> fetchUIActions(String packageName, String startingScreenTitle,
+                                         String startingScreenType, String versionName,
+                                         String versionCode, String query) {
+        //TODO: Check if this works.
+        if (serverCallFuture != null && !serverCallFuture.isDone()) {
+            serverCallFuture.set(new UIActionResult(UIActionResult.UIActionResultCodes.ANOTHER_SERVER_REQUEST_IN_FLIGHT, query, packageName));
+            return serverCallFuture;
         }
-        //requestInFlight.set(true);
+
+        serverCallFuture = SettableFuture.create();
+
         Call<ActionResponse> call;
         HashMap<String, String> options  = new HashMap<>();
         if (!Utils.nullOrEmpty(query) && !Utils.nullOrEmpty(startingScreenTitle)) {
@@ -118,36 +85,38 @@ public class UIActionController implements Callback<ActionResponse> {
         packageNameForRequest = packageName;
         queryForRequest = query;
         call.enqueue(this);
+        return serverCallFuture;
     }
+
 
     @Override
     public void onResponse(Call<ActionResponse> call, Response<ActionResponse> response) {
         //Switch thread here -- this is returned by default on main thread
+        UIActionResult uiActionResult = new UIActionResult(UIActionResult.UIActionResultCodes.UNKNOWN, queryForRequest, packageNameForRequest);
         if(response.isSuccessful()) {
             ActionResponse actionResponse = response.body();
             List<ActionDetails> actionDetailsList = new ArrayList<>();
             if (actionResponse != null) {
                 actionDetailsList = actionResponse.getActionList();
             }
-            if (uiActionControllerCallback != null) {
-                uiActionControllerCallback.onUIActionDetails(actionDetailsList, queryForRequest, packageNameForRequest);
-            }
+            uiActionResult.setStatus(UIActionResult.UIActionResultCodes.SUCCESS);
+            uiActionResult.setPayload(actionDetailsList);
         } else {
-                Log.e("RETROFIT", response.errorBody() != null ? response.errorBody().toString() : Utils.EMPTY_STRING );
-            if (uiActionControllerCallback != null) {
-                uiActionControllerCallback.onUIActionError(UIActionResult.UIActionResultCodes.SERVER_ERROR, queryForRequest, packageNameForRequest);
-            }
+            Log.e("RETROFIT", response.errorBody() != null ? response.errorBody().toString() : Utils.EMPTY_STRING );
+            uiActionResult.setStatus(UIActionResult.UIActionResultCodes.SERVER_ERROR);
+            uiActionResult.setPayload(response.code());
         }
-        requestInFlight.set(false);
+        serverCallFuture.set(uiActionResult);
     }
 
     @Override
     public void onFailure(Call<ActionResponse> call, Throwable t) {
         //Switch thread here -- this is returned by default on main thread
-        requestInFlight.set(false);
         t.printStackTrace();
-        if (uiActionControllerCallback != null) {
-            uiActionControllerCallback.onUIActionError(UIActionResult.UIActionResultCodes.SERVER_TIMED_OUT, queryForRequest, packageNameForRequest);
-        }
+        UIActionResult uiActionResult = new UIActionResult(
+                UIActionResult.UIActionResultCodes.SERVER_TIMED_OUT,
+                queryForRequest,
+                packageNameForRequest);
+        serverCallFuture.set(uiActionResult);
     }
 }

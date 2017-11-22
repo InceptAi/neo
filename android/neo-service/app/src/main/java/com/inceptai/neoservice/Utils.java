@@ -43,6 +43,9 @@ public class Utils {
     public static final String WIFI_ACCESSIBILITY = "Wi" + WIFI_ACCESSIBILITY_HYPHEN + "Fi";
     public static final String SETTINGS_APP_NAME = "SETTINGS";
     public static final String SETTINGS_PACKAGE_NAME = "com.android.settings";
+    public static final String SETTINGS_BASE_TITLE = "settings";
+    public static final String SETTINGS_BASE_SUBTITLE = "wireless networks";
+
 
 
     public static Gson gson = new Gson();
@@ -1030,6 +1033,13 @@ public class Utils {
         String hardware = Utils.getOrDefaultFromStringHashMap(deviceInfoMap, "hardware");
         String product = Utils.getOrDefaultFromStringHashMap(deviceInfoMap, "product");
         return new DeviceInfo(manufacturer, model, release, sdk, hardware, product);
+    }
+
+    public boolean isSettingsPackage(String packageName) {
+        if (Utils.nullOrEmpty(packageName)) {
+            return false;
+        }
+        return packageName.equalsIgnoreCase(SETTINGS_PACKAGE_NAME);
     }
 
 }

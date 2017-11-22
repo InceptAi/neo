@@ -28,7 +28,9 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.ExecutionException;
 
+import static com.inceptai.neoservice.Utils.SETTINGS_PACKAGE_NAME;
 import static com.inceptai.neoservice.Utils.TAG;
 import static com.inceptai.neoservice.Utils.findUIElement;
 
@@ -56,7 +58,7 @@ public class UiManager {
     private static final int SCROLL_TRANSITION_DELAY_MS = 400;
     private static final boolean SCROLL_WHEN_FINDING_UI_ELEMENTS_FOR_ACTION = true;
     private static final boolean SCROLL_WHEN_FINDING_UI_SCREEN_FOR_NAVIGATION = true;
-
+    private static final boolean CHECK_CONDITION_AFTER_CLICKING = false;
 
     private NeoUiActionsService neoService;
     private NeoThreadpool neoThreadpool;
@@ -206,7 +208,7 @@ public class UiManager {
         }
     }
 
-    public UIActionResult takeUIAction(ActionDetails actionDetails, String query, String packageName) {
+    public UIActionResult takeUIAction(ActionDetails actionDetails, Context context, String query, String packageName) {
         UIActionResult uiActionResult = new UIActionResult(query, packageName);
         Log.d(TAG, "SCROLLNEO In UIManager, takeActions");
         if (actionDetails == null || actionDetails.getActionIdentifier() == null) {
@@ -230,6 +232,18 @@ public class UiManager {
         }
 
         //Perform navigation
+        //first check if the current package name is same as packageNameForAction, if not launch the package
+        if (packageName.equalsIgnoreCase(SETTINGS_PACKAGE_NAME)) {
+            //Settings package -- launch settings
+            ListenableFuture<ScreenInfo> screenLaunchFuture = launchAppAndReturnScreenTitle(context, packageName, true);
+            try {
+                screenLaunchFuture.get();
+            } catch (InterruptedException|ExecutionException e) {
+                uiActionResult.setStatus(UIActionResult.UIActionResultCodes.EXCEPTION_WHILE_WAITING_FOR_SCREEN_TRANSITION);
+                return uiActionResult;
+            }
+        }
+
         boolean navigationResult = navigateToScreen(actionDetails.getNavigationIdentifierList());
         if (!navigationResult) {
             uiActionResult.setStatus(UIActionResult.UIActionResultCodes.NAVIGATION_FAILURE);
@@ -336,6 +350,11 @@ public class UiManager {
             return uiActionResult;
         }
 
+        if (!elementInfo.isCheckable() && !elementInfo.isClickable()) {
+            uiActionResult.setStatus(UIActionResult.UIActionResultCodes.ACTION_NOT_PERMITTED);
+            return uiActionResult;
+        }
+
         //Check success condition to see if we even need to take an action
         if (Utils.checkCondition(textAfterSuccessfulAction, elementInfo)) {
             uiActionResult.setStatus(UIActionResult.UIActionResultCodes.SUCCESS);
@@ -346,32 +365,33 @@ public class UiManager {
         waitForScreenTransition();
 
         //Refresh the views --
-        //currentScreenInfo.refresh(); //TODO switch to API level 18 so we can just use refresh
-        currentNodeInfo.recycle();
-        currentNodeInfo = neoService.getRootInActiveWindow();
-        if (currentNodeInfo == null) {
-            uiActionResult.setStatus(UIActionResult.UIActionResultCodes.ROOT_WINDOW_IS_NULL);
-            return uiActionResult;
+        if (CHECK_CONDITION_AFTER_CLICKING) {
+            //currentScreenInfo.refresh(); //TODO switch to API level 18 so we can just use refresh
+
+            currentNodeInfo.recycle();
+            currentNodeInfo = neoService.getRootInActiveWindow();
+            if (currentNodeInfo == null) {
+                uiActionResult.setStatus(UIActionResult.UIActionResultCodes.ROOT_WINDOW_IS_NULL);
+                return uiActionResult;
+            }
+            //elementInfo = findUIElement(elementClassName, elementPackageName, keyWordList, currentNodeInfo, true);
+            elementInfo = findUIElementWithScrolling(
+                    elementClassName,
+                    elementPackageName,
+                    keyWordList,
+                    currentNodeInfo,
+                    true,
+                    SCROLL_WHEN_FINDING_UI_ELEMENTS_FOR_ACTION);
+
+            //Check condition again to see if it worked
+            // TODO make sure the element info is still relevant -- do we need to get another one ?
+            //Unable to get success condition even after taking the action -- mark as failure\
+            if (!Utils.checkCondition(textAfterSuccessfulAction, elementInfo)) {
+                uiActionResult.setStatus(UIActionResult.UIActionResultCodes.FINAL_ACTION_SUCCESS_CONDITION_NOT_MET);
+                return uiActionResult;
+            }
         }
-        //elementInfo = findUIElement(elementClassName, elementPackageName, keyWordList, currentNodeInfo, true);
-        elementInfo = findUIElementWithScrolling(
-                elementClassName,
-                elementPackageName,
-                keyWordList,
-                currentNodeInfo,
-                true,
-                SCROLL_WHEN_FINDING_UI_ELEMENTS_FOR_ACTION);
-
-        //Check condition again to see if it worked
-        // TODO make sure the element info is still relevant -- do we need to get another one ?
-        //Unable to get success condition even after taking the action -- mark as failure\
-        if (!Utils.checkCondition(textAfterSuccessfulAction, elementInfo)) {
-            uiActionResult.setStatus(UIActionResult.UIActionResultCodes.FINAL_ACTION_SUCCESS_CONDITION_NOT_MET);
-            return uiActionResult;
-        }
-
         currentNodeInfo.recycle();
-
         uiActionResult.setStatus(UIActionResult.UIActionResultCodes.SUCCESS);
         return uiActionResult;
     }

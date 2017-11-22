@@ -45,11 +45,10 @@ import static android.view.View.GONE;
  */
 
 public class NeoUiActionsService extends AccessibilityService implements
-        ExpertChannel.ExpertChannelCallback,
-        UIActionController.UIActionControllerCallback {
+        ExpertChannel.ExpertChannelCallback {
     public static final String UUID_INTENT_PARAM = "UUID";
     public static final String SERVER_ADDRESS = "SERVER_ADDRESS";
-    public static final String STREAMING_ENABLED = "STREAMING_ENABLED";
+    public static final String OVERLAY_ENABLED = "OVERLAY_ENABLED";
 
 
     private static final String TAG = Utils.TAG;
@@ -68,12 +67,16 @@ public class NeoUiActionsService extends AccessibilityService implements
     private DisplayMetrics primaryDisplayMetrics;
     private ExpertChannel expertChannel;
     private NeoThreadpool neoThreadpool;
-    private SettableFuture<UIActionResult> uiActionResultSettableFuture;
+    private SettableFuture<UIActionResult> fetchAndPerformTopUIActionResultFuture;
+    private SettableFuture<UIActionResult> takeUIActionResultFuture;
+    private SettableFuture<UIActionResult> fetchUIActionsForSettingsFuture;
+
 
     private UiManager uiManager;
 
     private NeoCustomIntentReceiver intentReceiver;
     private boolean isOverlayVisible;
+    private boolean isOverlayEnabled;
     private String userUuid;
     private String serverAddress;
     private UiActionsServiceCallback uiActionsServiceCallback;
@@ -106,6 +109,7 @@ public class NeoUiActionsService extends AccessibilityService implements
 
         handler = new Handler();
         isOverlayVisible = false;
+        isOverlayEnabled = false;
         overlayView = View.inflate(getBaseContext(), R.layout.persistent_bottom_sheet, null);
         neoOverlayLayout = new LayoutParams(
                 LayoutParams.MATCH_PARENT /* width */,
@@ -129,7 +133,7 @@ public class NeoUiActionsService extends AccessibilityService implements
         neoThreadpool = new NeoThreadpool();
 
         //UI Actions
-        uiActionController = new UIActionController(this, neoThreadpool.getExecutor());
+        uiActionController = new UIActionController(neoThreadpool.getExecutor());
 
         handler = new Handler();
         intentReceiver = new NeoCustomIntentReceiver();
@@ -165,8 +169,8 @@ public class NeoUiActionsService extends AccessibilityService implements
             // should stream UI events to the server at this point even if its disable.
             userUuid = intent.getExtras().getString(UUID_INTENT_PARAM);
             serverAddress = intent.getExtras().getString(SERVER_ADDRESS);
-            boolean enableUIStreaming = intent.getExtras().getBoolean(STREAMING_ENABLED);
-            saveUiStreaming(enableUIStreaming /* enabled */);
+            isOverlayEnabled = intent.getExtras().getBoolean(OVERLAY_ENABLED);
+            saveUiStreaming(true /* enabled */);
         }
 
         if (!isAccessibilityPermissionGranted(this)) {
@@ -262,30 +266,58 @@ public class NeoUiActionsService extends AccessibilityService implements
         }
     }
 
+    public void forceHideOverlay() {
+        isOverlayEnabled = false;
+        hideOverlay();
+    }
+
+    public void forceShowOverlay() {
+        isOverlayEnabled = true;
+        hideOverlay();
+        resetOverlayViews();
+        showOverlay();
+    }
 
     //UIActionController callback
-    @Override
-    public void onUIActionDetails(List<ActionDetails> actionDetailsList, String query, String packageName) {
-        Log.d(TAG, "In NeoUIActionsService, onUIActionDetails -- got actions");
-        if (uiActionsServiceCallback != null) {
-            uiActionsServiceCallback.onUIActionsAvailable(actionDetailsList);
+    public void waitForResultsFromServer(final SettableFuture<UIActionResult> serverResultsFuture) {
+        if (serverResultsFuture == null) {
+            return;
         }
-        //TODO -- remove the hack for only settings action
-        if (actionDetailsList != null && !actionDetailsList.isEmpty()) {
-            uiActionResultSettableFuture.set(uiManager.takeUIAction(actionDetailsList.get(0), query, packageName));
-        } else {
-            //No actions available -- now launch the app and try again.
-            uiActionResultSettableFuture.set(new UIActionResult(UIActionResult.UIActionResultCodes.NO_ACTIONS_AVAILABLE, query, packageName));
-        }
+        serverResultsFuture.addListener(new Runnable() {
+            @Override
+            public void run() {
+                UIActionResult serverResult;
+                try {
+                    serverResult = serverResultsFuture.get();
+                    if (UIActionResult.isSuccessful(serverResult)) {
+                        Log.d(TAG, "In NeoUIActionsService, onUIActionDetails -- got actions");
+                        List<ActionDetails> actionDetailsList = (List<ActionDetails>)serverResult.getPayload();
+                        if (uiActionsServiceCallback != null) {
+                            uiActionsServiceCallback.onUIActionsAvailable(actionDetailsList);
+                        }
+                        if (actionDetailsList != null && !actionDetailsList.isEmpty()) {
+                            forceShowOverlay();
+                            fetchAndPerformTopUIActionResultFuture.set(uiManager.takeUIAction(actionDetailsList.get(0), getApplicationContext(), serverResult.getQuery(), serverResult.getPackageName()));
+                            forceHideOverlay();
+                        } else {
+                            //No actions available -- now launch the app and try again.
+                            fetchAndPerformTopUIActionResultFuture.set(new UIActionResult(UIActionResult.UIActionResultCodes.NO_ACTIONS_AVAILABLE, serverResult.getQuery(), serverResult.getPackageName()));
+                        }
+                    } else {
+                        fetchAndPerformTopUIActionResultFuture.set(serverResult);
+                    }
+                } catch (InterruptedException|ExecutionException e) {
+                    fetchAndPerformTopUIActionResultFuture.set(new UIActionResult(UIActionResult.UIActionResultCodes.SERVER_ERROR));
+                }
+            }
+        }, neoThreadpool.getExecutor());
     }
 
-    @Override
-    public void onUIActionError(int errorCode, String query, String packageName) {
-        Log.d("UIAction", "Error in fetching actions : " + UIActionResult.actionResultCodeToString(errorCode));
-        uiActionResultSettableFuture.set(new UIActionResult(errorCode, query, packageName));
-    }
 
     private void showOverlay() {
+        if (isOverlayVisible) {
+            return;
+        }
         if (windowManager != null) {
             overlayView.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_STABLE
                     | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
@@ -300,6 +332,9 @@ public class NeoUiActionsService extends AccessibilityService implements
     }
 
     private void hideOverlay() {
+        if (!isOverlayVisible) {
+            return;
+        }
         if (windowManager != null && overlayView != null) {
             windowManager.removeView(overlayView);
         }
@@ -404,7 +439,88 @@ public class NeoUiActionsService extends AccessibilityService implements
     }
 
     //Public functions for uiActions callback from the app
-    public SettableFuture fetchUIActions(final String query, final String appName, final boolean forceAppRelaunch) {
+    public SettableFuture performUIAction(final ActionDetails actionDetails, String packageName) {
+        if (actionDetails == null ||
+                actionDetails.getActionIdentifier() == null ||
+                actionDetails.getActionIdentifier().getScreenIdentifier() == null) {
+            SettableFuture<UIActionResult> settableFuture = SettableFuture.create();
+            settableFuture.set(new UIActionResult(UIActionResult.UIActionResultCodes.INVALID_ACTION_DETAILS));
+            return settableFuture;
+        }
+
+        final String packageNameForTransition = Utils.nullOrEmpty(packageName) ? actionDetails.getActionIdentifier().getScreenIdentifier().getPackageName() : packageName;
+        final String queryDescription = actionDetails.getActionIdentifier().getActionDescription();
+
+        UIActionResult uiActionResult = new UIActionResult(queryDescription, packageNameForTransition);
+
+        if (!isAccessibilityPermissionGranted(this)) {
+            SettableFuture<UIActionResult> settableFutureToReturn = SettableFuture.create();
+            uiActionResult.setStatus(UIActionResult.UIActionResultCodes.ACCESSIBILITY_PERMISSION_DENIED);
+            settableFutureToReturn.set(uiActionResult);
+            return settableFutureToReturn;
+        }
+
+        if (takeUIActionResultFuture != null && !takeUIActionResultFuture.isDone()) {
+            if (packageNameForTransition.equalsIgnoreCase(lastPackageNameForTransition)) {
+                return takeUIActionResultFuture;
+            } else {
+                //Cancel the last one
+                takeUIActionResultFuture.cancel(true);
+            }
+        }
+
+        takeUIActionResultFuture = SettableFuture.create();
+
+        if (Utils.nullOrEmpty(packageNameForTransition)) {
+            //Didn't find the application
+            Log.e(TAG, "In fetchAndPerformTopUIAction, can't find package for app: " + packageNameForTransition);
+            uiActionResult.setStatus(UIActionResult.UIActionResultCodes.INVALID_APP_NAME);
+            takeUIActionResultFuture.set(uiActionResult);
+            return takeUIActionResultFuture;
+        }
+
+
+        if (uiManager == null) {
+            uiActionResult.setStatus(UIActionResult.UIActionResultCodes.UI_MANAGER_UNINITIALIZED);
+            takeUIActionResultFuture.set(uiActionResult);
+            return takeUIActionResultFuture;
+        }
+
+        //Start overlay here
+        forceShowOverlay();
+        neoThreadpool.getExecutorService().execute(new Runnable() {
+            @Override
+            public void run() {
+                forceHideOverlay();
+                takeUIActionResultFuture.set(uiManager.takeUIAction(actionDetails, getApplicationContext(), queryDescription, packageNameForTransition));
+            }
+        });
+
+        return takeUIActionResultFuture;
+    }
+
+    public SettableFuture performUIAction(final ActionDetails actionDetails) {
+        return performUIAction(actionDetails, Utils.EMPTY_STRING);
+    }
+
+    public SettableFuture<UIActionResult> fetchUIActionsForSettings(final String query) {
+        final String packageName = Utils.SETTINGS_PACKAGE_NAME;
+
+        UIActionResult uiActionResult = new UIActionResult(query, packageName);
+
+        if (fetchUIActionsForSettingsFuture != null && !fetchUIActionsForSettingsFuture.isDone()) {
+            return fetchUIActionsForSettingsFuture;
+        }
+
+        final String appVersion = Utils.findAppVersionForPackageName(getApplicationContext(), packageName);
+        final String versionCode = Utils.findVersionCodeForPackageName(getApplicationContext(), packageName);
+
+        fetchUIActionsForSettingsFuture = uiActionController.fetchUIActionsForSettings(appVersion, versionCode, query);
+        return fetchUIActionsForSettingsFuture;
+    }
+
+
+    public SettableFuture fetchAndPerformTopUIAction(final String query, final String appName, final boolean forceAppRelaunch) {
         final String packageName = Utils.findPackageNameForApp(getApplicationContext(), appName);
         UIActionResult uiActionResult = new UIActionResult(query, packageName);
 
@@ -415,23 +531,23 @@ public class NeoUiActionsService extends AccessibilityService implements
             return settableFutureToReturn;
         }
 
-        if (uiActionResultSettableFuture != null && !uiActionResultSettableFuture.isDone()) {
+        if (fetchAndPerformTopUIActionResultFuture != null && !fetchAndPerformTopUIActionResultFuture.isDone()) {
             if (packageName.equalsIgnoreCase(lastPackageNameForTransition)) {
-                return uiActionResultSettableFuture;
+                return fetchAndPerformTopUIActionResultFuture;
             } else {
                 //Cancel the last one
-                uiActionResultSettableFuture.cancel(true);
+                fetchAndPerformTopUIActionResultFuture.cancel(true);
             }
         }
 
-        uiActionResultSettableFuture = SettableFuture.create();
+        fetchAndPerformTopUIActionResultFuture = SettableFuture.create();
 
         if (Utils.nullOrEmpty(packageName)) {
             //Didn't find the application
-            Log.e(TAG, "In fetchUIActions, can't find package for app: " + appName);
+            Log.e(TAG, "In fetchAndPerformTopUIAction, can't find package for app: " + appName);
             uiActionResult.setStatus(UIActionResult.UIActionResultCodes.INVALID_APP_NAME);
-            uiActionResultSettableFuture.set(uiActionResult);
-            return uiActionResultSettableFuture;
+            fetchAndPerformTopUIActionResultFuture.set(uiActionResult);
+            return fetchAndPerformTopUIActionResultFuture;
         }
 
 
@@ -441,8 +557,8 @@ public class NeoUiActionsService extends AccessibilityService implements
 
         if (uiManager == null) {
             uiActionResult.setStatus(UIActionResult.UIActionResultCodes.UI_MANAGER_UNINITIALIZED);
-            uiActionResultSettableFuture.set(uiActionResult);
-            return uiActionResultSettableFuture;
+            fetchAndPerformTopUIActionResultFuture.set(uiActionResult);
+            return fetchAndPerformTopUIActionResultFuture;
         }
 
 
@@ -455,20 +571,21 @@ public class NeoUiActionsService extends AccessibilityService implements
                     lastPackageNameForTransition = Utils.EMPTY_STRING;
                     ScreenInfo latestScreenInfo = screenTransitionFuture.get();
                     if (latestScreenInfo != null && !latestScreenInfo.isEmpty()) {
-                        uiActionController.fetchUIActions(
+                        SettableFuture<UIActionResult> fetchActionsFuture = uiActionController.fetchUIActions(
                                 packageName.toLowerCase(),
                                 latestScreenInfo.getTitle(),
                                 latestScreenInfo.getScreenType(),
                                 appVersion, versionCode, query);
+                        waitForResultsFromServer(fetchActionsFuture);
                     }
                 } catch (InterruptedException | ExecutionException | CancellationException e) {
                     e.printStackTrace(System.out);
                     Log.e(TAG, "Exception while waiting for screen future" + e.toString());
-                    uiActionResultSettableFuture.set(new UIActionResult(UIActionResult.UIActionResultCodes.EXCEPTION_WHILE_WAITING_FOR_SCREEN_TRANSITION, query, packageName));
+                    fetchAndPerformTopUIActionResultFuture.set(new UIActionResult(UIActionResult.UIActionResultCodes.EXCEPTION_WHILE_WAITING_FOR_SCREEN_TRANSITION, query, packageName));
                 }
             }
         }, neoThreadpool.getExecutor());
-        return uiActionResultSettableFuture;
+        return fetchAndPerformTopUIActionResultFuture;
     }
 
 
@@ -498,7 +615,7 @@ public class NeoUiActionsService extends AccessibilityService implements
         expertChannel = new ExpertChannel(getServerAddress(), this, this, neoThreadpool, userUuid);
         expertChannel.connect();
         uiManager = new UiManager(this, neoThreadpool, primaryDisplayMetrics);
-        if (overlayPermissionGranted) {
+        if (overlayPermissionGranted && isOverlayEnabled) {
             resetOverlayViews();
             showOverlay();
         }
