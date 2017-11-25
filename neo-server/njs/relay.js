@@ -113,7 +113,11 @@ function createActiveSession(uuid) {
 
 function onClientIncomingMessage(message) {
     // 1. Parse the user UUID.
-    var parsedMessage = undefined;
+	
+	//Send this message to crawling backend
+	sendMessageToCrawlingBackend(message);
+    
+	var parsedMessage = undefined;
     try {
         parsedMessage = JSON.parse(message);
     } catch (e) {
@@ -151,8 +155,6 @@ function onClientIncomingMessage(message) {
             client.send(message);
         }
     });
-	//Send this message to crawling backend
-	sendMessageToCrawlingBackend(message);
     // NOT DOING 4. Start a thread to serve this request. Use clusters library.
 }
 

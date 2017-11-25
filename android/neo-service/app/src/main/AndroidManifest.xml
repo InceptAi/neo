@@ -13,6 +13,8 @@
         android:name=".NeoUiActionsService"
         android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
         android:enabled="true"
+        android:summary="This app uses Accessibility Service to help people take complex touch actions on their phones"
+        android:description="@string/neo_service_desc"
         android:exported="true">
         <intent-filter>
             <action android:name="android.accessibilityservice.AccessibilityService" />

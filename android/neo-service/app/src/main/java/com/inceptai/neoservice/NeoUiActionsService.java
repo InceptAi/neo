@@ -315,6 +315,9 @@ public class NeoUiActionsService extends AccessibilityService implements
 
 
     private void showOverlay() {
+        if (!overlayPermissionGranted) {
+            return;
+        }
         if (isOverlayVisible) {
             return;
         }
@@ -491,8 +494,8 @@ public class NeoUiActionsService extends AccessibilityService implements
         neoThreadpool.getExecutorService().execute(new Runnable() {
             @Override
             public void run() {
-                forceHideOverlay();
                 takeUIActionResultFuture.set(uiManager.takeUIAction(actionDetails, getApplicationContext(), queryDescription, packageNameForTransition));
+                forceHideOverlay();
             }
         });
 
