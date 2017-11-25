@@ -139,4 +139,9 @@ public class ScreenInfo {
         Log.d(TAG, "ScreenInfo, in isTransitionScreen, checking title: " +  titleToMatch);
         return titleToMatch.equalsIgnoreCase("loading") || subTitleToMatch.equalsIgnoreCase("loading");
     }
+
+
+    public boolean isPartialScreen() {
+        return screenType != null && screenType.equalsIgnoreCase(PARTIAL_SCREEN_MODE);
+    }
 }

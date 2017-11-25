@@ -59,7 +59,13 @@ public class UiManager {
     private static final boolean SCROLL_WHEN_FINDING_UI_ELEMENTS_FOR_ACTION = true;
     private static final boolean SCROLL_WHEN_FINDING_UI_SCREEN_FOR_NAVIGATION = true;
     private static final boolean CHECK_CONDITION_AFTER_CLICKING = false;
-
+    private static final boolean FINALIZE_ACTION_BY_ACTING_ON_PARTIAL_SCREEN = true;
+    public static final String[] FINALIZE_ACTION_KEYWORDS = {
+            "ok",
+            "sure",
+            "agree",
+            "yes"
+    };
     private NeoUiActionsService neoService;
     private NeoThreadpool neoThreadpool;
     private DisplayMetrics primaryDisplayMetrics;
@@ -363,6 +369,34 @@ public class UiManager {
 
         performHierarchicalClick(elementInfo);
         waitForScreenTransition();
+
+        //Never leave the user on a partial screen -- see if the new screen on transition is partial -- click on yes/agree/ok button
+        if (FINALIZE_ACTION_BY_ACTING_ON_PARTIAL_SCREEN) {
+            currentNodeInfo.recycle();
+            currentNodeInfo = neoService.getRootInActiveWindow();
+            ScreenInfo currentScreenInfo = Utils.findScreenInfoForNode(currentNodeInfo, Utils.EMPTY_STRING, Utils.EMPTY_STRING, primaryDisplayMetrics);
+            //if current node is partial
+            if (currentScreenInfo.isPartialScreen() && !currentScreenInfo.getTitle().equalsIgnoreCase(screenTitle)) {
+                for (String finalizeCommand: FINALIZE_ACTION_KEYWORDS) {
+                    elementInfo = findUIElementWithScrolling(
+                            Arrays.asList(
+                                    FlatViewUtils.BUTTON_CLASS_NAME,
+                                    FlatViewUtils.IMAGE_BUTTON_CLASSNAME,
+                                    FlatViewUtils.TEXT_VIEW_CLASSNAME,
+                                    FlatViewUtils.IMAGE_VIEW_CLASSNAME),
+                            elementPackageName,
+                            Arrays.asList(finalizeCommand),
+                            currentNodeInfo,
+                            true,
+                            false);
+                    if (elementInfo != null) {
+                        performHierarchicalClick(elementInfo);
+                        waitForScreenTransition();
+                        break;
+                    }
+                }
+            }
+        }
 
         //Refresh the views --
         if (CHECK_CONDITION_AFTER_CLICKING) {
