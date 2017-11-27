@@ -54,7 +54,7 @@ public class UiManager {
     private static final String SUBMIT_ACTION = "SUBMIT";
 
     //Delay
-    private static final int SCREEN_TRANSITION_DELAY_MS = 1000;
+    private static final int SCREEN_TRANSITION_DELAY_MS = 500;
     private static final int SCROLL_TRANSITION_DELAY_MS = 400;
     private static final boolean SCROLL_WHEN_FINDING_UI_ELEMENTS_FOR_ACTION = true;
     private static final boolean SCROLL_WHEN_FINDING_UI_SCREEN_FOR_NAVIGATION = true;
@@ -179,10 +179,12 @@ public class UiManager {
                 flatViewHierarchy != null && flatViewHierarchy.checkIfCurrentScreenBelongsToPackage(appPackageName);
         if (isCurrentScreenForTargetPackage && !forceAppRelaunch) {
             //already on target screen, set the future here.
+            Log.v(TAG, "ESXXX Already on the right app, so returning current screen info: " + flatViewHierarchy.findCurrentScreenInfo().toString());
             screenTitleFuture.set(flatViewHierarchy.findCurrentScreenInfo());
         } else {
             boolean launched = Utils.launchAppIfInstalled(context, appPackageName);
             if (!launched) {
+                Log.v(TAG, "ESXXX Unable to launch app, so empty screen info");
                 screenTitleFuture.set(new ScreenInfo());
             } else {
                 //Wait for screen delay transition and check
@@ -200,16 +202,22 @@ public class UiManager {
 
 
     private void checkScreenTransitionState(String appPackageName) {
+        Log.v(TAG, "ESXXX Coming in checkTransitionState for pkg " + appPackageName);
         if (flatViewHierarchy != null) {
             ScreenInfo appScreenInfo = flatViewHierarchy.findLatestScreenInfoForPackageName(appPackageName);
             if (screenTitleFuture != null) {
-                if (!screenTitleFuture.isDone()) {
+                if (appScreenInfo != null && !screenTitleFuture.isDone()) {
+                    Log.v(TAG, "ESXXX setting screenTitleFuture with info: " +  appScreenInfo.toString() + " pkg: " + appPackageName);
                     screenTitleFuture.set(appScreenInfo);
                 } else {
+                    Log.v(TAG, "ESXXX App screeninfo is " + (appScreenInfo == null ? "null" : "not null"));
+                    Log.v(TAG, "ESXXX Screen title future is  " + (screenTitleFuture.isDone() ? "Done" : "not done"));
+                    Log.v(TAG, "ESXXX Setting screen title future to empty");
                     screenTitleFuture.set(new ScreenInfo());
                 }
             }
         } else {
+            Log.v(TAG, "ESXXX Null flat view hierarchy, so returning empty screen info");
             screenTitleFuture.set(new ScreenInfo());
         }
     }

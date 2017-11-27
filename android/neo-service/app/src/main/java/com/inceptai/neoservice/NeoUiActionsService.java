@@ -59,6 +59,7 @@ public class NeoUiActionsService extends AccessibilityService implements
     private static final String PREF_ACCESSIBILITY_ENABLED = "NeoAccessibilityEnabled";
     private static final boolean SUPRESS_SYSTEM_UI_UPDATES = true;
     private static final String SYSTEM_UI_PACKAGE_NAME = "com.android.systemui";
+    private static final boolean SUPPRESS_NON_SETTINGS_APPS = true;
 
 
     private View overlayView;
@@ -145,7 +146,12 @@ public class NeoUiActionsService extends AccessibilityService implements
     @Override
     public void onAccessibilityEvent(AccessibilityEvent event) {
         Log.i(TAG, "Got event:" + event);
-        if (SUPRESS_SYSTEM_UI_UPDATES && event.getPackageName() != null && event.getPackageName().equals(SYSTEM_UI_PACKAGE_NAME)) {
+        String eventPackageName = event.getPackageName() != null ? event.getPackageName().toString() : Utils.EMPTY_STRING;
+        boolean isSettingsApp = Utils.isSettingsApp(getApplicationContext(), eventPackageName);
+        if (SUPRESS_SYSTEM_UI_UPDATES && eventPackageName.equals(SYSTEM_UI_PACKAGE_NAME)) {
+            return;
+        }
+        if (SUPPRESS_NON_SETTINGS_APPS && !isSettingsApp) {
             return;
         }
         AccessibilityNodeInfo nodeInfo = event.getSource();
@@ -221,11 +227,7 @@ public class NeoUiActionsService extends AccessibilityService implements
     @Override
     protected void onServiceConnected() {
         super.onServiceConnected();
-        if (uiActionsServiceCallback != null) {
-            uiActionsServiceCallback.onServiceReady();
-        }
         serviceRunning = true;
-
         if (isUiStreamingEnabled()) {
             startUiStreaming();
             handler.postDelayed(new Runnable() {
@@ -234,6 +236,9 @@ public class NeoUiActionsService extends AccessibilityService implements
                     refreshFullUi(null, null);
                 }
             }, 4000);
+        }
+        if (uiActionsServiceCallback != null) {
+            uiActionsServiceCallback.onServiceReady();
         }
     }
 
@@ -296,9 +301,9 @@ public class NeoUiActionsService extends AccessibilityService implements
                             uiActionsServiceCallback.onUIActionsAvailable(actionDetailsList);
                         }
                         if (actionDetailsList != null && !actionDetailsList.isEmpty()) {
-                            forceShowOverlay();
+                            //forceShowOverlay();
                             fetchAndPerformTopUIActionResultFuture.set(uiManager.takeUIAction(actionDetailsList.get(0), getApplicationContext(), serverResult.getQuery(), serverResult.getPackageName()));
-                            forceHideOverlay();
+                            //forceHideOverlay();
                         } else {
                             //No actions available -- now launch the app and try again.
                             fetchAndPerformTopUIActionResultFuture.set(new UIActionResult(UIActionResult.UIActionResultCodes.NO_ACTIONS_AVAILABLE, serverResult.getQuery(), serverResult.getPackageName()));
@@ -490,12 +495,12 @@ public class NeoUiActionsService extends AccessibilityService implements
         }
 
         //Start overlay here
-        forceShowOverlay();
+        //forceShowOverlay();
         neoThreadpool.getExecutorService().execute(new Runnable() {
             @Override
             public void run() {
                 takeUIActionResultFuture.set(uiManager.takeUIAction(actionDetails, getApplicationContext(), queryDescription, packageNameForTransition));
-                forceHideOverlay();
+                //forceHideOverlay();
             }
         });
 
@@ -580,6 +585,8 @@ public class NeoUiActionsService extends AccessibilityService implements
                                 latestScreenInfo.getScreenType(),
                                 appVersion, versionCode, query);
                         waitForResultsFromServer(fetchActionsFuture);
+                    } else {
+                        fetchAndPerformTopUIActionResultFuture.set(new UIActionResult(UIActionResult.UIActionResultCodes.APP_LAUNCH_FAILURE, query, packageName));
                     }
                 } catch (InterruptedException | ExecutionException | CancellationException e) {
                     e.printStackTrace(System.out);
@@ -628,9 +635,9 @@ public class NeoUiActionsService extends AccessibilityService implements
         // Save the fact that UI streaming is disabled.
         // Disable UI streaming.
         hideOverlay();
-        saveUiStreaming(false /* disabled */);
-        expertChannelCleanup();
-        uiManagerCleanup();
+//        saveUiStreaming(false /* disabled */);
+//        expertChannelCleanup();
+//        uiManagerCleanup();
     }
 
     private void uiManagerCleanup() {

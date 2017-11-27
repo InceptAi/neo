@@ -967,6 +967,18 @@ public class Utils {
         return String.valueOf(versionCode);
     }
 
+    public static boolean isSettingsApp(Context context, String packageName) {
+        String appVersionName = findAppVersionForPackageName(context, packageName);
+        String releaseName = Utils.createDeviceInfo().getRelease();
+        if (Utils.nullOrEmpty(appVersionName)) {
+            return true;
+        }
+        if (!Utils.nullOrEmpty(releaseName) && releaseName.equalsIgnoreCase(appVersionName)) {
+            return true;
+        }
+        return false;
+    }
+
     private static void launchApp(Context context, String packageName) {
         Intent launchIntentForPackage;
         if (packageName.equalsIgnoreCase(SETTINGS_PACKAGE_NAME)) {

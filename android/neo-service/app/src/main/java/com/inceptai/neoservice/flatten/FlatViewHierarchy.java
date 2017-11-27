@@ -411,28 +411,26 @@ public class FlatViewHierarchy {
             //TODO remove this hack
             newScreenInfo = findAndUpdateScreenInfoFromRootNode(newRootNode, appVersion, versionCode);
             Log.d(TAG, "In update, newRoot ID is " + newRootNode.getWindowId() + " , new screen info is " +  newScreenInfo.toString());
-            if (accessibilityEvent != null) {
-                Log.d(TAG, "In update, accessibility event is " + accessibilityEvent);
-            }
-        }
-        if (newRootNode != null && rootNode != null && newRootNode.getWindowId() != rootNode.getWindowId()) {
-            //TODO update current screen info here to prevent two traversals
-            //ScreenInfo newScreenInfo = findAndUpdateScreenInfoFromRootNode(newRootNode);
-            Log.d(TAG, "In update, new screen info is " + newScreenInfo.toString());
-            if (!newScreenInfo.isEmpty() && !newScreenInfo.isTransitionScreen() && !newScreenInfo.equals(currentScreenInfo)) {
-                Log.d("FVH", "JSONXX updating last node since title changed from " + currentScreenInfo.toString() + " -> " + newScreenInfo.toString());
-                lastScreenInfo = currentScreenInfo;
-                appPackageNameToLatestScreenInfo.put(newScreenInfo.getPackageName(), newScreenInfo);
-                rootWindowChanged.set(true);
-                lastRootWindowId = rootNode.getWindowId();
+            if (rootNode == null || newRootNode.getWindowId() != rootNode.getWindowId())  {
+                //TODO update current screen info here to prevent two traversals
+                //ScreenInfo newScreenInfo = findAndUpdateScreenInfoFromRootNode(newRootNode);
+                Log.d(TAG, "In update, new screen info is " + newScreenInfo.toString());
+                if (!newScreenInfo.isEmpty() && !newScreenInfo.isTransitionScreen() && !newScreenInfo.equals(currentScreenInfo)) {
+                    Log.d("FVH", "JSONXX updating last node since title changed from " + currentScreenInfo.toString() + " -> " + newScreenInfo.toString());
+                    lastScreenInfo = currentScreenInfo;
+                    Log.d("FVH", "ESXX putting new screen info: " + currentScreenInfo.toString() + " for pkg: " + newScreenInfo.getPackageName());
+                    appPackageNameToLatestScreenInfo.put(newScreenInfo.getPackageName(), newScreenInfo);
+                    rootWindowChanged.set(true);
+                    lastRootWindowId = rootNode != null ? rootNode.getWindowId() : -1;
+                } else {
+                    Log.d("FVH", "JSONXX Not updating last screenInfo since newScreenInfo is same as currentScreenInfo: " + currentScreenInfo.toString() + " -> " + newScreenInfo.toString());
+                }
             } else {
-                Log.d("FVH", "JSONXX Not updating last screenInfo since newScreenInfo is same as currentScreenInfo: " + currentScreenInfo.toString() + " -> " + newScreenInfo.toString());
-            }
-        } else {
-            if (newRootNode != null && rootNode != null) {
-                Log.d("FVH", "JSONXX Not updating last node since newRootWindowId is same as OldRootWindowId = " + rootNode.getWindowId());
-            } else {
-                Log.d("FVH", "JSONXX newRootNode is null or rootNode is null");
+                if (rootNode != null) {
+                    Log.d("FVH", "JSONXX Not updating last node since newRootWindowId is same as OldRootWindowId = " + rootNode.getWindowId());
+                } else {
+                    Log.d("FVH", "JSONXX rootNode is null");
+                }
             }
         }
 
